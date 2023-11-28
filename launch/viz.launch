@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<launch>
+  <node type="rviz" name="rvizscan" pkg="rviz" args="-d $(find ergodic_inspection)/rviz/viz.rviz" />
+
+
+</launch>

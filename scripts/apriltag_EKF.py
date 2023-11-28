@@ -1,0 +1,242 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Nov  7 18:40:13 2023
+
+@author: barc
+"""
+import rospy 
+import rospkg
+from sensor_msgs.msg import Image, CameraInfo, PointCloud2
+from nav_msgs.msg import Odometry
+from cv_bridge import CvBridge
+import cv2
+from pupil_apriltags import Detector
+import numpy as np
+from numpy import sin, cos, tan, arctan2
+import message_filters
+import tf
+import time
+from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Point
+np.float = np.float64 
+import ros_numpy
+import threading
+from common_functions import angle_wrapping, v2t
+rospack=rospkg.RosPack()
+
+def get_camera_to_robot_tf():
+    listener=tf.TransformListener()
+    listener.waitForTransform('/base_footprint','/camera_rgb_optical_frame',rospy.Time(), rospy.Duration(4.0))
+    (trans, rot) = listener.lookupTransform('/base_footprint', '/camera_rgb_optical_frame', rospy.Time(0))
+    T_c_to_r=listener.fromTranslationRotation(trans, rot)
+    T_r_to_c=np.linalg.inv(T_c_to_r)
+    return T_c_to_r, T_r_to_c
+    
+class EKF:
+    def __init__(self, node_id):
+        print("initialize")
+        T_c_to_r, T_r_to_c = get_camera_to_robot_tf()
+
+        self.T_c_to_r=T_c_to_r
+        self.T_r_to_c=T_r_to_c
+        self.lock=threading.Lock()
+        camera_info = self.get_message("/camera/rgb/camera_info", CameraInfo)
+        self.K = np.reshape(camera_info.K, (3,3))
+        self.K_inv=np.linalg.inv(self.K)
+        self.mu=np.zeros(3)
+        self.t=time.time()
+        self.marker_pub = rospy.Publisher("/apriltags", Marker, queue_size = 2)
+        self.R=np.eye(2)*0.001
+        self.at_detector = Detector(
+                    families="tag36h11",
+                    quad_decimate=1.0,
+                    quad_sigma=0.0,
+                    refine_edges=1,
+                    decode_sharpening=0.25,
+                    debug=0
+                    )
+        
+        self.reset(node_id)
+
+
+        rospy.Subscriber("/odom", Odometry, self.odom_callback)
+        
+        rgbsub=message_filters.Subscriber("/camera/rgb/image_rect_color", Image)
+        depthsub=message_filters.Subscriber("/camera/depth_registered/image_raw", Image)
+
+        ts = message_filters.ApproximateTimeSynchronizer([rgbsub, depthsub], 10, 0.1, allow_headerless=True)
+        ts.registerCallback(self.camera_callback)
+
+        
+    def reset(self, node_id):
+        self.id=node_id
+        self.mu=np.zeros(3)
+        self.sigma=np.zeros((3,3))
+        self.landmarks={}
+        self.cloud=rospy.wait_for_message("/depth_registered/points",PointCloud2)
+        self.cloud.header.frame_id="node_"+str(node_id)+"_camera"
+        
+    def get_tf(self):
+        return v2t(self.mu[0:3])
+        
+    
+        
+    def get_message(self, topic, msgtype):
+    	try:
+    		data=rospy.wait_for_message(topic,msgtype)
+    		return data 
+    	except rospy.ServiceException as e:
+    		print("Service all failed: %s"%e)
+
+    def odom_callback(self, data):
+        with self.lock:
+            mu=self.mu.copy()
+            t=time.time()
+            dt=t-self.t
+            F=np.zeros((3,mu.shape[0]))
+            F[0:3,0:3]=np.eye(3)
+            u=np.array([data.twist.twist.linear.x, data.twist.twist.angular.z])
+            
+            self.mu[0:3]=self.mu[0:3]+dt*np.asarray([u[0]*cos(mu[2]),
+                                           u[0]*sin(mu[2]),
+                                           u[1]])
+            self.mu[2]=angle_wrapping(self.mu[2])
+            fx=np.eye(mu.shape[0])+F.T@np.asarray([[0,0,-dt*u[0]*sin(mu[2]+dt/2*u[1])], 
+                                                                    [0,0,dt*u[0]*cos(mu[2]+dt/2*u[1])],
+                                                                    [0,0,0]])@F
+                               
+            fu=np.asarray([[dt*cos(mu[2]+1/2*u[1]), -1/2*dt**2*u[0]*sin(mu[2]+dt/2*u[1])],
+                           [dt*sin(mu[2]+1/2*u[1]), 1/2*dt**2*u[0]*cos(mu[2]+dt/2*u[1])],
+                           [0, dt]])
+            
+            self.sigma=(fx)@self.sigma@(fx.T)+F.T@(fu)@self.R@(fu.T)@F
+          
+            self.t=t
+        
+    def detect_apriltag(self,rgb, depth):
+        gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
+        result=self.at_detector.detect(gray)
+        landmarks={}
+        for r in result:
+            xp=r.center[0]
+            yp=r.center[1] 
+            tag_id=r.tag_id
+            rgb=cv2.circle(rgb, (int(xp), int(yp)), 5, (0, 0, 255), -1)
+            z=depth[int(yp), int(xp)]
+            if not np.isnan(z):
+
+                landmarks[tag_id]= {"xp": xp, "yp": yp, "z":z}
+        return landmarks
+    
+        
+
+    def _initialize_new_landmarks(self, landmarks):
+        mu=self.mu.copy()
+        sigma=self.sigma.copy()
+        T=v2t(mu[0:3])@self.T_c_to_r
+        for landmark_id in landmarks:
+            if not landmark_id in self.landmarks.keys():
+                landmark=landmarks[landmark_id]
+                loc=landmark['z']*self.K_inv@np.array([landmark["xp"], landmark["yp"],1])  
+                loc=T@np.hstack((loc,[1]))           
+                loc=loc[0:3]
+                self.landmarks[landmark_id]=mu.shape[0]
+                mu=np.hstack((mu.copy(), loc))
+                sigma_new=np.diag(np.ones(self.sigma.shape[0]+3)*99999999999)
+                sigma_new[0:sigma.shape[0], 0:sigma.shape[0]]=sigma.copy()
+                sigma=sigma_new
+                
+        self.sigma=sigma
+        self.mu=mu
+        
+    def get_jacobian(self,mu, xl, kx):
+        c=cos(mu[2])
+        s=sin(mu[2])
+        
+        jw=np.array([[-c, -s, c*(xl[1]-mu[1]) + s*(mu[0]-xl[0]) , c  , s , 0],
+                     [s , -c, c*(mu[0]-xl[0]) +s *(mu[1]-xl[1]) , -s , c , 0],
+                     [0 , 0 , 0                                 , 0  , 0 , 1]
+                     ])
+        
+        jr=self.T_r_to_c[0:3, 0:3]
+        jc=np.array([[1/kx[2],0 ,-kx[0]/kx[2]**2],
+                     [0,1/kx[2], -kx[1]/kx[2]**2],
+                     [0,0,1]
+                     ])@self.K
+        
+        return jc,jr, jw
+        
+    def _correction(self,features):
+        mu=self.mu.copy()
+        sigma=self.sigma.copy()
+        
+        T_c_to_w=v2t(mu[0:3])@self.T_c_to_r
+        T_w_to_c=np.linalg.inv(T_c_to_w)
+        Q=np.array([[10**2, 0, 0],
+                    [0, 10**2,0,],
+                    [0,0,0.5**2]])
+        for feature_id in features:    
+            feature=features[feature_id]
+            idx=self.landmarks[feature_id]
+            xl=mu[idx:idx+3]
+            
+            x_camera=T_w_to_c@np.concatenate((xl, [1]))
+            kx=self.K@x_camera[0:3]
+            z_bar=np.array([[1/x_camera[2], 0,0],
+                            [0,1/x_camera[2],0],
+                            [0,0,1]])@kx
+                        
+            
+            jc, jr,jw=self.get_jacobian(mu, xl, kx)
+            H=jc@jr@jw
+            F=np.zeros((6,mu.shape[0]))
+            F[0:3,0:3]=np.eye(3)
+            F[3:6, idx:idx+3]=np.eye(3) 
+
+            H=H@F
+    
+            K=sigma@(H.T)@np.linalg.inv((H@sigma@(H.T)+Q))
+            dz=np.array([feature["xp"], feature['yp'], feature['z']])-z_bar
+            mu+=K@(dz)
+            mu[2]=angle_wrapping(mu[2])
+            sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
+            
+        self.mu=mu
+        self.sigma=sigma
+        
+    def camera_callback(self, rgb_msg, depth_msg):
+        with self.lock:
+            bridge = CvBridge()
+            rgb = bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
+            depth = bridge.imgmsg_to_cv2(depth_msg,"32FC1")
+            features=self.detect_apriltag(rgb, depth)
+            
+            self._initialize_new_landmarks(features)
+            self._correction(features)
+            #self.plot_landmarks() 
+            print(self.landmarks)
+
+
+if __name__ == "__main__":
+    rospy.init_node('EKF',anonymous=False)
+    pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
+
+    ekf=EKF(0)
+    br = tf.TransformBroadcaster()
+    rate = rospy.Rate(30) # 10hz
+    while not rospy.is_shutdown():
+        pc_pub.publish(ekf.cloud)
+        br.sendTransform((ekf.mu[0], ekf.mu[1] , 0),
+                        tf.transformations.quaternion_from_euler(0, 0, ekf.mu[2]),
+                        rospy.Time.now(),
+                        "base_footprint",
+                        "pose_node_"+str(ekf.id))
+    
+        br.sendTransform(ekf.T_c_to_r[0:3,3],
+                        tf.transformations.quaternion_from_matrix(ekf.T_c_to_r),
+                        rospy.Time.now(),
+                        "node_"+str(ekf.id)+"_camera",
+                        "pose_node_"+str(ekf.id))
+
+        rate.sleep()
