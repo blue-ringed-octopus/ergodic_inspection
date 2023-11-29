@@ -92,19 +92,20 @@ class Graph_SLAM:
             H=np.zeros((len(x), len(x)))
             b=np.zeros(len(x))
             for edge in edges:
-                i=idx_map[str(edge.node1.id)]
-                j=idx_map[str(edge.node2.id)]
-                omega=edge.omega 
-                Z=edge.Z
-                A,B=self.get_jacobian(x[i:i+3], x[j:j+3], Z)
-                H[i:i+3,i:i+3]+=A.T@omega@A
-                H[j:j+3,j:j+3]+=B.T@omega@B
-                H[i:i+3,j:j+3]+=A.T@omega@B
-                H[j:j+3,i:i+3]+=H[i:i+3,j:j+3].T
-                
-                e=self.error_function(x[i:i+3], x[j:j+3], Z)
-                b[i:i+3]+=A.T@omega@e
-                b[j:j+3]+=B.T@omega@e
+                if edge.tpe=="odom":
+                    i=idx_map[str(edge.node1.id)]
+                    j=idx_map[str(edge.node2.id)]
+                    omega=edge.omega 
+                    Z=edge.Z
+                    A,B=self.get_jacobian(x[i:i+3], x[j:j+3], Z)
+                    H[i:i+3,i:i+3]+=A.T@omega@A
+                    H[j:j+3,j:j+3]+=B.T@omega@B
+                    H[i:i+3,j:j+3]+=A.T@omega@B
+                    H[j:j+3,i:i+3]+=H[i:i+3,j:j+3].T
+                    
+                    e=self.error_function(x[i:i+3], x[j:j+3], Z)
+                    b[i:i+3]+=A.T@omega@e
+                    b[j:j+3]+=B.T@omega@e
                 
             return H,b
         
@@ -333,7 +334,7 @@ class Graph_SLAM:
         self.init_new_features(mu, node_to_origin)
         delta=t2v(np.linalg.inv(v2t(node_x))@v2t(self.mu))
         delta[2]*=2
-        if np.linalg.norm(delta)>=0.5:
+        if np.linalg.norm(delta)>=1.5:
             self._posterior_to_factor(mu, sigma, node_to_origin)
             node_x=self.front_end.nodes[self.current_node_id].mu.copy()
             node_to_origin=v2t(node_x)
@@ -414,7 +415,6 @@ def plot_graph(graph):
     
     pose_marker = get_pose_markers(graph_slam.front_end.pose_nodes)
     feature_marker = get_landmark_markers(graph_slam.front_end.feature_nodes)
-    print(graph_slam.front_end.feature_nodes)
     markerArray.markers=[pose_marker, feature_marker]
     factor_graph_marker_pub.publish(markerArray)
     
@@ -429,9 +429,7 @@ if __name__ == "__main__":
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
 
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
-    # marker = plot_nodes(graph_slam.front_end.pose_nodes)
-    # marker_pub.publish(marker)
-    
+
     rate = rospy.Rate(30) # 10hz
     while not rospy.is_shutdown():
         mu=graph_slam.update()
