@@ -15,7 +15,9 @@ from visualization_msgs.msg import Marker, MarkerArray
 from common_functions import angle_wrapping, v2t, t2v
 from scipy.linalg import solve_triangular
 from scipy.spatial import KDTree
-from numpy import sin, cos
+from numpy import sin, cos, arctan2
+np.set_printoptions(precision=2)
+
 def pose_dist(x1, x2):
     return np.sqrt((x1[0]-x2[0])**2+(x1[1]-x2[1])**2+10*(x1[2]-x2[2])**2)
 
@@ -70,43 +72,61 @@ class Graph_SLAM:
         
         
     class Back_end:
-        def get_feature_jacobian(self):
-            pass
-        
-        def get_jacobian(self, x1, x2, z):
-            z=np.linalg.inv(z)
-            J1=[[z[0,1]*np.sin(x1[2])-z[0,0]*np.cos(x1[2]),-z[0,1]*np.cos(x1[2])-z[0,0]*np.sin(x1[2]),z[0,1]*(x1[0]*np.cos(x1[2])+x1[1]*np.sin(x1[2]))-z[0,0]*(x1[1]*np.cos(x1[2])-x1[0]*np.sin(x1[2]))-x2[0]*(z[0,1]*np.cos(x1[2])+z[0,0]*np.sin(x1[2]))+x2[1]*(z[0,0]*np.cos(x1[2]) - z[0,1]*np.sin(x1[2]))],
-                [z[0,1]*np.cos(x1[2])+z[0,0]*np.sin(x1[2]),z[0,1]*np.sin(x1[2])-z[0,0]*np.cos(x1[2]),z[0,0]*(x1[0]*np.cos(x1[2])+x1[1]*np.sin(x1[2]))+z[0,1]*(x1[1]*np.cos(x1[2])-x1[0]*np.sin(x1[2]))-x2[0]*(z[0,0]*np.cos(x1[2])-z[0,1]*np.sin(x1[2]))-x2[1]*(z[0,1]*np.cos(x1[2]) + z[0,0]*np.sin(x1[2]))],
-                [0,0,-1]]
-         
-         
-            J2=[[z[0,0]*np.cos(x1[2])-z[0,1]*np.sin(x1[2]),z[0,1]*np.cos(x1[2])+z[0,0]*np.sin(x1[2]),0],
-                [-z[0,1]*np.cos(x1[2])-z[0,0]*np.sin(x1[2]),z[0,0]*np.cos(x1[2])-z[0,1]*np.sin(x1[2]),0],
-                [0,0,1]]
+        def get_feature_jacobian(self, x1 ,x2):
+            
+            J1 = np.array([[ cos(x1[2]), sin(x1[2]), x1[1]*cos(x1[2]) - x2[1]*cos(x1[2]) + x2[0]*sin(x1[2]) - x1[0]*sin(x1[2])],
+                           [-sin(x1[2]), cos(x1[2]), x2[0]*cos(x1[2]) - x1[0]*cos(x1[2]) + x2[1]*sin(x1[2]) - x1[1]*sin(x1[2])],
+                           [           0,           0,                                                                   0]])
+ 
+
+            J2 = np.array([[-cos(x1[2]), -sin(x1[2]),  0],
+                           [ sin(x1[2]), -cos(x1[2]),  0],
+                           [           0,            0, -1]])
+            return J1, J2
+    
+        def get_pose_jacobian(self, x1, x2, Z):
+            ztheta=arctan2(Z[1,0], Z[0,0])
+            
+            J1=np.array([[-cos(x1[2] + ztheta), -sin(x1[2] + ztheta), x2[1]*cos(x1[2] + ztheta) - x1[1]*cos(x1[2] + ztheta) + x1[0]*sin(x1[2] + ztheta) - x2[0]*sin(x1[2] + ztheta)],
+                         [ sin(x1[2] + ztheta), -cos(x1[2] + ztheta), x1[0]*cos(x1[2] + ztheta) - x2[0]*cos(x1[2] + ztheta) + x1[1]*sin(x1[2] + ztheta) - x2[1]*sin(x1[2] + ztheta)],
+                         [                    0,                     0,                                                                                                        -1]])
+
+            J2=np.array([[ cos(x1[2] + ztheta), sin(x1[2] + ztheta), 0],
+                         [-sin(x1[2] + ztheta), cos(x1[2] + ztheta), 0],
+                         [ 0,                    0, 1]     ]        )
             return np.asarray(J1), np.asarray(J2)
         
-        def error_function(self, x1,x2,Z):
+        def pose_error_function(self, x1,x2,Z):
             return t2v(np.linalg.inv(Z)@(np.linalg.inv(v2t(x1))@v2t(x2)))
 
+        def feature_error_function(self, x1,x2,z):
+            e = np.array([z[0] - x2[0]*cos(x1[2]) + x1[0]*cos(x1[2]) - x2[1]*sin(x1[2]) + x1[1]*sin(x1[2]),
+                          z[1] - x2[1]*cos(x1[2]) + x1[1]*cos(x1[2]) + x2[0]*sin(x1[2]) - x1[0]*sin(x1[2]),
+                                                                 z[2] - x2[2]])
+            return e
+        
         def linearize(self,x, edges, idx_map):
             H=np.zeros((len(x), len(x)))
             b=np.zeros(len(x))
             for edge in edges:
-                if edge.tpe=="odom":
-                    i=idx_map[str(edge.node1.id)]
-                    j=idx_map[str(edge.node2.id)]
-                    omega=edge.omega 
-                    Z=edge.Z
-                    A,B=self.get_jacobian(x[i:i+3], x[j:j+3], Z)
-                    H[i:i+3,i:i+3]+=A.T@omega@A
-                    H[j:j+3,j:j+3]+=B.T@omega@B
-                    H[i:i+3,j:j+3]+=A.T@omega@B
-                    H[j:j+3,i:i+3]+=H[i:i+3,j:j+3].T
+                i=idx_map[str(edge.node1.id)]
+                j=idx_map[str(edge.node2.id)]
+                omega=edge.omega 
+                Z=edge.Z
+                if edge.type=="odom":
+                    A,B=self.get_pose_jacobian(x[i:i+3], x[j:j+3], Z)
+                    e=self.pose_error_function(x[i:i+3], x[j:j+3], Z)
+                else:
+                    A,B=self.get_feature_jacobian(x[i:i+3], x[j:j+3])
+                    e=self.feature_error_function(x[i:i+3], x[j:j+3], Z)
                     
-                    e=self.error_function(x[i:i+3], x[j:j+3], Z)
-                    b[i:i+3]+=A.T@omega@e
-                    b[j:j+3]+=B.T@omega@e
+                H[i:i+3,i:i+3]+=A.T@omega@A
+                H[j:j+3,j:j+3]+=B.T@omega@B
+                H[i:i+3,j:j+3]+=A.T@omega@B
+                H[j:j+3,i:i+3]+=H[i:i+3,j:j+3].T
                 
+                b[i:i+3]+=A.T@omega@e
+                b[j:j+3]+=B.T@omega@e
             return H,b
         
         def __init__(self):
@@ -171,31 +191,31 @@ class Graph_SLAM:
     #      _, idx = self.node_tree.query(x=x,k=k)
          
          # return deepcopy(self.front_end.nodes[idx])
-    def _loop_closure(self, target, matching_features):
-        print("loop close")
-        self.loop_closed=True
-        current_node=self.front_end.nodes[self.current_node_id]
-        z1=[]
-        z2=[]
-        for feature in matching_features:
-            z1.append(t2v(current_node.children[feature]["edge"].Z)[0:2])
-            z2.append(t2v(target.children[feature]["edge"].Z)[0:2])
+    # def _loop_closure(self, target, matching_features):
+    #     print("loop close")
+    #     self.loop_closed=True
+    #     current_node=self.front_end.nodes[self.current_node_id]
+    #     z1=[]
+    #     z2=[]
+    #     for feature in matching_features:
+    #         z1.append(t2v(current_node.children[feature]["edge"].Z)[0:2])
+    #         z2.append(t2v(target.children[feature]["edge"].Z)[0:2])
         
-        centroid1=np.mean(z1, axis=0)
-        centroid2=np.mean(z2, axis=0)
-        q1=z1-centroid1
-        q2=z2-centroid2
+    #     centroid1=np.mean(z1, axis=0)
+    #     centroid2=np.mean(z2, axis=0)
+    #     q1=z1-centroid1
+    #     q2=z2-centroid2
 
-        H=q1.T@q2
-        U, _, V_t = np.linalg.svd(H)
-        Rot = V_t.T@U.T
-        dz = centroid2 - Rot@centroid1
-        Z=np.hstack((Rot, dz.reshape((-1,1))))
-        Z=np.vstack((Z,[0,0,1]))
-        omega=np.eye(3)*0.001
-        self.front_end.add_edge(self.current_node_id,target.id, Z, omega, edge_type="loop_closure")
-        x, H=self.back_end.optimize(self.front_end)
-        self.omega=H
+    #     H=q1.T@q2
+    #     U, _, V_t = np.linalg.svd(H)
+    #     Rot = V_t.T@U.T
+    #     dz = centroid2 - Rot@centroid1
+    #     Z=np.hstack((Rot, dz.reshape((-1,1))))
+    #     Z=np.vstack((Z,[0,0,1]))
+    #     omega=np.eye(3)*0.001
+    #     self.front_end.add_edge(self.current_node_id,target.id, Z, omega, edge_type="loop_closure")
+    #     x, H=self.back_end.optimize(self.front_end)
+    #     self.omega=H
         
                
     def _posterior_to_factor(self, mu, sigma,node_to_origin):
@@ -203,15 +223,15 @@ class Graph_SLAM:
         for feature_id in features:
               idx=features[feature_id]
               z=mu[idx:idx+3]
-              Z=v2t(z)
-              mu=t2v(node_to_origin@Z)
+              z=np.append(z,1)
+              # print(z)
+              # print(node_to_origin)
+              # z=node_to_origin@z
 
               feature_node_id=self.front_end.feature_nodes[feature_id].id
-                
-              omega=np.eye(3)*0.01
-              omega[0:2,0:2]=np.linalg.inv(sigma[idx:idx+2, idx:idx+2])
-        
-              self.front_end.add_edge(self.current_node_id,feature_node_id, Z,omega , edge_type="measurement")
+              omega=np.linalg.inv(sigma[idx:idx+3, idx:idx+3])
+              omega=(omega+omega.T)/2
+              self.front_end.add_edge(self.current_node_id,feature_node_id, z,omega , edge_type="measurement")
 
     # def search_proximity_nodes(self, pose, radius):
     #     nodes=[deepcopy(node) for node in self.front_end.pose_nodes if np.linalg.norm(t2v(np.linalg.inv(v2t(node.mu))@v2t(pose)))<radius]
@@ -321,7 +341,6 @@ class Graph_SLAM:
                 z=mu[idx:idx+3]
                 Z=v2t(z)
                 mu=t2v(node_to_origin@Z)
-                print(mu)
                 self.front_end.add_node(mu,"feature", feature_id)
     
     def update(self): 
@@ -357,11 +376,18 @@ def get_pose_markers(nodes):
           P.append(p)
 
       marker = Marker()
-      marker.type = 8
+      marker.type = 7
       marker.id = 0
 
       marker.header.frame_id = "map"
       marker.header.stamp = rospy.Time.now()
+      
+      marker.pose.orientation.x=0
+      marker.pose.orientation.y=0
+      marker.pose.orientation.z=0
+      marker.pose.orientation.w=1
+
+      
       marker.scale.x = 0.1
       marker.scale.y = 0.1
       marker.scale.z = 0.1
@@ -389,11 +415,15 @@ def get_landmark_markers(nodes):
 
     # x=self.landmark["0"]
     marker = Marker()
-    marker.type = 8
+    marker.type = 7
     marker.id = 1
 
     marker.header.frame_id = "map"
     marker.header.stamp = rospy.Time.now()
+    marker.pose.orientation.x=0
+    marker.pose.orientation.y=0
+    marker.pose.orientation.z=0
+    marker.pose.orientation.w=1
     marker.scale.x = 0.1
     marker.scale.y = 0.1
     marker.scale.z = 0.1
@@ -407,15 +437,60 @@ def get_landmark_markers(nodes):
     marker.points = P
     return marker
     
-def get_factor_marker(factor):
-    pass 
+def get_factor_markers(graph):
+    P=[]
+    node=graph.nodes
+    for edge in graph.edges:
+        
+        mu1=node[edge.node1.id].mu
+        p1=Point()
+        p1.x=mu1[0]
+        p1.y=mu1[1]
+        p1.z=0
+        P.append(p1)
+        
+        
+        mu2=node[edge.node2.id].mu
+        p2=Point()
+        p2.x=mu2[0]
+        p2.y=mu2[1]
+        if edge.node2.type=="pose":
+            p2.z=0
+        else:
+            p2.z=mu2[2]
+        P.append(p2)
+
+
+    # x=self.landmark["0"]
+    marker = Marker()
+    marker.type = 5
+    marker.id = 2
+
+    marker.header.frame_id = "map"
+    marker.header.stamp = rospy.Time.now()
+    marker.pose.orientation.x=0
+    marker.pose.orientation.y=0
+    marker.pose.orientation.z=0
+    marker.pose.orientation.w=1
+    marker.scale.x = 0.01
+
+    
+    # Set the color
+    marker.color.r = 0.0
+    marker.color.g = 1.0
+    marker.color.b = 1.0
+    marker.color.a = 0.1
+    
+    marker.points = P
+    return marker 
 
 def plot_graph(graph):
     markerArray=MarkerArray()
     
-    pose_marker = get_pose_markers(graph_slam.front_end.pose_nodes)
-    feature_marker = get_landmark_markers(graph_slam.front_end.feature_nodes)
-    markerArray.markers=[pose_marker, feature_marker]
+    pose_marker = get_pose_markers(graph.pose_nodes)
+    feature_marker = get_landmark_markers(graph.feature_nodes)
+    factor_marker= get_factor_markers(graph)
+    markerArray.markers=[pose_marker, feature_marker, factor_marker]
     factor_graph_marker_pub.publish(markerArray)
     
     

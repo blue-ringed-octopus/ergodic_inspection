@@ -24,6 +24,7 @@ import ros_numpy
 import threading
 from common_functions import angle_wrapping, v2t
 rospack=rospkg.RosPack()
+np.set_printoptions(precision=2)
 
 def get_camera_to_robot_tf():
     listener=tf.TransformListener()
@@ -35,7 +36,7 @@ def get_camera_to_robot_tf():
     
 class EKF:
     def __init__(self, node_id):
-        print("initialize")
+        print("EKF initialize")
         T_c_to_r, T_r_to_c = get_camera_to_robot_tf()
 
         self.T_c_to_r=T_c_to_r
@@ -48,6 +49,8 @@ class EKF:
         self.t=time.time()
         self.marker_pub = rospy.Publisher("/apriltags", Marker, queue_size = 2)
         self.R=np.eye(2)*0.001
+        self.R[0,0]=0.001
+        self.R[1,1]=0.01
         self.at_detector = Detector(
                     families="tag36h11",
                     quad_decimate=1.0,
@@ -70,12 +73,13 @@ class EKF:
 
         
     def reset(self, node_id):
-        self.id=node_id
-        self.mu=np.zeros(3)
-        self.sigma=np.zeros((3,3))
-        self.landmarks={}
-        self.cloud=rospy.wait_for_message("/depth_registered/points",PointCloud2)
-        self.cloud.header.frame_id="node_"+str(node_id)+"_camera"
+        with self.lock:
+            self.id=node_id
+            self.mu=np.zeros(3)
+            self.sigma=np.zeros((3,3))
+            self.landmarks={}
+            self.cloud=rospy.wait_for_message("/depth_registered/points",PointCloud2)
+            self.cloud.header.frame_id="node_"+str(node_id)+"_camera"
         
     def get_tf(self):
         return v2t(self.mu[0:3])
@@ -109,7 +113,6 @@ class EKF:
             fu=np.asarray([[dt*cos(mu[2]+1/2*u[1]), -1/2*dt**2*u[0]*sin(mu[2]+dt/2*u[1])],
                            [dt*sin(mu[2]+1/2*u[1]), 1/2*dt**2*u[0]*cos(mu[2]+dt/2*u[1])],
                            [0, dt]])
-            
             self.sigma=(fx)@self.sigma@(fx.T)+F.T@(fu)@self.R@(fu.T)@F
           
             self.t=t
@@ -143,7 +146,7 @@ class EKF:
                 loc=loc[0:3]
                 self.landmarks[landmark_id]=mu.shape[0]
                 mu=np.hstack((mu.copy(), loc))
-                sigma_new=np.diag(np.ones(self.sigma.shape[0]+3)*99999999999)
+                sigma_new=np.diag(np.ones(sigma.shape[0]+3)*99999999999)
                 sigma_new[0:sigma.shape[0], 0:sigma.shape[0]]=sigma.copy()
                 sigma=sigma_new
                 
@@ -201,7 +204,6 @@ class EKF:
             mu+=K@(dz)
             mu[2]=angle_wrapping(mu[2])
             sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
-            
         self.mu=mu
         self.sigma=sigma
         
@@ -214,8 +216,6 @@ class EKF:
             
             self._initialize_new_landmarks(features)
             self._correction(features)
-            #self.plot_landmarks() 
-            print(self.landmarks)
 
 
 if __name__ == "__main__":
