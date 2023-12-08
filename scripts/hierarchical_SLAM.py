@@ -12,10 +12,15 @@ import numpy as np
 import apriltag_EKF
 from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker, MarkerArray
-from common_functions import angle_wrapping, v2t, t2v
+from common_functions import angle_wrapping, v2t, t2v, np2pc
 from scipy.linalg import solve_triangular
 from scipy.spatial import KDTree
 from numpy import sin, cos, arctan2
+import open3d as o3d 
+from copy import deepcopy
+import ros_numpy
+np.float = np.float64 
+
 np.set_printoptions(precision=2)
 
 def pose_dist(x1, x2):
@@ -31,12 +36,17 @@ class Graph_SLAM:
             def __init__(self, node_id, mu, node_type):
                 self.type=node_type
                 self.mu=mu.copy()
+                self.T=v2t(self.mu)
                 self.H=np.eye(3)*0.001
                 self.id=node_id
                 self.children={}
                 self.parents={}
-                self.local_map=[]
+                self.local_map=None
                 
+            def set_mu(self,mu):
+                self.mu=mu.copy()
+                self.T=v2t(self.mu)
+
         class Edge:
             def __init__(self, node1, node2, Z, omega, edge_type):
                 self.node1=node1
@@ -150,8 +160,9 @@ class Graph_SLAM:
                 idx=idx_map[str(node.id)]
                 nodex=x[idx:idx+3]
                 nodeH=H[idx:idx+3,idx:idx+3]
-                node.mu=nodex.copy()
+                node.set_mu(nodex.copy())
                 node.H=nodeH.copy()
+
             
         def optimize(self, graph):
             x, idx_map= self.node_to_vector(graph)
@@ -159,23 +170,25 @@ class Graph_SLAM:
             H[0:3,0:3]+=np.eye(3)
             dx=self.linear_solve(H,-b)
             x+=dx
-            while np.max(dx)>0.001:
+            i=0
+            while np.max(dx)>0.001 and i<1000:
                 H,b=self.linearize(x,graph.edges, idx_map)
                 H[0:3,0:3]+=np.eye(3)
                 dx=self.linear_solve(H,-b)
                 x+=dx
+                i+=1
             self.update_nodes(graph, x,H, idx_map)
             return x, H
             
     def __init__(self, x_init, ekf):
-        self.x=x_init.copy()
+        self.mu=x_init.copy()
         self.ekf=ekf
         self.reset()
 
     def reset(self):
         self.front_end=self.Front_end()
         self.back_end=self.Back_end()
-        self.current_node_id=self.front_end.add_node(self.x, "pose",[])
+        self.current_node_id=self.front_end.add_node(self.mu, "pose",[])
         self.omega=np.eye(3)*0.001
         self.global_map={"map":[], "info":[], "tree":None, "anomaly":[]}
         self.feature_tree=None
@@ -248,7 +261,7 @@ class Graph_SLAM:
         return feature
     
     def _create_new_node(self, sigma, Z):
-        node.local_map=self.ekf.cloud
+       # node.local_map=self.ekf.cloud
             
         # points=np.asarray([point["loc"] for point in local_map])
         # info=np.asarray([np.linalg.inv(point["cov"]) for point in local_map])
@@ -266,8 +279,8 @@ class Graph_SLAM:
         #     points=[cov[i]@point for i, point in enumerate(points)]
         points=[]    
         cov=[]
-        self.front_end.nodes[self.current_node_id].local_map=[{"loc": points[i], "cov": cov[i]} for i in range(len(points))]
-        new_node_id=self.front_end.add_node(self.x,"pose")
+        self.front_end.nodes[self.current_node_id].local_map=self.ekf.cloud
+        new_node_id=self.front_end.add_node(self.mu,"pose")
         omega=np.linalg.inv(sigma[0:3, 0:3]+np.eye(3)*0.001)
         self.front_end.add_edge(self.current_node_id,new_node_id, Z, omega)
         self.current_node_id=new_node_id      
@@ -293,32 +306,19 @@ class Graph_SLAM:
         return H
     
     def _global_map_assemble(self):
-        global_map=np.asarray([(v2t(node.mu)@np.hstack((point["loc"].copy(),1)))[0:2]  for node in self.front_end.nodes for point in node.local_map ])
-        global_map_info=[self._get_map_info(node,point) for node in self.front_end.nodes for point in node.local_map]
+        points=[]
+        colors=[]
+        for node in self.front_end.pose_nodes[-10:]:
+            if not node.local_map == None:
+                cloud=deepcopy(node.local_map).transform(node.T)
+                points.append(np.array(cloud.points))
+                colors.append(np.array(cloud.colors))
+        points=np.concatenate(points)  
+        colors=np.concatenate(colors)  
 
-            
-        # cloud=o3d.geometry.PointCloud()
-        # cloud.points=o3d.utility.Vector3dVector(np.concatenate((np.asarray(global_map), np.zeros(len(global_map)).reshape(-1,1)), axis=1))
-   
-        # info =np.asarray(global_map_info)
-        # _,_, idx=cloud.voxel_down_sample_and_trace(0.05, 
-        #                                                cloud.get_min_bound(), 
-        #                                                cloud.get_max_bound(), 
-        #                                                False)
-        # info_vox=np.asarray([np.sum(info[i,:,:], axis=0) for i in idx])
-        # points=np.array([np.sum([info[j,:,:]@global_map[j] for j in i], axis=0) for i in idx  ])
-        # points=[np.linalg.inv(info_vox[i])@point for i, point in enumerate(points)]
-
-        # self.global_map=self.anomaly_detector.chi_square_test({"map":global_map,"info":global_map_info }  )
-
-                
-        # points=global_map
-        # info_vox=global_map_info
-        # self.global_map["info"]=info_vox
-        # self.global_map["map"]=points
-        # self.global_map["tree"]=KDTree(points)
-        # self.global_map["anomaly"]=self.anomaly_detector.chi_square_test()
-
+        self.global_map = np2pc(points, colors)
+        # if len(self.front_end.pose_nodes)%5==0:
+        #     o3d.visualization.draw_geometries([self.global_map])
     def update_costmap(self):
         # image = cv2.flip(cv2.imread("map_actual.png"),0)
         # w=int(image.shape[1]*10)
@@ -333,36 +333,59 @@ class Graph_SLAM:
         # cv2.destroyAllWindows()
         pass 
     
-    def init_new_features(self, mu, node_to_origin):
-        features = self.ekf.landmarks
+    def init_new_features(self, mu, node_to_origin, features):
         for feature_id in features:
             if not feature_id in self.front_end.feature_nodes.keys():
                 idx=features[feature_id]
                 z=mu[idx:idx+3]
                 Z=v2t(z)
-                mu=t2v(node_to_origin@Z)
-                self.front_end.add_node(mu,"feature", feature_id)
+                x=t2v(node_to_origin@Z)
+                self.front_end.add_node(x,"feature", feature_id)
     
     def update(self): 
+        optimized=False
         mu=self.ekf.mu.copy()
         sigma=self.ekf.sigma.copy()
-        node_x=self.front_end.nodes[self.current_node_id].mu
+        features = self.ekf.landmarks
+
+        node_x=self.front_end.nodes[self.current_node_id].mu.copy()
         node_to_origin=v2t(node_x)
         T=v2t(mu[0:3])
         self.mu=t2v(node_to_origin@T)
-        self.init_new_features(mu, node_to_origin)
+        self.init_new_features(mu, node_to_origin, features)
         delta=t2v(np.linalg.inv(v2t(node_x))@v2t(self.mu))
         delta[2]*=2
         if np.linalg.norm(delta)>=1.5:
+            optimized=True
             self._posterior_to_factor(mu, sigma, node_to_origin)
-            node_x=self.front_end.nodes[self.current_node_id].mu.copy()
-            node_to_origin=v2t(node_x)
-            self.x=t2v(node_to_origin@v2t(mu[0:3]))
             self._create_new_node(sigma, T)
             self._global_map_assemble()
             self.ekf.reset(self.current_node_id)
-        return self.mu.copy()
+        return optimized
 
+def pc_to_msg(pc):
+    points=np.asarray(pc.points)
+    colors=np.asarray(pc.colors)
+    pc_array = np.zeros(len(points), dtype=[
+    ('x', np.float32),
+    ('y', np.float32),
+    ('z', np.float32),
+    ('r', np.uint32),
+    ('g', np.uint32),
+    ('b', np.uint32),
+    ])
+
+    pc_array['x'] = points[:,0]
+    pc_array['y'] = points[:, 1]
+    pc_array['z'] = points[:, 2]
+    pc_array['r'] = (colors[:,0]*255).astype(np.uint32)
+    pc_array['g'] = (colors[:, 1]*255).astype(np.uint32)
+    pc_array['b'] = (colors[:, 2]*255).astype(np.uint32)
+    pc_array= ros_numpy.point_cloud2.merge_rgb_fields(pc_array)
+    pc_msg = ros_numpy.msgify(PointCloud2, pc_array, stamp=rospy.Time.now(), frame_id="map")
+    
+    return pc_msg
+    
 def get_pose_markers(nodes):
       P=[]
       for node in nodes:
@@ -505,31 +528,34 @@ if __name__ == "__main__":
 
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
 
-    rate = rospy.Rate(30) # 10hz
+    rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
-        mu=graph_slam.update()
-        for node in graph_slam.front_end.pose_nodes:
-            br.sendTransform([node.mu[0], node.mu[1], 0],
-                            tf.transformations.quaternion_from_euler(0, 0, node.mu[2]),
-                            rospy.Time.now(),
-                            "pose_node_"+str(node.id),
-                            "map")
-            br.sendTransform(ekf.T_c_to_r[0:3,3],
-                            tf.transformations.quaternion_from_matrix(ekf.T_c_to_r),
-                            rospy.Time.now(),
-                            "node_"+str(node.id)+"_camera",
-                            "pose_node_"+str(node.id))         
+        optimized=graph_slam.update()
+        # for node in graph_slam.front_end.pose_nodes:
+        #     print(node.id, node.T)
+        #     br.sendTransform([node.mu[0], node.mu[1], 0],
+        #                     tf.transformations.quaternion_from_euler(0, 0, node.mu[2]),
+        #                     rospy.Time.now(),
+        #                     "pose_node_"+str(node.id),
+        #                     "map")
+        #     br.sendTransform(ekf.T_c_to_r[0:3,3],
+        #                     tf.transformations.quaternion_from_matrix(ekf.T_c_to_r),
+        #                     rospy.Time.now(),
+        #                     "node_"+str(node.id)+"_camera",
+        #                     "pose_node_"+str(node.id))         
             
       
      
         plot_graph(graph_slam.front_end)
         
-                
+        mu=graph_slam.mu.copy()        
         br.sendTransform([mu[0], mu[1], 0],
                         tf.transformations.quaternion_from_euler(0, 0, mu[2]),
                         rospy.Time.now(),
                         "base_footprint",
                         "map")
     
-
+        if optimized:
+            pc_msg=pc_to_msg(graph_slam.global_map)
+            pc_pub.publish(pc_msg)
         rate.sleep()

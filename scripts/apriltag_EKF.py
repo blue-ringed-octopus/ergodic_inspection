@@ -18,11 +18,11 @@ import message_filters
 import tf
 import time
 from visualization_msgs.msg import Marker
-from geometry_msgs.msg import Point
 np.float = np.float64 
 import ros_numpy
 import threading
-from common_functions import angle_wrapping, v2t
+from common_functions import angle_wrapping, v2t, t2v
+import open3d as o3d 
 rospack=rospkg.RosPack()
 np.set_printoptions(precision=2)
 
@@ -33,7 +33,24 @@ def get_camera_to_robot_tf():
     T_c_to_r=listener.fromTranslationRotation(trans, rot)
     T_r_to_c=np.linalg.inv(T_c_to_r)
     return T_c_to_r, T_r_to_c
-    
+
+def msg2pc(msg):
+    pc=ros_numpy.numpify(msg)
+    x=pc['x'].reshape(-1)
+
+    points=np.zeros((len(x),3))
+    points[:,0]=x
+    points[:,1]=pc['y'].reshape(-1)
+    points[:,2]=pc['z'].reshape(-1)
+    pc=ros_numpy.point_cloud2.split_rgb_field(pc)
+    rgb=np.zeros((len(x),3))
+    rgb[:,0]=pc['r'].reshape(-1)
+    rgb[:,1]=pc['g'].reshape(-1)
+    rgb[:,2]=pc['b'].reshape(-1)
+    p=o3d.geometry.PointCloud()
+    p.points=o3d.utility.Vector3dVector(points)
+    p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
+    return p    
 class EKF:
     def __init__(self, node_id):
         print("EKF initialize")
@@ -48,9 +65,10 @@ class EKF:
         self.mu=np.zeros(3)
         self.t=time.time()
         self.marker_pub = rospy.Publisher("/apriltags", Marker, queue_size = 2)
-        self.R=np.eye(2)*0.001
-        self.R[0,0]=0.001
+        self.R=np.eye(3)
+        self.R[0,0]=0.01
         self.R[1,1]=0.01
+        self.R[2,2]=0.1
         self.at_detector = Detector(
                     families="tag36h11",
                     quad_decimate=1.0,
@@ -59,7 +77,17 @@ class EKF:
                     decode_sharpening=0.25,
                     debug=0
                     )
-        
+        odom=rospy.wait_for_message("/odom",Odometry)
+        self.odom_prev=v2t([odom.pose.pose.position.x,
+                          odom.pose.pose.position.y,
+                          odom.pose.pose.orientation.z])
+        self.odom_prev=tf.transformations.quaternion_matrix([odom.pose.pose.orientation.x,
+                                                   odom.pose.pose.orientation.y,
+                                                   odom.pose.pose.orientation.z,
+                                                   odom.pose.pose.orientation.w])
+        self.odom_prev[0:3,3]=[odom.pose.pose.position.x,
+                          odom.pose.pose.position.y,0]
+    
         self.reset(node_id)
 
 
@@ -74,12 +102,14 @@ class EKF:
         
     def reset(self, node_id):
         with self.lock:
+            self.cloud=msg2pc(rospy.wait_for_message("/depth_registered/points",PointCloud2))
+            self.cloud.transform(self.T_c_to_r)
+            
             self.id=node_id
             self.mu=np.zeros(3)
             self.sigma=np.zeros((3,3))
             self.landmarks={}
-            self.cloud=rospy.wait_for_message("/depth_registered/points",PointCloud2)
-            self.cloud.header.frame_id="node_"+str(node_id)+"_camera"
+            # self.cloud.header.frame_id="node_"+str(node_id)+"_camera"
         
     def get_tf(self):
         return v2t(self.mu[0:3])
@@ -95,6 +125,15 @@ class EKF:
 
     def odom_callback(self, data):
         with self.lock:
+            odom=tf.transformations.quaternion_matrix([data.pose.pose.orientation.x,
+                                                       data.pose.pose.orientation.y,
+                                                       data.pose.pose.orientation.z,
+                                                       data.pose.pose.orientation.w])
+            odom[0:3,3]=[data.pose.pose.position.x,
+                              data.pose.pose.position.y,0]
+            
+            dX=np.linalg.inv(self.odom_prev)@odom
+            
             mu=self.mu.copy()
             t=time.time()
             dt=t-self.t
@@ -102,19 +141,26 @@ class EKF:
             F[0:3,0:3]=np.eye(3)
             u=np.array([data.twist.twist.linear.x, data.twist.twist.angular.z])
             
-            self.mu[0:3]=self.mu[0:3]+dt*np.asarray([u[0]*cos(mu[2]),
-                                           u[0]*sin(mu[2]),
-                                           u[1]])
-            self.mu[2]=angle_wrapping(self.mu[2])
-            fx=np.eye(mu.shape[0])+F.T@np.asarray([[0,0,-dt*u[0]*sin(mu[2]+dt/2*u[1])], 
-                                                                    [0,0,dt*u[0]*cos(mu[2]+dt/2*u[1])],
-                                                                    [0,0,0]])@F
-                               
-            fu=np.asarray([[dt*cos(mu[2]+1/2*u[1]), -1/2*dt**2*u[0]*sin(mu[2]+dt/2*u[1])],
-                           [dt*sin(mu[2]+1/2*u[1]), 1/2*dt**2*u[0]*cos(mu[2]+dt/2*u[1])],
-                           [0, dt]])
+            # self.mu[0:3]=self.mu[0:3]+dt*np.asarray([u[0]*cos(mu[2]),
+            #                                u[0]*sin(mu[2]),
+            #                                u[1]])
+            # self.mu[2]=angle_wrapping(self.mu[2])
+            self.mu[0:3]=t2v(v2t(mu)@dX)
+            fx = np.array([[0, 0, - dX[1,3]*cos(mu[2]) - dX[0,3]*sin(mu[2])],
+                           [0, 0,   dX[0,3]*cos(mu[2]) - dX[1,3]*sin(mu[2])],
+                           [0, 0,                               0]]) 
+            #fx = np.asarray([[0,0,-dt*u[0]*sin(mu[2]+dt/2*u[1])], 
+            #                                                         [0,0,dt*u[0]*cos(mu[2]+dt/2*u[1])],
+            #                                                         [0,0,0]])
+            fx=np.eye(mu.shape[0])+F.T@fx@F
+            fu=np.array([[cos(mu[2]), -sin(mu[2]), 0],
+                         [sin(mu[2]),  cos(mu[2]), 0],
+                         [         0,           0, 1]   ])                
+            # fu=np.asarray([[dt*cos(mu[2]+1/2*u[1]), -1/2*dt**2*u[0]*sin(mu[2]+dt/2*u[1])],
+            #                [dt*sin(mu[2]+1/2*u[1]), 1/2*dt**2*u[0]*cos(mu[2]+dt/2*u[1])],
+            #                [0, dt]])
             self.sigma=(fx)@self.sigma@(fx.T)+F.T@(fu)@self.R@(fu.T)@F
-          
+            self.odom_prev=odom
             self.t=t
         
     def detect_apriltag(self,rgb, depth):
