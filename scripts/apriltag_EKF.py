@@ -110,7 +110,7 @@ class EKF:
             self.sigma=np.zeros((3,3))
             self.landmarks={}
             # self.cloud.header.frame_id="node_"+str(node_id)+"_camera"
-        
+        print("EKF initialized")
     def get_tf(self):
         return v2t(self.mu[0:3])
         
@@ -165,7 +165,8 @@ class EKF:
         
     def detect_apriltag(self,rgb, depth):
         gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
-        result=self.at_detector.detect(gray)
+        result=self.at_detector.detect(gray, estimate_tag_pose=True, tag_size=0.13636, 
+        				camera_params=[self.K[0,0], self.K[1,1], self.K[0,2], self.K[1,2]])
         landmarks={}
         for r in result:
             xp=r.center[0]
@@ -173,9 +174,9 @@ class EKF:
             tag_id=r.tag_id
             rgb=cv2.circle(rgb, (int(xp), int(yp)), 5, (0, 0, 255), -1)
             z=depth[int(yp), int(xp)]
+            R=r.pose_R
             if not np.isnan(z):
-
-                landmarks[tag_id]= {"xp": xp, "yp": yp, "z":z}
+                landmarks[tag_id]= {"xp": xp, "yp": yp, "z":z, "R": R}
         return landmarks
     
         

@@ -308,7 +308,7 @@ class Graph_SLAM:
     def _global_map_assemble(self):
         points=[]
         colors=[]
-        for node in self.front_end.pose_nodes[-10:]:
+        for node in self.front_end.pose_nodes[-20:]:
             if not node.local_map == None:
                 cloud=deepcopy(node.local_map).transform(node.T)
                 points.append(np.array(cloud.points))
