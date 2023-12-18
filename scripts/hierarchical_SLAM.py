@@ -531,20 +531,7 @@ if __name__ == "__main__":
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
         optimized=graph_slam.update()
-        # for node in graph_slam.front_end.pose_nodes:
-        #     print(node.id, node.T)
-        #     br.sendTransform([node.mu[0], node.mu[1], 0],
-        #                     tf.transformations.quaternion_from_euler(0, 0, node.mu[2]),
-        #                     rospy.Time.now(),
-        #                     "pose_node_"+str(node.id),
-        #                     "map")
-        #     br.sendTransform(ekf.T_c_to_r[0:3,3],
-        #                     tf.transformations.quaternion_from_matrix(ekf.T_c_to_r),
-        #                     rospy.Time.now(),
-        #                     "node_"+str(node.id)+"_camera",
-        #                     "pose_node_"+str(node.id))         
-            
-      
+    
      
         plot_graph(graph_slam.front_end)
         

@@ -13,18 +13,19 @@ from cv_bridge import CvBridge
 import cv2
 from pupil_apriltags import Detector
 import numpy as np
-from numpy import sin, cos, tan, arctan2, arccos, trace
+from numpy import sin, cos, arccos, trace
 from numpy.linalg import norm
-
 import message_filters
 import tf
 import time
-from visualization_msgs.msg import Marker
+from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import Point, Pose
 np.float = np.float64 
 import ros_numpy
 import threading
 from common_functions import angle_wrapping, v2t, t2v
 import open3d as o3d 
+
 rospack=rospkg.RosPack()
 np.set_printoptions(precision=2)
 
@@ -345,16 +346,64 @@ class EKF:
             self._initialize_new_landmarks(features)
             self._correction(features)
 
+def get_pose_marker(tags, mu):
+    markers=[]
+    for tag_id, idx in tags.items():
+        marker=Marker()
+        x=mu[idx:idx+4]
+        p=Pose()
+        p.position.x=x[0]
+        p.position.y=x[1]
+        p.position.z=x[2]
+        
+        p.orientation.w = cos(x[3]/2)
+        p.orientation.x = 0
+        p.orientation.y = 0
+        p.orientation.z = sin(x[3]/2)
+
+    
+        marker = Marker()
+        marker.type = 0
+        marker.id = tag_id
+        
+        marker.header.frame_id = "map"
+        marker.header.stamp = rospy.Time.now()
+        
+        marker.pose.orientation.x=0
+        marker.pose.orientation.y=0
+        marker.pose.orientation.z=0
+        marker.pose.orientation.w=1
+        
+        
+        marker.scale.x = 0.1
+        marker.scale.y = 0.1
+        marker.scale.z = 0.1
+        
+        # Set the color
+        marker.color.r = 1.0
+        marker.color.g = 0.0
+        marker.color.b = 0.0
+        marker.color.a = 1.0
+        
+        marker.pose = p
+        markers.append(marker)
+    markerArray=MarkerArray()
+    markerArray.markers=markers
+    return markerArray
 
 if __name__ == "__main__":
+
     rospy.init_node('EKF',anonymous=False)
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
+    factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
 
     ekf=EKF(0)
     br = tf.TransformBroadcaster()
     rate = rospy.Rate(30) # 10hz
     while not rospy.is_shutdown():
         # pc_pub.publish(ekf.cloud)
+        markers=get_pose_marker(ekf.features, ekf.mu)
+        factor_graph_marker_pub.publish(markers)
         br.sendTransform((ekf.mu[0], ekf.mu[1] , 0),
                         tf.transformations.quaternion_from_euler(0, 0, ekf.mu[2]),
                         rospy.Time.now(),

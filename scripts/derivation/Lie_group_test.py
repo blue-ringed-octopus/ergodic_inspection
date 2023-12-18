@@ -119,7 +119,7 @@ sigma=np.eye(n)*0
 # sigma=np.zeros((n,n))
 # sigma[3:6,3:6]*=0
 Q=np.eye(n)
-Q[0:3,0:3]*=0.01
+Q[0:3,0:3]*=100
 Q[3:6,3:6]*=1
 Q[6:9,6:9]*=0
 Q[9:12,9:12]*=0
@@ -134,6 +134,7 @@ try:
 
         # Convert images to numpy arrays
         rgb = np.asanyarray(color_frame.get_data())
+        rgb=cv2.GaussianBlur(rgb,(15,15),sigmaX=2.5, sigmaY=2.5)
         img=np.hstack((rgb, rgb))
         #Tag detection
         gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
@@ -156,7 +157,7 @@ try:
 
             rgb_raw=draw_frame(rgb_raw,R,t, K)
             tags[r.tag_id]={"R": R, "t":t.flatten() }
-            
+        rgb_raw = cv2.putText(rgb_raw, "Raw", (50,50),cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), thickness=2)
         if len(result)==2:
             odom=np.eye(4)
             odom[0:3, 0:3]= tags[0]["R"].T
@@ -164,18 +165,26 @@ try:
             if init:    
                 odom_prev=odom
                 mu[9:12]=Log(tags[1]['R'])
+                mu[6:9]=tags[1]['t']
                 init=False
-           
+            
             X_bar=np.eye(4)
             X_bar[0:3,0:3] = Exp(mu[3:6])
             X_bar[0:3,3] = mu[0:3]
-            # X_bar=X_bar@(inv(odom_prev)@odom)
-           
+            X_bar=X_bar@(inv(odom_prev)@odom)
+            mu[0:3]=mu[0:3]+0.001*(X_bar[0:3,3]-mu[0:3])
             sigma=sigma+Q
             # mu[3:6]=Log(X_bar[0:3,0:3])
             # mu[0:3] = X_bar[0:3,3]
-            # odom_prev=odom
+            odom_prev=odom
 
+            T_tag=np.eye(4)
+            T_tag[0:3,0:3]=tags[1]['R']
+            T_tag[0:3,3]=tags[1]['t']
+            
+            # tag_w=X_bar@T_tag
+            mu[6:9]=tags[1]['t']
+            
             tau_bar=Log(X_bar[0:3,0:3].T@Exp(mu[9:12]))
             
             tau_tag=Log(tags[1]["R"])
@@ -191,7 +200,7 @@ try:
             
             H=J@F
             dr=tau_tag-tau_bar
-            gain=sigma@H.T@np.linalg.inv(H@sigma@H.T+np.eye(3)*10)
+            gain=sigma@H.T@np.linalg.inv(H@sigma@H.T+np.eye(3)*1000)
             dX=gain@dr
             mu=mu+dX
         #    mu[3:6]=Log(X_bar[0:3,0:3]@Exp(dX[3:6]))
@@ -199,8 +208,13 @@ try:
          
             
             sigma=(np.eye(mu.shape[0])-gain@H)@(sigma)
-            
-        rgb_kalman=draw_frame(rgb_kalman,Exp(mu[3:6]).T@Exp(mu[9:12]),tags[1]['t'].reshape(3,1), K)
+        X_bar=np.eye(4)
+        X_bar[0:3,0:3] = Exp(mu[3:6])
+        X_bar[0:3,3] = mu[0:3]
+        tag1=(X_bar.T@np.concatenate((mu[6:9],[1])))[0:3]
+        rgb_kalman=draw_frame(rgb_kalman,Exp(mu[3:6]).T@Exp(mu[9:12]),mu[6:9].reshape(3,1), K)
+        rgb_kalman = cv2.putText(rgb_kalman, "Kalman", (50,50),cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), thickness=2)
+
         # rgb_kalman=draw_frame(rgb_kalman,Exp(mu[3:6]).T,tags[0]['t'].reshape(3,1), K)
         img=np.hstack((rgb_raw, rgb_kalman))
             # image=cv2.circle(image, (int(x[0]),int(x[1])), radius=5, color=[0,0,255], thickness=-1)
