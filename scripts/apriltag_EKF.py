@@ -254,7 +254,7 @@ class EKF:
         self.sigma=sigma
         self.mu=mu
         
-    def get_pixel_jacobians(self,mu, xl, kx):
+    def get_pixel_jacobian(self,mu, xl, kx):
         c=cos(mu[2])
         s=sin(mu[2])
         
