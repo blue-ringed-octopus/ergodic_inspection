@@ -13,7 +13,9 @@ from cv_bridge import CvBridge
 import cv2
 from pupil_apriltags import Detector
 import numpy as np
-from numpy import sin, cos, tan, arctan2
+from numpy import sin, cos, tan, arctan2, arccos, trace
+from numpy.linalg import norm
+
 import message_filters
 import tf
 import time
@@ -25,6 +27,46 @@ from common_functions import angle_wrapping, v2t, t2v
 import open3d as o3d 
 rospack=rospkg.RosPack()
 np.set_printoptions(precision=2)
+
+def vee(W):
+    return np.array([W[2,1], W[0,2], W[1,0]])
+
+def hat(w):
+    return np.array([[0, -w[2], w[1]],
+                     [w[2], 0, -w[0]],
+                     [-w[1], w[0], 0]])
+
+def Log(R):
+    theta=arccos((trace(R)-1)/2)
+    if theta == 0:
+        return np.zeros(3)
+    u=theta*vee((R-R.T))/(2*sin(theta))
+    return u
+
+def Exp(u):
+    theta=np.linalg.norm(u)
+    if theta==0: 
+        return np.eye(3)
+    u=u/theta
+    R=np.eye(3)+sin(theta)*hat(u)+(1-cos(theta))*np.linalg.matrix_power(hat(u),2)
+    return R
+
+def Jl_inv(w):
+    t=norm(w)
+    J=np.eye(3)-1/2*hat(w)+(1/t**2-(1+cos(t))/(2*t*sin(t)))*hat(w)@hat(w)
+    return J
+
+def Jr_inv(w):
+    t=norm(w)
+    J=np.eye(3) + 1/2*hat(w) + (1/t**2-(1+cos(t))/(2*t*sin(t))) * (hat(w)@hat(w))
+    return J
+
+def Jr(w):
+    t=norm(w)  
+    if t==0:
+        return np.eye(3)
+    J=np.eye(3)-((1-cos(t))/t**2) * hat(w) + ((t-sin(t))/t**3) * (hat(w)@hat(w))
+    return J
 
 def get_camera_to_robot_tf():
     listener=tf.TransformListener()
@@ -135,11 +177,11 @@ class EKF:
             dX=np.linalg.inv(self.odom_prev)@odom
             
             mu=self.mu.copy()
-            t=time.time()
-            dt=t-self.t
+        #    t=time.time()
+        #    dt=t-self.t
             F=np.zeros((3,mu.shape[0]))
             F[0:3,0:3]=np.eye(3)
-            u=np.array([data.twist.twist.linear.x, data.twist.twist.angular.z])
+         #   u=np.array([data.twist.twist.linear.x, data.twist.twist.angular.z])
             
             # self.mu[0:3]=self.mu[0:3]+dt*np.asarray([u[0]*cos(mu[2]),
             #                                u[0]*sin(mu[2]),
@@ -161,7 +203,7 @@ class EKF:
             #                [0, dt]])
             self.sigma=(fx)@self.sigma@(fx.T)+F.T@(fu)@self.R@(fu.T)@F
             self.odom_prev=odom
-            self.t=t
+           # self.t=t
         
     def detect_apriltag(self,rgb, depth):
         gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
@@ -182,25 +224,37 @@ class EKF:
         
 
     def _initialize_new_landmarks(self, landmarks):
-        mu=self.mu.copy()
-        sigma=self.sigma.copy()
-        T=v2t(mu[0:3])@self.T_c_to_r
+        mu=self.mu.copy()       #current point estimates 
+        sigma=self.sigma.copy() #current covariance
+        T=v2t(mu[0:3])@self.T_c_to_r    #coordinate transformation from camera coordinate to world coordinate
         for landmark_id in landmarks:
             if not landmark_id in self.landmarks.keys():
                 landmark=landmarks[landmark_id]
                 loc=landmark['z']*self.K_inv@np.array([landmark["xp"], landmark["yp"],1])  
                 loc=T@np.hstack((loc,[1]))           
                 loc=loc[0:3]
+                
+                R=landmark["R"] #feature orientation in camera frame
+                
+                R=R@np.array([[0,1,0],
+                            [0,0,-1],
+                            [-1,0,0]]) #rotate such that x-axis points outward, z-axis points upward 
+                
+                R=T[0:3,0:3]@R  #feature orientation in world frame 
+                
+                tau=Log(R) #axis-angle representation 
+                
+                zeta=np.hstack((loc, tau[2])) #only take the z rotation
                 self.landmarks[landmark_id]=mu.shape[0]
-                mu=np.hstack((mu.copy(), loc))
-                sigma_new=np.diag(np.ones(sigma.shape[0]+3)*99999999999)
+                mu=np.hstack((mu.copy(),zeta))
+                sigma_new=np.diag(np.ones(sigma.shape[0]+len(zeta))*99999999999)
                 sigma_new[0:sigma.shape[0], 0:sigma.shape[0]]=sigma.copy()
                 sigma=sigma_new
                 
         self.sigma=sigma
         self.mu=mu
         
-    def get_jacobian(self,mu, xl, kx):
+    def get_pixel_jacobians(self,mu, xl, kx):
         c=cos(mu[2])
         s=sin(mu[2])
         
@@ -215,7 +269,7 @@ class EKF:
                      [0,0,1]
                      ])@self.K
         
-        return jc,jr, jw
+        return jc@jr@jw
         
     def _correction(self,features):
         mu=self.mu.copy()
@@ -223,34 +277,60 @@ class EKF:
         
         T_c_to_w=v2t(mu[0:3])@self.T_c_to_r
         T_w_to_c=np.linalg.inv(T_c_to_w)
-        Q=np.array([[10**2, 0, 0],
-                    [0, 10**2,0,],
-                    [0,0,0.5**2]])
+        Q=np.eye(6)
+        Q[0,0]=10**2
+        Q[1,1]=10**2
+        Q[2,2]=0.5**2
+
         for feature_id in features:    
             feature=features[feature_id]
             idx=self.landmarks[feature_id]
-            xl=mu[idx:idx+3]
             
-            x_camera=T_w_to_c@np.concatenate((xl, [1]))
-            kx=self.K@x_camera[0:3]
+            xl=mu[idx:idx+3] #global feature location
+            
+            x_camera=T_w_to_c@np.concatenate((xl, [1])) #feature location in camera frame
+            kx=self.K@x_camera[0:3]                     
             z_bar=np.array([[1/x_camera[2], 0,0],
                             [0,1/x_camera[2],0],
-                            [0,0,1]])@kx
+                            [0,0,1]])@kx                #feature on image plane and depth
                         
+            theta=mu[idx+3] #estimated planar orientation of the tag
             
-            jc, jr,jw=self.get_jacobian(mu, xl, kx)
-            H=jc@jr@jw
-            F=np.zeros((6,mu.shape[0]))
+            R_bar=Exp([0,0,theta])        #raise to SO(3)
+            R_bar=T_w_to_c[0:3, 0:3]@R_bar      # orientation in camera frame
+            
+            R_tag=feature["R"]@np.array([[0,1,0],
+                        [0,0,-1],
+                        [-1,0,0]]) 
+            
+            tau_bar= Log(R_bar)
+            dtau = Log(R_tag) - tau_bar#measurement error 
+            
+            jr=-Jl_inv(tau_bar)@self.T_r_to_c[0:3,0:3]@[0,0,1] #jacobian of robot orientation
+            jtag=Jr_inv(tau_bar)@[0,0,1]    #jacobian of tag orientation
+            
+            J_loc=self.get_pixel_jacobian(mu, xl, kx) #jacobian of robot pose (x,y, theta) and tag location (x,y,z)
+            
+            H=np.zeros((6,7)) #number of obervation: 6, number of state:7 
+            H[0:3, 0:6] = J_loc
+            H[3:6, 2] = jr
+            H[3:6:, 6] = jtag
+            
+            F=np.zeros((7,mu.shape[0]))
             F[0:3,0:3]=np.eye(3)
-            F[3:6, idx:idx+3]=np.eye(3) 
+            F[3:7, idx:idx+3]=np.eye(3) 
 
             H=H@F
     
             K=sigma@(H.T)@np.linalg.inv((H@sigma@(H.T)+Q))
             dz=np.array([feature["xp"], feature['yp'], feature['z']])-z_bar
             mu+=K@(dz)
-            mu[2]=angle_wrapping(mu[2])
             sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
+            
+            mu[2]=angle_wrapping(mu[2])
+            mu[idx+3]=angle_wrapping(mu[idx+3])
+
+
         self.mu=mu
         self.sigma=sigma
         
