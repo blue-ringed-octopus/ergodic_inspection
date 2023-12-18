@@ -375,9 +375,9 @@ def get_pose_marker(tags, mu):
         marker.pose.orientation.w=1
         
         
-        marker.scale.x = 0.1
-        marker.scale.y = 0.1
-        marker.scale.z = 0.1
+        marker.scale.x = 1
+        marker.scale.y = 0.01
+        marker.scale.z = 0.01
         
         # Set the color
         marker.color.r = 1.0
