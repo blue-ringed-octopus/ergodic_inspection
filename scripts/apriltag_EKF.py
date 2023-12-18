@@ -318,7 +318,7 @@ class EKF:
             
             F=np.zeros((7,mu.shape[0]))
             F[0:3,0:3]=np.eye(3)
-            F[3:7, idx:idx+3]=np.eye(3) 
+            F[3:7, idx:idx+4]=np.eye(4) 
 
             H=H@F
     
