@@ -358,12 +358,7 @@ if __name__ == "__main__":
                         tf.transformations.quaternion_from_euler(0, 0, ekf.mu[2]),
                         rospy.Time.now(),
                         "base_footprint",
-                        "pose_node_"+str(ekf.id))
-    
-        br.sendTransform(ekf.T_c_to_r[0:3,3],
-                        tf.transformations.quaternion_from_matrix(ekf.T_c_to_r),
-                        rospy.Time.now(),
-                        "node_"+str(ekf.id)+"_camera",
-                        "pose_node_"+str(ekf.id))
+                        "map")
+  
 
         rate.sleep()
