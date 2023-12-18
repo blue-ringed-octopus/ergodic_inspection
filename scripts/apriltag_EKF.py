@@ -354,7 +354,7 @@ if __name__ == "__main__":
     br = tf.TransformBroadcaster()
     rate = rospy.Rate(30) # 10hz
     while not rospy.is_shutdown():
-        pc_pub.publish(ekf.cloud)
+        # pc_pub.publish(ekf.cloud)
         br.sendTransform((ekf.mu[0], ekf.mu[1] , 0),
                         tf.transformations.quaternion_from_euler(0, 0, ekf.mu[2]),
                         rospy.Time.now(),
