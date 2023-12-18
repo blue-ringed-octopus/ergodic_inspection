@@ -402,7 +402,7 @@ if __name__ == "__main__":
     rate = rospy.Rate(30) # 10hz
     while not rospy.is_shutdown():
         # pc_pub.publish(ekf.cloud)
-        markers=get_pose_marker(ekf.features, ekf.mu)
+        markers=get_pose_marker(ekf.landmarks, ekf.mu)
         factor_graph_marker_pub.publish(markers)
         br.sendTransform((ekf.mu[0], ekf.mu[1] , 0),
                         tf.transformations.quaternion_from_euler(0, 0, ekf.mu[2]),
