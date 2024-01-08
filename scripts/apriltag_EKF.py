@@ -270,9 +270,9 @@ class EKF:
         T_c_to_w=v2t([mu[0], mu[1], 0, mu[2]])@self.T_c_to_r
         T_w_to_c=np.linalg.inv(T_c_to_w)
         Q=np.eye(6)
-        Q[0,0]=10**2
-        Q[1,1]=10**2
-        Q[2,2]=0.5**2
+        Q[0,0]=20**2
+        Q[1,1]=20**2
+        Q[2,2]=1**2
         Q[3:6, 3:6] *= (np.pi/2)**2
         for feature_id in features:    
             feature=features[feature_id]
