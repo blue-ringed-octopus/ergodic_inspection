@@ -26,29 +26,26 @@ np.set_printoptions(precision=2)
 def pose_dist(x1, x2):
     return np.sqrt((x1[0]-x2[0])**2+(x1[1]-x2[1])**2+10*(x1[2]-x2[2])**2)
 
-
-
-
-
 class Graph_SLAM:
     class Front_end:
         class Node:
             def __init__(self, node_id, mu, node_type):
                 self.type=node_type
-                self.mu=mu.copy()
-                self.T=v2t([mu[0], mu[1], 0, mu[2]])
+                self.set_mu(mu)
                 self.H=np.eye(3)*0.001
                 self.id=node_id
                 self.children={}
                 self.parents={}
                 self.local_map=None
-                self.n=len(self.mu)
                 
             def set_mu(self,mu):
                 self.mu=mu.copy()
-                self.T=v2t(self.mu)
                 self.n=len(self.mu)
-                
+                if self.n==3:
+                    self.T=v2t([mu[0], mu[1], 0, mu[2]])
+                else:
+                    self.T=v2t(mu)
+                    
         class Edge:
             def __init__(self, node1, node2, Z, omega, edge_type):
                 self.node1=node1
@@ -84,8 +81,6 @@ class Graph_SLAM:
         
         
     class Back_end:
-       
-    
         def get_pose_jacobian(self, x1, x2, Z):
             ztheta=arctan2(Z[1,0], Z[0,0])
             
@@ -144,7 +139,7 @@ class Graph_SLAM:
                 H[i:i+n,i:i+n]+=A.T@omega@A
                 H[j:j+m,j:j+m]+=B.T@omega@B
                 H[i:i+n,j:j+m]+=A.T@omega@B
-                H[j:j+m,i:i+n]+=H[i:i+3,j:j+3].T
+                H[j:j+m,i:i+n]+=H[i:i+n,j:j+m].T
                 
                 b[i:i+n]+=A.T@omega@e
                 b[j:j+m]+=B.T@omega@e
@@ -202,7 +197,7 @@ class Graph_SLAM:
     def reset(self):
         self.front_end=self.Front_end()
         self.back_end=self.Back_end()
-        self.current_node_id=self.front_end.add_node(self.mu, "pose",[])
+        self.current_node_id=self.front_end.add_node([self.mu[0]], "pose",[])
         self.omega=np.eye(3)*0.001
         self.global_map={"map":[], "info":[], "tree":None, "anomaly":[]}
         self.feature_tree=None
