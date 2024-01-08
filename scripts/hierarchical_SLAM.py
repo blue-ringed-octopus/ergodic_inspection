@@ -157,6 +157,7 @@ class Graph_SLAM:
                idx_map[str(node.id)]=len(x)
                x.append(node.mu.copy())
               # idx_map[str(node.id)]=node.mu.copy().length*i
+               print(node.type, node.mu)
             return np.array(x), idx_map
         
         def linear_solve(self, A,b):
