@@ -272,7 +272,7 @@ class EKF:
         Q=np.eye(6)
         Q[0,0]=10**2
         Q[1,1]=10**2
-        Q[2,2]=1**2
+        Q[2,2]=0.5**2
         Q[3:6, 3:6] *= (np.pi/2)**2
         for feature_id in features:    
             feature=features[feature_id]
@@ -286,7 +286,7 @@ class EKF:
                             [0,1/x_camera[2],0],
                             [0,0,1]])@kx                #feature on image plane and depth
                         
-            theta=mu[idx+3] #estimated planar orientation of the tag
+            theta=angle_wrapping(mu[idx+3]) #estimated planar orientation of the tag
             
             R_bar=Exp([0,0,theta])        #raise to SO(3)
             R_bar=T_w_to_c[0:3, 0:3]@R_bar      # orientation in camera frame
