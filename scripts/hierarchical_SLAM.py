@@ -155,7 +155,7 @@ class Graph_SLAM:
             for i,node in enumerate(graph.nodes):
                # x[3*i:3*i+3]=node.mu.copy()
                idx_map[str(node.id)]=len(x)
-               x+=node.mu.copy()
+               x=np.concatenate((x, node.mu.copy()))
               # idx_map[str(node.id)]=node.mu.copy().length*i
             return np.array(x), idx_map
         
