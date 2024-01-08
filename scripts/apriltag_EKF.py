@@ -325,7 +325,7 @@ class EKF:
             mu[idx+3]=angle_wrapping(mu[idx+3])
 
 
-        self.mu=mu
+        self.mu[3:]=mu[3:]
         self.sigma=sigma
         
     def camera_callback(self, rgb_msg, depth_msg):
