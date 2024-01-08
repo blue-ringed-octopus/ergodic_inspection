@@ -10,7 +10,7 @@ from sensor_msgs.msg import PointCloud2
 import tf
 import numpy as np
 import apriltag_EKF
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, Pose
 from visualization_msgs.msg import Marker, MarkerArray
 from common_functions import angle_wrapping, v2t, t2v, np2pc
 from scipy.linalg import solve_triangular
@@ -362,7 +362,8 @@ class Graph_SLAM:
         T=v2t([mu[0], mu[1], 0, mu[2]])
         
         pose_global = node_to_origin@T
-        self.mu=t2v(pose_global)
+        mu_r=t2v(pose_global)
+        self.mu = [mu_r[0],mu_r[1], mu_r[3] ]
         self.init_new_features(mu, node_to_origin, features)
         delta=t2v(np.linalg.inv(node_to_origin)@pose_global)
         delta[2]*=2
@@ -436,40 +437,47 @@ def get_pose_markers(nodes):
       return marker
   
 def get_landmark_markers(nodes):
-    P=[]
-    for idx in nodes:
+    markers=[]
+    for tag_id, idx in nodes.items():
+        marker=Marker()
+        x=mu[idx:idx+4]
+        p=Pose()
+        p.position.x=x[0]
+        p.position.y=x[1]
+        p.position.z=x[2]
         
-        mu=nodes[idx].mu
-        p=Point()
-        p.x=mu[0]
-        p.y=mu[1]
-        p.z=mu[2]
+        p.orientation.w = cos(x[3]/2)
+        p.orientation.x = 0
+        p.orientation.y = 0
+        p.orientation.z = sin(x[3]/2)
+
+    
+        marker = Marker()
+        marker.type = 0
+        marker.id = tag_id
         
-        P.append(p)
-
-    # x=self.landmark["0"]
-    marker = Marker()
-    marker.type = 7
-    marker.id = 1
-
-    marker.header.frame_id = "map"
-    marker.header.stamp = rospy.Time.now()
-    marker.pose.orientation.x=0
-    marker.pose.orientation.y=0
-    marker.pose.orientation.z=0
-    marker.pose.orientation.w=1
-    marker.scale.x = 0.1
-    marker.scale.y = 0.1
-    marker.scale.z = 0.1
-    
-    # Set the color
-    marker.color.r = 0.0
-    marker.color.g = 1.0
-    marker.color.b = 0.0
-    marker.color.a = 1.0
-    
-    marker.points = P
-    return marker
+        marker.header.frame_id = "map"
+        marker.header.stamp = rospy.Time.now()
+        
+        marker.pose.orientation.x=0
+        marker.pose.orientation.y=0
+        marker.pose.orientation.z=0
+        marker.pose.orientation.w=1
+        
+        
+        marker.scale.x = 0.5
+        marker.scale.y = 0.05
+        marker.scale.z = 0.05
+        
+        # Set the color
+        marker.color.r = 1.0
+        marker.color.g = 0.0
+        marker.color.b = 0.0
+        marker.color.a = 1.0
+        
+        marker.pose = p
+        markers.append(marker)
+    return markers
     
 def get_factor_markers(graph):
     P=[]
