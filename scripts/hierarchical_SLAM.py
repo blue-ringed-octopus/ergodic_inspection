@@ -197,7 +197,7 @@ class Graph_SLAM:
     def reset(self):
         self.front_end=self.Front_end()
         self.back_end=self.Back_end()
-        self.current_node_id=self.front_end.add_node([self.mu[0]], "pose",[])
+        self.current_node_id=self.front_end.add_node(self.mu, "pose",[])
         self.omega=np.eye(3)*0.001
         self.global_map={"map":[], "info":[], "tree":None, "anomaly":[]}
         self.feature_tree=None
