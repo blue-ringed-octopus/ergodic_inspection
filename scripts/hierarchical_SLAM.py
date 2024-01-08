@@ -135,7 +135,9 @@ class Graph_SLAM:
                     
                 n=A.shape[1] 
                 m=B.shape[1] 
-
+                print("A", A)
+                print("B", B)
+                print("omega", omega)
                 H[i:i+n,i:i+n]+=A.T@omega@A
                 H[j:j+m,j:j+m]+=B.T@omega@B
                 H[i:i+n,j:j+m]+=A.T@omega@B
