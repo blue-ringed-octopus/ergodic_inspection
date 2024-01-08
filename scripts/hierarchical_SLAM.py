@@ -42,11 +42,13 @@ class Graph_SLAM:
                 self.children={}
                 self.parents={}
                 self.local_map=None
+                self.n=len(self.mu)
                 
             def set_mu(self,mu):
                 self.mu=mu.copy()
                 self.T=v2t(self.mu)
-
+                self.n=len(self.mu)
+                
         class Edge:
             def __init__(self, node1, node2, Z, omega, edge_type):
                 self.node1=node1
@@ -82,17 +84,7 @@ class Graph_SLAM:
         
         
     class Back_end:
-        def get_feature_jacobian(self, x1 ,x2):
-            
-            J1 = np.array([[ cos(x1[2]), sin(x1[2]), x1[1]*cos(x1[2]) - x2[1]*cos(x1[2]) + x2[0]*sin(x1[2]) - x1[0]*sin(x1[2])],
-                           [-sin(x1[2]), cos(x1[2]), x2[0]*cos(x1[2]) - x1[0]*cos(x1[2]) + x2[1]*sin(x1[2]) - x1[1]*sin(x1[2])],
-                           [           0,           0,                                                                   0]])
- 
-
-            J2 = np.array([[-cos(x1[2]), -sin(x1[2]),  0],
-                           [ sin(x1[2]), -cos(x1[2]),  0],
-                           [           0,            0, -1]])
-            return J1, J2
+       
     
         def get_pose_jacobian(self, x1, x2, Z):
             ztheta=arctan2(Z[1,0], Z[0,0])
@@ -109,10 +101,26 @@ class Graph_SLAM:
         def pose_error_function(self, x1,x2,Z):
             return t2v(np.linalg.inv(Z)@(np.linalg.inv(v2t(x1))@v2t(x2)))
 
+        def get_feature_jacobian(self, x1 ,x2):
+            
+            J1 = np.array([[ cos(x1[2]), sin(x1[2]), x1[1]*cos(x1[2]) - x2[1]*cos(x1[2]) + x2[0]*sin(x1[2]) - x1[0]*sin(x1[2])],
+                           [-sin(x1[2]), cos(x1[2]), x2[0]*cos(x1[2]) - x1[0]*cos(x1[2]) + x2[1]*sin(x1[2]) - x1[1]*sin(x1[2])],
+                           [          0,          0,                                                                   0],
+                           [          0,          0,                                                                   1]])
+       
+       
+            J2 = np.array([[-cos(x1[2]), -sin(x1[2]),  0, 0],
+                           [ sin(x1[2]), -cos(x1[2]),  0, 0],
+                           [          0,           0, -1, 0],
+                           [          0,           0,  0, -1]])
+            return J1, J2
+        
         def feature_error_function(self, x1,x2,z):
-            e = np.array([z[0] - x2[0]*cos(x1[2]) + x1[0]*cos(x1[2]) - x2[1]*sin(x1[2]) + x1[1]*sin(x1[2]),
-                          z[1] - x2[1]*cos(x1[2]) + x1[1]*cos(x1[2]) + x2[0]*sin(x1[2]) - x1[0]*sin(x1[2]),
-                                                                 z[2] - x2[2]])
+            e = np.array([z[0] - x2[0]*cos(x1[3]) + x1[0]*cos(x1[3]) - x2[1]*sin(x1[3]) + x1[1]*sin(x1[3]),
+                          z[1] - x2[1]*cos(x1[3]) + x1[1]*cos(x1[3]) + x2[0]*sin(x1[3]) - x1[0]*sin(x1[3]),
+                                                                  z[2] - x2[2],
+                          angle_wrapping(z[3]-arctan2(sin(x2[3] - x1[3]), cos(x2[3] - x1[3])))])
+            
             return e
         
         def linearize(self,x, edges, idx_map):
@@ -127,16 +135,19 @@ class Graph_SLAM:
                     A,B=self.get_pose_jacobian(x[i:i+3], x[j:j+3], Z)
                     e=self.pose_error_function(x[i:i+3], x[j:j+3], Z)
                 else:
-                    A,B=self.get_feature_jacobian(x[i:i+3], x[j:j+3])
-                    e=self.feature_error_function(x[i:i+3], x[j:j+3], Z)
+                    A,B=self.get_feature_jacobian(x[i:i+3], x[j:j+4])
+                    e=self.feature_error_function(x[i:i+3], x[j:j+4], Z)
                     
-                H[i:i+3,i:i+3]+=A.T@omega@A
-                H[j:j+3,j:j+3]+=B.T@omega@B
-                H[i:i+3,j:j+3]+=A.T@omega@B
-                H[j:j+3,i:i+3]+=H[i:i+3,j:j+3].T
+                n=A.shape[1] 
+                m=B.shape[1] 
+
+                H[i:i+n,i:i+n]+=A.T@omega@A
+                H[j:j+m,j:j+m]+=B.T@omega@B
+                H[i:i+n,j:j+m]+=A.T@omega@B
+                H[j:j+m,i:i+n]+=H[i:i+3,j:j+3].T
                 
-                b[i:i+3]+=A.T@omega@e
-                b[j:j+3]+=B.T@omega@e
+                b[i:i+n]+=A.T@omega@e
+                b[j:j+m]+=B.T@omega@e
             return H,b
         
         def __init__(self):
@@ -144,11 +155,14 @@ class Graph_SLAM:
         
         def node_to_vector(self, graph):
             idx_map={}
-            x=np.zeros(3*len(graph.nodes))
+            # x=np.zeros(3*len(graph.nodes))
+            x=[]
             for i,node in enumerate(graph.nodes):
-                x[3*i:3*i+3]=node.mu.copy()
-                idx_map[str(node.id)]=3*i
-            return x, idx_map
+               # x[3*i:3*i+3]=node.mu.copy()
+               idx_map[str(node.id)]=len(x)
+               x.append(node.mu.copy())
+              # idx_map[str(node.id)]=node.mu.copy().length*i
+            return np.array(x), idx_map
         
         def linear_solve(self, A,b):
             L=np.linalg.cholesky(A)
@@ -158,8 +172,8 @@ class Graph_SLAM:
         def update_nodes(self, graph,x,H, idx_map):
             for node in graph.nodes:
                 idx=idx_map[str(node.id)]
-                nodex=x[idx:idx+3]
-                nodeH=H[idx:idx+3,idx:idx+3]
+                nodex=x[idx:idx+node.n]
+                nodeH=H[idx:idx+node.n,idx:idx+node.n]
                 node.set_mu(nodex.copy())
                 node.H=nodeH.copy()
 
@@ -235,14 +249,14 @@ class Graph_SLAM:
         features=self.ekf.landmarks
         for feature_id in features:
               idx=features[feature_id]
-              z=mu[idx:idx+3]
-              z=np.append(z,1)
+              z=mu[idx:idx+4]
+              #z=np.append(z,1)
               # print(z)
               # print(node_to_origin)
               # z=node_to_origin@z
 
               feature_node_id=self.front_end.feature_nodes[feature_id].id
-              omega=np.linalg.inv(sigma[idx:idx+3, idx:idx+3])
+              omega=np.linalg.inv(sigma[idx:idx+4, idx:idx+4])
               omega=(omega+omega.T)/2
               self.front_end.add_edge(self.current_node_id,feature_node_id, z,omega , edge_type="measurement")
 
@@ -337,7 +351,7 @@ class Graph_SLAM:
         for feature_id in features:
             if not feature_id in self.front_end.feature_nodes.keys():
                 idx=features[feature_id]
-                z=mu[idx:idx+3]
+                z=mu[idx:idx+4]
                 Z=v2t(z)
                 x=t2v(node_to_origin@Z)
                 self.front_end.add_node(x,"feature", feature_id)

@@ -123,6 +123,7 @@ class EKF:
         odom=rospy.wait_for_message("/odom",Odometry)
         self.odom_prev=v2t([odom.pose.pose.position.x,
                           odom.pose.pose.position.y,
+                          0,
                           odom.pose.pose.orientation.z])
         self.odom_prev=tf.transformations.quaternion_matrix([odom.pose.pose.orientation.x,
                                                    odom.pose.pose.orientation.y,
@@ -155,7 +156,8 @@ class EKF:
             # self.cloud.header.frame_id="node_"+str(node_id)+"_camera"
         print("EKF initialized")
     def get_tf(self):
-        return v2t(self.mu[0:3])
+        mu=self.mu[0:3].copy()
+        return v2t([mu[0], mu[1], 0 ,mu[2]])
         
     
         
@@ -178,33 +180,23 @@ class EKF:
             dX=np.linalg.inv(self.odom_prev)@odom
             
             mu=self.mu.copy()
-        #    t=time.time()
-        #    dt=t-self.t
+           
+            mu = t2v(v2t([mu[0], mu[1], 0, mu[2]])@dX)
+            mu = [mu[0], mu[1], mu[3]]
             F=np.zeros((3,mu.shape[0]))
             F[0:3,0:3]=np.eye(3)
-         #   u=np.array([data.twist.twist.linear.x, data.twist.twist.angular.z])
-            
-            # self.mu[0:3]=self.mu[0:3]+dt*np.asarray([u[0]*cos(mu[2]),
-            #                                u[0]*sin(mu[2]),
-            #                                u[1]])
-            # self.mu[2]=angle_wrapping(self.mu[2])
-            self.mu[0:3]=t2v(v2t(mu)@dX)
             fx = np.array([[0, 0, - dX[1,3]*cos(mu[2]) - dX[0,3]*sin(mu[2])],
                            [0, 0,   dX[0,3]*cos(mu[2]) - dX[1,3]*sin(mu[2])],
                            [0, 0,                               0]]) 
-            #fx = np.asarray([[0,0,-dt*u[0]*sin(mu[2]+dt/2*u[1])], 
-            #                                                         [0,0,dt*u[0]*cos(mu[2]+dt/2*u[1])],
-            #                                                         [0,0,0]])
+            
             fx=np.eye(mu.shape[0])+F.T@fx@F
             fu=np.array([[cos(mu[2]), -sin(mu[2]), 0],
                          [sin(mu[2]),  cos(mu[2]), 0],
-                         [         0,           0, 1]   ])                
-            # fu=np.asarray([[dt*cos(mu[2]+1/2*u[1]), -1/2*dt**2*u[0]*sin(mu[2]+dt/2*u[1])],
-            #                [dt*sin(mu[2]+1/2*u[1]), 1/2*dt**2*u[0]*cos(mu[2]+dt/2*u[1])],
-            #                [0, dt]])
+                         [         0,           0, 1]   ])    
+            
+            self.mu[0:3] = mu
             self.sigma=(fx)@self.sigma@(fx.T)+F.T@(fu)@self.R@(fu.T)@F
             self.odom_prev=odom
-           # self.t=t
         
     def detect_apriltag(self,rgb, depth):
         gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
@@ -227,7 +219,7 @@ class EKF:
     def _initialize_new_landmarks(self, landmarks):
         mu=self.mu.copy()       #current point estimates 
         sigma=self.sigma.copy() #current covariance
-        T=v2t(mu[0:3])@self.T_c_to_r    #coordinate transformation from camera coordinate to world coordinate
+        T=v2t([mu[0], mu[1], 0, mu[2]])@self.T_c_to_r    #coordinate transformation from camera coordinate to world coordinate
         for landmark_id in landmarks:
             if not landmark_id in self.landmarks.keys():
                 landmark=landmarks[landmark_id]
@@ -276,7 +268,7 @@ class EKF:
         mu=self.mu.copy()
         sigma=self.sigma.copy()
         
-        T_c_to_w=v2t(mu[0:3])@self.T_c_to_r
+        T_c_to_w=v2t([mu[0], mu[1], 0, mu[2]])@self.T_c_to_r
         T_w_to_c=np.linalg.inv(T_c_to_w)
         Q=np.eye(6)
         Q[0,0]=10**2
