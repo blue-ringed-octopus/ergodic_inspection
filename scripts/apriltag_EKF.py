@@ -108,7 +108,7 @@ class EKF:
         self.mu=np.zeros(3)
         self.t=time.time()
         self.marker_pub = rospy.Publisher("/apriltags", Marker, queue_size = 2)
-        self.R=np.eye(3)*0
+        self.R=np.eye(3)*0.0000001
         # self.R[0,0]=0.01
         # self.R[1,1]=0.01
         # self.R[2,2]=0.1
