@@ -357,12 +357,12 @@ class Graph_SLAM:
         sigma=self.ekf.sigma.copy()
         features = self.ekf.landmarks
 
-        node_x=self.front_end.nodes[self.current_node_id].mu.copy()
-        node_to_origin=v2t(node_x)
+      #  node_x=self.front_end.nodes[self.current_node_id].mu.copy()
+        node_to_origin=self.front_end.nodes[self.current_node_id].T.copy()
         T=v2t(mu[0:3])
         self.mu=t2v(node_to_origin@T)
         self.init_new_features(mu, node_to_origin, features)
-        delta=t2v(np.linalg.inv(v2t(node_x))@v2t(self.mu))
+        delta=t2v(np.linalg.inv(node_to_origin)@v2t(self.mu))
         delta[2]*=2
         if np.linalg.norm(delta)>=1.5:
             optimized=True
