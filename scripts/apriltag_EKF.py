@@ -323,6 +323,8 @@ class EKF:
             mu[2]=angle_wrapping(mu[2])
             mu[idx+3]=angle_wrapping(mu[idx+3])
 
+        for idx  in self.landmarks.items():
+            mu[idx+3]=angle_wrapping(mu[idx+3])
 
         self.mu=mu
         self.sigma=sigma
