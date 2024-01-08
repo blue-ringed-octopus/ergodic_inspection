@@ -438,9 +438,9 @@ def get_pose_markers(nodes):
   
 def get_landmark_markers(nodes):
     markers=[]
-    for tag_id, idx in nodes.items():
+    for node in nodes:
         marker=Marker()
-        x=mu[idx:idx+4]
+        x=node.mu
         p=Pose()
         p.position.x=x[0]
         p.position.y=x[1]
@@ -454,7 +454,7 @@ def get_landmark_markers(nodes):
     
         marker = Marker()
         marker.type = 0
-        marker.id = tag_id
+        marker.id = node.id
         
         marker.header.frame_id = "map"
         marker.header.stamp = rospy.Time.now()
@@ -528,11 +528,14 @@ def get_factor_markers(graph):
 
 def plot_graph(graph):
     markerArray=MarkerArray()
-    
     pose_marker = get_pose_markers(graph.pose_nodes)
-    feature_marker = get_landmark_markers(graph.feature_nodes)
+    feature_markers = get_landmark_markers(graph.feature_nodes)
     factor_marker= get_factor_markers(graph)
-    markerArray.markers=[pose_marker, feature_marker, factor_marker]
+    
+    feature_markers.append(pose_marker)
+    feature_markers.append(factor_marker)
+
+    markerArray.markers=feature_markers
     factor_graph_marker_pub.publish(markerArray)
     
     
