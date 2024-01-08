@@ -182,7 +182,7 @@ class EKF:
             mu=self.mu.copy()
            
             mu_r = t2v(v2t([mu[0], mu[1], 0, mu[2]])@dX)
-            mu[0:3] = [mu[0], mu[1], mu[3]]
+            mu[0:3] = [mu_r[0], mu_r[1], mu_r[3]]
             F=np.zeros((3,mu.shape[0]))
             F[0:3,0:3]=np.eye(3)
             fx = np.array([[0, 0, - dX[1,3]*cos(mu[2]) - dX[0,3]*sin(mu[2])],
