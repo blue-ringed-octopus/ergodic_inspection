@@ -56,9 +56,9 @@ class Graph_SLAM:
                 node1.children[node2.id]={"edge": self, "children": node2}
                 node2.parents[node1.id]={"edge": self, "parents": node1}
 
-            def get_error(self):
-                e=t2v(np.linalg.inv(self.Z)@(np.linalg.inv(v2t(self.node1.x))@v2t(self.node2.x)))
-                return e
+            # def get_error(self):
+            #     e=t2v(np.linalg.inv(self.Z)@(np.linalg.inv(v2t(self.node1.x))@v2t(self.node2.x)))
+            #     return e
                 
         def __init__(self):
             self.nodes=[]
@@ -359,10 +359,12 @@ class Graph_SLAM:
 
       #  node_x=self.front_end.nodes[self.current_node_id].mu.copy()
         node_to_origin=self.front_end.nodes[self.current_node_id].T.copy()
-        T=v2t(mu[0:3])
-        self.mu=t2v(node_to_origin@T)
+        T=v2t([mu[0], mu[1], 0, mu[2]])
+        
+        pose_global = node_to_origin@T
+        self.mu=t2v(pose_global)
         self.init_new_features(mu, node_to_origin, features)
-        delta=t2v(np.linalg.inv(node_to_origin)@v2t(self.mu))
+        delta=t2v(np.linalg.inv(node_to_origin)@pose_global)
         delta[2]*=2
         if np.linalg.norm(delta)>=1.5:
             optimized=True
