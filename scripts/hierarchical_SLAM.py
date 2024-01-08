@@ -111,10 +111,10 @@ class Graph_SLAM:
             return J1, J2
         
         def feature_error_function(self, x1,x2,z):
-            e = np.array([z[0] - x2[0]*cos(x1[3]) + x1[0]*cos(x1[3]) - x2[1]*sin(x1[3]) + x1[1]*sin(x1[3]),
-                          z[1] - x2[1]*cos(x1[3]) + x1[1]*cos(x1[3]) + x2[0]*sin(x1[3]) - x1[0]*sin(x1[3]),
+            e = np.array([z[0] - x2[0]*cos(x1[2]) + x1[0]*cos(x1[2]) - x2[1]*sin(x1[2]) + x1[1]*sin(x1[3]),
+                          z[1] - x2[1]*cos(x1[2]) + x1[1]*cos(x1[2]) + x2[0]*sin(x1[2]) - x1[0]*sin(x1[3]),
                                                                   z[2] - x2[2],
-                          angle_wrapping(z[3]-arctan2(sin(x2[3] - x1[3]), cos(x2[3] - x1[3])))])
+                          angle_wrapping(z[3]-arctan2(sin(x2[3] - x1[2]), cos(x2[3] - x1[2])))])
             
             return e
         
