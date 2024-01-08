@@ -292,8 +292,8 @@ class EKF:
             R_bar=T_w_to_c[0:3, 0:3]@R_bar      # orientation in camera frame
             
             R_tag=feature["R"]@np.array([[0,1,0],
-                        [0,0,-1],
-                        [-1,0,0]]) 
+                                         [0,0,-1],
+                                         [-1,0,0]]) 
             
             tau_bar= Log(R_bar)
             dtau = Log(R_tag) - tau_bar#measurement error 
