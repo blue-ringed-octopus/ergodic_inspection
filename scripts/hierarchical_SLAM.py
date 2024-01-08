@@ -95,7 +95,7 @@ class Graph_SLAM:
         
         def pose_error_function(self, x1,x2,Z):
             e=t2v(np.linalg.inv(Z)@(np.linalg.inv(v2t([x1[0], x1[1], 0, x1[2]]))@v2t([x2[0], x2[1], 0, x2[2]])))
-            return np.array(e[0], e[1], e[3])
+            return np.array([e[0], e[1], e[3]])
 
         def get_feature_jacobian(self, x1 ,x2):
             
