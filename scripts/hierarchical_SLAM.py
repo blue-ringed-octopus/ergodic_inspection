@@ -94,7 +94,7 @@ class Graph_SLAM:
             return np.asarray(J1), np.asarray(J2)
         
         def pose_error_function(self, x1,x2,Z):
-            return t2v(np.linalg.inv(Z)@(np.linalg.inv(v2t(x1))@v2t(x2)))
+            return t2v(np.linalg.inv(Z)@(np.linalg.inv(v2t([x1[0], x1[1], 0, x1[2]]))@v2t([x2[0], x2[1], 0, x2[2]])))
 
         def get_feature_jacobian(self, x1 ,x2):
             
