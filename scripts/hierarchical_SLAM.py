@@ -438,7 +438,7 @@ def get_pose_markers(nodes):
   
 def get_landmark_markers(nodes):
     markers=[]
-    for node in nodes.values:
+    for node in nodes.values():
         marker=Marker()
         x=node.mu
         p=Pose()
