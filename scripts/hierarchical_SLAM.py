@@ -36,7 +36,7 @@ class Graph_SLAM:
             def __init__(self, node_id, mu, node_type):
                 self.type=node_type
                 self.mu=mu.copy()
-                self.T=v2t(self.mu)
+                self.T=v2t([mu[0], mu[1], 0, mu[2]])
                 self.H=np.eye(3)*0.001
                 self.id=node_id
                 self.children={}
