@@ -180,7 +180,6 @@ class EKF:
             dX=np.linalg.inv(self.odom_prev)@odom
             
             mu=self.mu.copy()
-            print(odom)
             mu_r =t2v(v2t([mu[0], mu[1], 0, mu[2]])@dX)
             print(mu_r)
             mu[0:3] = [mu_r[0], mu_r[1], mu_r[3]]

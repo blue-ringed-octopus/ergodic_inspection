@@ -16,7 +16,7 @@ def angle_wrapping(theta):
 
 
 def v2t(x):
-    return np.array([[cos(x[3]), -sin(x[2]),0, x[0]],
+    return np.array([[cos(x[3]), -sin(x[3]),0, x[0]],
                      [sin(x[3]), cos(x[3]), 0, x[1]],
                      [0, 0, 1, x[2]],
                       [0, 0, 0,1]])
