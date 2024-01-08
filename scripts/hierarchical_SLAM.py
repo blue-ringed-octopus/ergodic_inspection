@@ -91,10 +91,11 @@ class Graph_SLAM:
             J2=np.array([[ cos(x1[2] + ztheta), sin(x1[2] + ztheta), 0],
                          [-sin(x1[2] + ztheta), cos(x1[2] + ztheta), 0],
                          [ 0,                    0, 1]     ]        )
-            return np.asarray(J1), np.asarray(J2)
+            return J1, J2
         
         def pose_error_function(self, x1,x2,Z):
-            return t2v(np.linalg.inv(Z)@(np.linalg.inv(v2t([x1[0], x1[1], 0, x1[2]]))@v2t([x2[0], x2[1], 0, x2[2]])))
+            e=t2v(np.linalg.inv(Z)@(np.linalg.inv(v2t([x1[0], x1[1], 0, x1[2]]))@v2t([x2[0], x2[1], 0, x2[2]])))
+            return np.array(e[0], e[1], e[3])
 
         def get_feature_jacobian(self, x1 ,x2):
             
