@@ -194,7 +194,7 @@ class EKF:
                          [sin(mu[2]),  cos(mu[2]), 0],
                          [         0,           0, 1]   ])    
             
-            self.mu[0:3] = mu
+            self.mu = mu
             self.sigma=(fx)@self.sigma@(fx.T)+F.T@(fu)@self.R@(fu.T)@F
             self.odom_prev=odom
         
