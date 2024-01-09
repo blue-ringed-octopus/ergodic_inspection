@@ -136,9 +136,6 @@ class Graph_SLAM:
                     
                 n=A.shape[1] 
                 m=B.shape[1] 
-                print("A", A)
-                print("B", B)
-                print("omega", omega)
                 H[i:i+n,i:i+n]+=A.T@omega@A
                 H[j:j+m,j:j+m]+=B.T@omega@B
                 H[i:i+n,j:j+m]+=A.T@omega@B
@@ -376,6 +373,10 @@ class Graph_SLAM:
             self._create_new_node(sigma, T)
             self._global_map_assemble()
             self.ekf.reset(self.current_node_id)
+        if np.isnan(self.mu).any():
+            rospy.signal_shutdown("nan")
+
+
         return optimized
 
 def pc_to_msg(pc):
