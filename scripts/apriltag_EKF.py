@@ -273,7 +273,7 @@ class EKF:
         Q[0,0]=20**2
         Q[1,1]=20**2
         Q[2,2]=1**2
-        Q[3:6, 3:6] *= (np.pi/2)**2
+        Q[3:6, 3:6] *= 999999999999999999999999999999#(np.pi/2)**2
         for feature_id in features:    
             feature=features[feature_id]
             idx=self.landmarks[feature_id]
