@@ -93,7 +93,19 @@ def msg2pc(msg):
     p=o3d.geometry.PointCloud()
     p.points=o3d.utility.Vector3dVector(points)
     p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
-    return p    
+    return p   
+
+def draw_frame(img, tag, K):
+    img=cv2.circle(img, (int(tag["xp"]), int(tag["yp"])), 5, (0, 0, 255), -1)
+    R=tag["R"]
+    t=tag['t']
+    
+    z_axis=K@np.concatenate((R,t),1)@np.array([0,0,0.06,1])
+    z_axis=z_axis/(z_axis[2])
+    
+    img=cv2.arrowedLine(img, (int(tag["xp"]), int(tag["yp"])), (int(z_axis[0]), int(z_axis[1])), 
+                                     (255,0,0), 5)  
+    return img
 class EKF:
     def __init__(self, node_id):
         print("EKF initialize")
@@ -108,6 +120,8 @@ class EKF:
         self.mu=np.zeros(3)
         self.t=time.time()
         self.marker_pub = rospy.Publisher("/apriltags", Marker, queue_size = 2)
+        self.image_pub = rospy.Publisher("//camera/rgb/rgb_detected", Image, queue_size = 2)
+
         self.R=np.eye(3)
         self.R[0,0]=0.01
         self.R[1,1]=0.01
@@ -210,7 +224,7 @@ class EKF:
             z=depth[int(yp), int(xp)]
             R=r.pose_R
             if not np.isnan(z):
-                landmarks[tag_id]= {"xp": xp, "yp": yp, "z":z, "R": R}
+                landmarks[tag_id]= {"xp": xp, "yp": yp, "z":z, "R": R, "t": r.pose_t}
         return landmarks
     
         
@@ -270,10 +284,10 @@ class EKF:
         T_c_to_w=v2t([mu[0], mu[1], 0, mu[2]])@self.T_c_to_r
         T_w_to_c=np.linalg.inv(T_c_to_w)
         Q=np.eye(6)
-        Q[0,0]=20**2
-        Q[1,1]=20**2
-        Q[2,2]=1**2
-        Q[3:6, 3:6] *= 999999999999999999999999999999#(np.pi/2)**2
+        Q[0,0]=20**2 # x pixel
+        Q[1,1]=20**2 # y pixel
+        Q[2,2]=1**2  # depth
+        Q[3:6, 3:6] *= 999999999999999999999999999999#(np.pi/2)**2 #axis angle
         for feature_id in features:    
             feature=features[feature_id]
             idx=self.landmarks[feature_id]
@@ -335,10 +349,11 @@ class EKF:
             rgb = bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
             depth = bridge.imgmsg_to_cv2(depth_msg,"32FC1")
             features=self.detect_apriltag(rgb, depth)
-            
+            for feature in features:
+                rgb=draw_frame(rgb, feature, self.K)
             self._initialize_new_landmarks(features)
             self._correction(features)
-
+            self.image_pub.publish(bridge.cv2_to_imgmsg(rgb))
 def get_pose_marker(tags, mu):
     markers=[]
     for tag_id, idx in tags.items():
