@@ -38,6 +38,7 @@ def hat(w):
                      [-w[1], w[0], 0]])
 
 def Log(R):
+    print(R)
     theta=arccos((trace(R)-1)/2)
     if theta == 0:
         return np.zeros(3)
