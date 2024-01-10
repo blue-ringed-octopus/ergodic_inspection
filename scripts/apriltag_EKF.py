@@ -100,7 +100,7 @@ def draw_frame(img, tag, K):
     R=tag["R"]
     t=tag['t']
     
-    z_axis=K@np.concatenate((R,t),1)@np.array([0,0,0.06,1])
+    z_axis=K@np.concatenate((R,t),1)@np.array([0,0,-0.06,1])
     z_axis=z_axis/(z_axis[2])
     
     img=cv2.arrowedLine(img, (int(tag["xp"]), int(tag["yp"])), (int(z_axis[0]), int(z_axis[1])), 
