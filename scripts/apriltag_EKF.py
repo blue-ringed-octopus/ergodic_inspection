@@ -38,8 +38,6 @@ def hat(w):
                      [-w[1], w[0], 0]])
 
 def Log(R):
-    print(R)
-    print((trace(R)-1)/2)
     theta=arccos((trace(R)-1)/2)
     if theta == 0:
         return np.zeros(3)
@@ -289,8 +287,8 @@ class EKF:
         Q=np.eye(6)
         Q[0,0]=20**2 # x pixel
         Q[1,1]=20**2 # y pixel
-        Q[2,2]=1**2  # depth
-        Q[3:6, 3:6] *= 9999999 #(np.pi/2)**2 #axis angle
+        Q[2,2]=99999999999999999999# 1**2  # depth
+        Q[3:6, 3:6] *= (np.pi/2)**2 #axis angle
         for feature_id in features:    
             feature=features[feature_id]
             idx=self.landmarks[feature_id]
