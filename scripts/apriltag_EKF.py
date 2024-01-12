@@ -287,7 +287,7 @@ class EKF:
         Q=np.eye(6)
         Q[0,0]=20**2 # x pixel
         Q[1,1]=20**2 # y pixel
-        Q[2,2]=99999999999999999999# 1**2  # depth
+        Q[2,2]=1**2  # depth
         Q[3:6, 3:6] *= (np.pi/2)**2 #axis angle
         for feature_id in features:    
             feature=features[feature_id]
@@ -301,7 +301,7 @@ class EKF:
                             [0,1/x_camera[2],0],
                             [0,0,1]])@kx                #feature on image plane and depth
                         
-            theta=angle_wrapping(mu[idx+3]) #estimated planar orientation of the tag
+            theta=angle_wrapping(mu[idx+4]) #estimated planar orientation of the tag
             
             R_bar=Exp([0,0,theta])        #raise to SO(3)
             R_bar=T_w_to_c[0:3, 0:3]@R_bar      # orientation in camera frame
@@ -353,7 +353,7 @@ class EKF:
             for feature in features.values():
                 rgb=draw_frame(rgb, feature, self.K)
             self._initialize_new_landmarks(features)
-            #self._correction(features)
+            self._correction(features)
             self.image_pub.publish(bridge.cv2_to_imgmsg(rgb))
 def get_pose_marker(tags, mu):
     markers=[]
