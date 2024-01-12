@@ -323,7 +323,7 @@ class EKF:
             J_loc=self.get_pixel_jacobian(mu, xl, kx) #jacobian of robot pose (x,y, theta) and tag location (x,y,z)
             
             H=np.zeros((6,7)) #number of obervation: 6, number of state:7 
-            H[0:3, 0:6] = J_loc
+      #      H[0:3, 0:6] = J_loc
             H[3:6, 2] = jr
             H[3:6:, 6] = jtag
             
