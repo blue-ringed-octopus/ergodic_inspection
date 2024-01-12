@@ -126,9 +126,9 @@ class EKF:
         self.image_pub = rospy.Publisher("//camera/rgb/rgb_detected", Image, queue_size = 2)
 
         self.R=np.eye(3)
-        self.R[0,0]=999999999999#0.01
-        self.R[1,1]=999999999999#0.01
-        self.R[2,2]=999999999999#0.1
+        self.R[0,0]=9999#0.01
+        self.R[1,1]=9999#0.01
+        self.R[2,2]=9999#0.1
         self.at_detector = Detector(
                     families="tag36h11",
                     quad_decimate=1.0,
