@@ -103,11 +103,11 @@ def draw_frame(img, tag, K):
     x_axis=K@np.concatenate((R,t),1)@np.array([0.06,0,0,1])
     x_axis=x_axis/(x_axis[2])
     
-    z_axis=K@np.concatenate((R,t),1)@np.array([0,0,0.06,1])
-    z_axis=z_axis/(z_axis[2])
+    # z_axis=K@np.concatenate((R,t),1)@np.array([0,0,0.06,1])
+    # z_axis=z_axis/(z_axis[2])
     
     img=cv2.arrowedLine(img, (int(tag["xp"]), int(tag["yp"])), (int(x_axis[0]), int(x_axis[1])), 
-                                     (255,0,0), 5)  
+                                     (0,0,255), 5)  
     return img
 class EKF:
     def __init__(self, node_id):
@@ -311,9 +311,7 @@ class EKF:
             R_bar=Exp([0,0,theta])        #raise to SO(3)
             R_bar=T_w_to_c[0:3, 0:3]@R_bar      # orientation in camera frame
             
-            R_tag=feature["R"]@np.array([[0,1,0],
-                                         [0,0,-1],
-                                         [-1,0,0]]) 
+            R_tag=feature["R"]
             
             tau_bar= Log(R_bar)
             dtau = Log(R_tag) - tau_bar#measurement error 
