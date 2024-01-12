@@ -224,6 +224,10 @@ class EKF:
             z=depth[int(yp), int(xp)]
             R=r.pose_R
             R[:, 2]=np.cross(R[:, 0], R[:, 1])
+            
+            R=R@np.array([[0,1,0],
+                            [0,0,-1],
+                            [-1,0,0]]) #rotate such that x-axis points outward, z-axis points upward 
             if not np.isnan(z):
                 landmarks[tag_id]= {"xp": xp, "yp": yp, "z":z, "R": R, "t": r.pose_t}
         return landmarks
@@ -243,9 +247,7 @@ class EKF:
                 
                 R=landmark["R"] #feature orientation in camera frame
                 
-                R=R@np.array([[0,1,0],
-                            [0,0,-1],
-                            [-1,0,0]]) #rotate such that x-axis points outward, z-axis points upward 
+                
                 
                 R=T[0:3,0:3]@R  #feature orientation in world frame 
                 
@@ -301,7 +303,7 @@ class EKF:
                             [0,1/x_camera[2],0],
                             [0,0,1]])@kx                #feature on image plane and depth
                         
-            theta=angle_wrapping(mu[idx+4]) #estimated planar orientation of the tag
+            theta=angle_wrapping(mu[idx+3]) #estimated planar orientation of the tag
             
             R_bar=Exp([0,0,theta])        #raise to SO(3)
             R_bar=T_w_to_c[0:3, 0:3]@R_bar      # orientation in camera frame
