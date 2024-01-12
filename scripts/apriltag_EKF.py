@@ -225,7 +225,7 @@ class EKF:
             tag_id=r.tag_id
             rgb=cv2.circle(rgb, (int(xp), int(yp)), 5, (0, 0, 255), -1)
             z=depth[int(yp), int(xp)]
-            z=r.pose_t[0,2]
+            z=r.pose_t.flatten()[2]
             R=r.pose_R
             R[:, 2]=np.cross(R[:, 0], R[:, 1])
             
