@@ -317,7 +317,7 @@ class EKF:
             tau_bar= Log(R_bar)
             dtau = Log(R_tag) - tau_bar#measurement error 
             
-            jr=Jl_inv(tau_bar)@self.T_r_to_c[0:3,0:3]@[0,0,1] #jacobian of robot orientation
+            jr=-Jl_inv(tau_bar)@self.T_r_to_c[0:3,0:3]@[0,0,1] #jacobian of robot orientation
             jtag=Jr_inv(tau_bar)@[0,0,1]    #jacobian of tag orientation
             
             J_loc=self.get_pixel_jacobian(mu, xl, kx) #jacobian of robot pose (x,y, theta) and tag location (x,y,z)
@@ -325,7 +325,7 @@ class EKF:
             H=np.zeros((6,7)) #number of obervation: 6, number of state:7 
             H[0:3, 0:6] = J_loc
          #   H[3:6, 2] = jr
-         #   H[3:6:, 6] = jtag
+            H[3:6:, 6] = jtag
             
             F=np.zeros((7,mu.shape[0]))
             F[0:3,0:3]=np.eye(3)
