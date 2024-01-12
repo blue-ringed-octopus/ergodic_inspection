@@ -272,7 +272,7 @@ class EKF:
         s=sin(mu[2])
         
         jw=np.array([[-c, -s, c*(xl[1]-mu[1]) + s*(mu[0]-xl[0]) , c  , s , 0],
-                     [s , -c, c*(mu[0]-xl[0]) +s *(mu[1]-xl[1]) , -s , c , 0],
+                     [s , -c, c*(mu[0]-xl[0]) + s*(mu[1]-xl[1]) , -s , c , 0],
                      [0 , 0 , 0                                 , 0  , 0 , 1]
                      ])
         
@@ -320,7 +320,7 @@ class EKF:
             jr=-Jl_inv(tau_bar)@self.T_r_to_c[0:3,0:3]@[0,0,1] #jacobian of robot orientation
             jtag=Jr_inv(tau_bar)@[0,0,1]    #jacobian of tag orientation
             
-            J_loc=self.get_pixel_jacobian(mu, xl, kx) #jacobian of robot pose (x,y, theta) and tag location (x,y,z)
+            J_loc=self.get_pixel_jacobian(mu, xl, x_camera) #jacobian of robot pose (x,y, theta) and tag location (x,y,z)
             
             H=np.zeros((6,7)) #number of obervation: 6, number of state:7 
       #      H[0:3, 0:6] = J_loc
