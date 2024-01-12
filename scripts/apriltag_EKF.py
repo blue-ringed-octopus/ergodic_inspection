@@ -324,8 +324,8 @@ class EKF:
             
             H=np.zeros((6,7)) #number of obervation: 6, number of state:7 
             H[0:3, 0:6] = J_loc
-            H[3:6, 2] = jr
-            H[3:6:, 6] = jtag
+         #   H[3:6, 2] = jr
+         #   H[3:6:, 6] = jtag
             
             F=np.zeros((7,mu.shape[0]))
             F[0:3,0:3]=np.eye(3)
