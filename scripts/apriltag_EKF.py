@@ -337,11 +337,10 @@ class EKF:
 
             H=H@F
             Q=self.Q.copy()
-            Q[0:3, 0:3]=inv(Jc)@Q[0:3, 0:3]@inv(Jc).T
-            K=sigma@(H.T)@np.linalg.inv((H@sigma@(H.T)+Q))
+         #   Q[0:3, 0:3]=inv(Jc)@Q[0:3, 0:3]@inv(Jc).T
+            K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
          #   dz=np.array([feature["xp"], feature['yp'], feature['z']])-z_bar
             dz=feature["t"].flatten()-x_camera[0:3]
-            print("dz:", dz)
             dz=np.concatenate((dz, dtau))
             mu = mu + K@(dz)
             sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
@@ -366,6 +365,7 @@ class EKF:
             self._initialize_new_landmarks(features)
             self._correction(features)
             self.image_pub.publish(bridge.cv2_to_imgmsg(rgb))
+            
 def get_pose_marker(tags, mu):
     markers=[]
     for tag_id, idx in tags.items():
