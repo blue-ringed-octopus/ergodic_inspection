@@ -297,8 +297,8 @@ class EKF:
         sigma=self.sigma.copy()
         
         T_c_to_w=v2t([mu[0], mu[1], 0, mu[2]])@self.T_c_to_r
-        T_w_to_c=np.linalg.inv(T_c_to_w)
-       
+        T_w_to_c=inv(T_c_to_w)
+        dmu=np.zeros(mu.shape)
         for feature_id in features:    
             feature=features[feature_id]
             idx=self.landmarks[feature_id]
@@ -342,7 +342,8 @@ class EKF:
          #   dz=np.array([feature["xp"], feature['yp'], feature['z']])-z_bar
             dz=feature["t"].flatten()-x_camera[0:3]
             dz=np.concatenate((dz, dtau))
-            mu = mu + K@(dz)
+           # mu = mu + K@(dz)
+            dmu+=K@(dz)
             sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
             
             mu[2]=angle_wrapping(mu[2])
@@ -351,7 +352,7 @@ class EKF:
         for idx  in self.landmarks.values():
             mu[idx+3]=angle_wrapping(mu[idx+3])
 
-        self.mu=mu
+        self.mu=mu+dmu
         self.sigma=sigma
         
     def camera_callback(self, rgb_msg, depth_msg):
