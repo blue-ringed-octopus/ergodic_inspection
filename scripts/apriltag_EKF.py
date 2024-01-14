@@ -303,7 +303,7 @@ class EKF:
             feature=features[feature_id]
             idx=self.landmarks[feature_id]
             
-            xl=mu[idx:idx+3] #global feature location
+            xl=mu[idx:idx+3].copy() #global feature location
             
             x_camera=T_w_to_c@np.concatenate((xl, [1])) #feature location in camera frame
             kx=self.K@x_camera[0:3]                     
@@ -311,7 +311,7 @@ class EKF:
                             [0,1/x_camera[2],0],
                             [0,0,1]])@kx                #feature on image plane and depth
                         
-            theta=angle_wrapping(mu[idx+3]) #estimated planar orientation of the tag
+            theta=angle_wrapping(mu[idx+3].copy()) #estimated planar orientation of the tag
             
             R_bar=Exp([0,0,theta])        #raise to SO(3)
             R_bar=T_w_to_c[0:3, 0:3]@R_bar      # orientation in camera frame
