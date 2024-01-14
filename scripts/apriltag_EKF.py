@@ -340,7 +340,7 @@ class EKF:
             Q[0:3, 0:3]=inv(Jc)@Q[0:3, 0:3]@inv(Jc).T
             K=sigma@(H.T)@np.linalg.inv((H@sigma@(H.T)+Q))
          #   dz=np.array([feature["xp"], feature['yp'], feature['z']])-z_bar
-            dz=feature["t"].flatten()-x_camera
+            dz=feature["t"].flatten()-x_camera[0:3]
             dz=np.concatenate((dz, dtau))
             mu = mu + K@(dz)
             sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
