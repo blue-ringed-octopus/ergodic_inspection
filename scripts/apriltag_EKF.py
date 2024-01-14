@@ -346,13 +346,14 @@ class EKF:
             dmu+=K@(dz)
             sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
             
-            mu[2]=angle_wrapping(mu[2])
-            mu[idx+3]=angle_wrapping(mu[idx+3])
+            dmu[2]=angle_wrapping(dmu[2])
+            dmu[idx+3]=angle_wrapping(dmu[idx+3])
 
-        for idx  in self.landmarks.values():
-            mu[idx+3]=angle_wrapping(mu[idx+3])
+        
 
         self.mu=mu+dmu
+        for idx  in self.landmarks.values():
+            self.mu[idx+3]=angle_wrapping(self.mu[idx+3])
         self.sigma=sigma
         
     def camera_callback(self, rgb_msg, depth_msg):
