@@ -129,6 +129,14 @@ class EKF:
         self.R[0,0]=9999#0.01
         self.R[1,1]=9999#0.01
         self.R[2,2]=9999#0.1
+        
+        self.Q=np.eye(6)
+        self.Q[0,0]=20**2 # x pixel
+        self.Q[1,1]=20**2 # y pixel
+        self.Q[2,2]=1**2  # depth
+        self.Q[3:6, 3:6] *= (np.pi/2)**2 #axis angle
+        
+        
         self.at_detector = Detector(
                     families="tag36h11",
                     quad_decimate=1.0,
@@ -290,11 +298,7 @@ class EKF:
         
         T_c_to_w=v2t([mu[0], mu[1], 0, mu[2]])@self.T_c_to_r
         T_w_to_c=np.linalg.inv(T_c_to_w)
-        Q=np.eye(6)
-        Q[0,0]=20**2 # x pixel
-        Q[1,1]=20**2 # y pixel
-        Q[2,2]=1**2  # depth
-        Q[3:6, 3:6] *= (np.pi/2)**2 #axis angle
+       
         for feature_id in features:    
             feature=features[feature_id]
             idx=self.landmarks[feature_id]
@@ -332,8 +336,9 @@ class EKF:
             F[3:7, idx:idx+4]=np.eye(4) 
 
             H=H@F
-    
-            K=sigma@(H.T)@np.linalg.inv((H@sigma@(H.T)+inv(Jc)@Q@inv(Jc).T))
+            Q=self.Q.copy()
+            Q[0:3, 0:3]=inv(Jc)@Q[0:3, 0:3]@inv(Jc).T
+            K=sigma@(H.T)@np.linalg.inv((H@sigma@(H.T)+Q))
          #   dz=np.array([feature["xp"], feature['yp'], feature['z']])-z_bar
             dz=feature["t"].flatten()-x_camera
             dz=np.concatenate((dz, dtau))
