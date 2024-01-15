@@ -231,7 +231,6 @@ class EKF:
             xp=r.center[0]
             yp=r.center[1] 
             tag_id=r.tag_id
-            rgb=cv2.circle(rgb, (int(xp), int(yp)), 5, (0, 0, 255), -1)
             z=depth[int(yp), int(xp)]
             z=r.pose_t.flatten()[2]
             R=r.pose_R
@@ -240,7 +239,7 @@ class EKF:
             R=R@np.array([[0,1,0],
                             [0,0,-1],
                             [-1,0,0]]) #rotate such that x-axis points outward, z-axis points upward 
-            if z<0:
+            if z<1:
                 landmarks[tag_id]= {"xp": xp, "yp": yp, "z":z, "R": R, "t": r.pose_t}
         return landmarks
     
@@ -363,7 +362,6 @@ class EKF:
             depth = bridge.imgmsg_to_cv2(depth_msg,"32FC1")
             features=self.detect_apriltag(rgb, depth)
             for feature in features.values():
-                print("z", feature["t"])
                 rgb=draw_frame(rgb, feature, self.K)
             self._initialize_new_landmarks(features)
             self._correction(features)
