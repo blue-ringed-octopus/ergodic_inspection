@@ -37,6 +37,7 @@ class Graph_SLAM:
                 self.children={}
                 self.parents={}
                 self.local_map=None
+                self.prune=False 
                 
             def set_mu(self,mu):
                 self.mu=mu.copy()
@@ -150,13 +151,11 @@ class Graph_SLAM:
         
         def node_to_vector(self, graph):
             idx_map={}
-            # x=np.zeros(3*len(graph.nodes))
             x=[]
-            for i,node in enumerate(graph.nodes):
-               # x[3*i:3*i+3]=node.mu.copy()
-               idx_map[str(node.id)]=len(x)
-               x=np.concatenate((x, node.mu.copy()))
-              # idx_map[str(node.id)]=node.mu.copy().length*i
+            for node in graph.nodes:
+                if not node.prune:
+                    idx_map[str(node.id)]=len(x)
+                    x=np.concatenate((x, node.mu.copy()))
             return np.array(x), idx_map
         
         def linear_solve(self, A,b):
@@ -166,11 +165,12 @@ class Graph_SLAM:
         
         def update_nodes(self, graph,x,H, idx_map):
             for node in graph.nodes:
-                idx=idx_map[str(node.id)]
-                nodex=x[idx:idx+node.n]
-                nodeH=H[idx:idx+node.n,idx:idx+node.n]
-                node.set_mu(nodex.copy())
-                node.H=nodeH.copy()
+                if not node.prune:
+                    idx=idx_map[str(node.id)]
+                    nodex=x[idx:idx+node.n]
+                    nodeH=H[idx:idx+node.n,idx:idx+node.n]
+                    node.set_mu(nodex.copy())
+                    node.H=nodeH.copy()
 
             
         def optimize(self, graph):
