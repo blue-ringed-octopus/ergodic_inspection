@@ -66,13 +66,16 @@ class Graph_SLAM:
             self.pose_nodes=[]
             self.edges=[]
             self.feature_nodes={}
-        
+            self.window = 20
+            
         def add_node(self, x, node_type, feature_id=None, ):
             i=len(self.nodes)
             node=self.Node(i,x, node_type)
             self.nodes.append(node)
             if node_type=="pose":
                 self.pose_nodes.append(node)
+                if len(self.pose_nodes>=self.window):
+                    self.pose_nodes[-self.window].prune=True
             if node_type=="feature":
                 self.feature_nodes[feature_id]=node
             return i
