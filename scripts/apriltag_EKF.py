@@ -290,7 +290,7 @@ class EKF:
                      [0,0,1]
                      ])@self.K
         
-        return jc, jr@jw
+        return jc@jr@jw
         
     def _correction(self,features):
         mu=self.mu.copy()
@@ -324,7 +324,7 @@ class EKF:
             jr=-Jl_inv(tau_bar)@self.T_r_to_c[0:3,0:3]@[0,0,1] #jacobian of robot orientation
             jtag=Jr_inv(tau_bar)@[0,0,1]    #jacobian of tag orientation
             
-            Jc,Jloc=self.get_pixel_jacobian(mu, xl, kx) #jacobian of robot pose (x,y, theta) and tag location (x,y,z)
+            Jloc=self.get_pixel_jacobian(mu, xl, kx) #jacobian of robot pose (x,y, theta) and tag location (x,y,z)
             
             H=np.zeros((6,7)) #number of obervation: 6, number of state:7 
             H[0:3, 0:6] = Jloc
@@ -337,10 +337,10 @@ class EKF:
 
             H=H@F
             Q=self.Q.copy()
-            Q[0:3, 0:3]=inv(Jc)@Q[0:3, 0:3]@inv(Jc).T
+        #    Q[0:3, 0:3]=inv(Jc)@Q[0:3, 0:3]@inv(Jc).T
             K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
-         #   dz=np.array([feature["xp"], feature['yp'], feature['z']])-z_bar
-            dz=feature["t"].flatten()-x_camera[0:3]
+            dz=np.array([feature["xp"], feature['yp'], feature['z']])-z_bar
+         #   dz=feature["t"].flatten()-x_camera[0:3]
             dz=np.concatenate((dz, dtau))
            # mu = mu + K@(dz)
             dmu+=K@(dz)
