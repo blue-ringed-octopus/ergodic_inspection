@@ -74,7 +74,7 @@ class Graph_SLAM:
             self.nodes.append(node)
             if node_type=="pose":
                 self.pose_nodes.append(node)
-                if len(self.pose_nodes>=self.window):
+                if len(self.pose_nodes)>=self.window:
                     self.pose_nodes[-self.window].prune=True
             if node_type=="feature":
                 self.feature_nodes[feature_id]=node
