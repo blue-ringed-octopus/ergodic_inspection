@@ -240,7 +240,7 @@ class EKF:
             R=R@np.array([[0,1,0],
                             [0,0,-1],
                             [-1,0,0]]) #rotate such that x-axis points outward, z-axis points upward 
-            if z<1:
+            if z<0:
                 landmarks[tag_id]= {"xp": xp, "yp": yp, "z":z, "R": R, "t": r.pose_t}
         return landmarks
     
