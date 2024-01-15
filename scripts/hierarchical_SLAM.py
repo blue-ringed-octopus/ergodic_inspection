@@ -321,7 +321,7 @@ class Graph_SLAM:
         points=[]
         colors=[]
         for node in self.front_end.pose_nodes[-20:]:
-            if not node.local_map == None:
+            if not node.local_map == None and not node.prune:
                 cloud=deepcopy(node.local_map).transform(node.T)
                 points.append(np.array(cloud.points))
                 colors.append(np.array(cloud.colors))
