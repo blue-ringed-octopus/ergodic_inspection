@@ -17,7 +17,7 @@ rospack=rospkg.RosPack()
 
 class Anomaly_Detector:
     def __init__(self):
-        path = rospack.getPath("ergodic_inspection")
+        path = rospack.get_path("ergodic_inspection")
         mesh = o3d.io.read_triangle_mesh(path+"/resources/ballast.STL")
         pc = o3d.geometry.sample_points_uniformly(mesh, number_of_points=1000)
         o3d.visualization.draw([pc])
