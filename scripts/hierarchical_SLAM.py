@@ -16,7 +16,6 @@ from common_functions import angle_wrapping, v2t, t2v, np2pc
 from scipy.linalg import solve_triangular
 from scipy.spatial import KDTree
 from numpy import sin, cos, arctan2
-import open3d as o3d 
 from copy import deepcopy
 import ros_numpy
 np.float = np.float64 
