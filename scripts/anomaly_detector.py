@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Mon Jan 15 14:26:02 2024
@@ -11,6 +12,7 @@ import open3d as o3d
 from copy import deepcopy
 # from numba import cuda 
 import rospkg
+
 rospack=rospkg.RosPack()
 
 class Anomaly_Detector:
