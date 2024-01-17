@@ -9,7 +9,7 @@ import numpy as np
 import rospy
 import open3d as o3d
 from copy import deepcopy
-from numba import cuda 
+# from numba import cuda 
 import rospkg
 rospack=rospkg.RosPack()
 
