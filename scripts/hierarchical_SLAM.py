@@ -179,13 +179,13 @@ class Graph_SLAM:
         def optimize(self, graph):
             x, idx_map= self.node_to_vector(graph)
             H,b=self.linearize(x,graph.edges, idx_map)
-            H[0:3,0:3]+=np.eye(3)
+            H[0:4,0:4]+=np.eye(4)*99999
             dx=self.linear_solve(H,-b)
             x+=dx
             i=0
             while np.max(dx)>0.001 and i<1000:
                 H,b=self.linearize(x,graph.edges, idx_map)
-                H[0:4,0:4]+=np.eye(4)*9999999999
+                H[0:4,0:4]+=np.eye(4)*99999
                 # dx=self.linear_solve(H,-b)
                 Cov=inv(H)
                 dx=-Cov@b
