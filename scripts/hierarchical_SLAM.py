@@ -16,6 +16,7 @@ from common_functions import angle_wrapping, v2t, t2v, np2pc
 from scipy.linalg import solve_triangular
 from scipy.spatial import KDTree
 from numpy import sin, cos, arctan2
+from numpy.linalg import inv
 from copy import deepcopy
 import ros_numpy
 np.float = np.float64 
@@ -31,7 +32,7 @@ class Graph_SLAM:
             def __init__(self, node_id, mu, node_type):
                 self.type=node_type
                 self.set_mu(mu)
-                self.H=np.eye(3)*0.001
+                self.Cov=np.eye(3)*9999999
                 self.id=node_id
                 self.children={}
                 self.parents={}
@@ -165,14 +166,14 @@ class Graph_SLAM:
             y=solve_triangular(L,b, lower=True)
             return solve_triangular(L.T, y)
         
-        def update_nodes(self, graph,x,H, idx_map):
+        def update_nodes(self, graph,x, cov, idx_map):
             for node in graph.nodes:
                 if not node.prune:
                     idx=idx_map[str(node.id)]
                     nodex=x[idx:idx+node.n]
-                    nodeH=H[idx:idx+node.n,idx:idx+node.n]
+                    nodeCov=cov[idx:idx+node.n,idx:idx+node.n]
                     node.set_mu(nodex.copy())
-                    node.H=nodeH.copy()
+                    node.H=nodeCov.copy()
 
             
         def optimize(self, graph):
@@ -184,11 +185,13 @@ class Graph_SLAM:
             i=0
             while np.max(dx)>0.001 and i<1000:
                 H,b=self.linearize(x,graph.edges, idx_map)
-                H[0:3,0:3]+=np.eye(3)
-                dx=self.linear_solve(H,-b)
+                H[0:4,0:4]+=np.eye(4)*9999999999
+                # dx=self.linear_solve(H,-b)
+                Cov=inv(H)
+                dx=-Cov@b
                 x+=dx
                 i+=1
-            self.update_nodes(graph, x,H, idx_map)
+            self.update_nodes(graph, x,Cov, idx_map)
             return x, H
             
     def __init__(self, x_init, ekf):
@@ -199,10 +202,12 @@ class Graph_SLAM:
     def reset(self):
         self.front_end=self.Front_end()
         self.back_end=self.Back_end()
+        self.front_end.add_node([1.714, -0.1067, 0.0688, np.pi/2],"feature", "12")
         self.current_node_id=self.front_end.add_node(self.mu, "pose",[])
         self.omega=np.eye(3)*0.001
         self.global_map={"map":[], "info":[], "tree":None, "anomaly":[]}
         self.feature_tree=None
+        
         # self.costmap=self.anomaly_detector.costmap
 
         
