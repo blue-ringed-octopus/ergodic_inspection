@@ -180,18 +180,17 @@ class Graph_SLAM:
             x, idx_map= self.node_to_vector(graph)
             H,b=self.linearize(x,graph.edges, idx_map)
             H[0:4,0:4]+=np.eye(4)*99999
+            print(H)
             dx=self.linear_solve(H,-b)
             x+=dx
             i=0
             while np.max(dx)>0.001 and i<1000:
                 H,b=self.linearize(x,graph.edges, idx_map)
                 H[0:4,0:4]+=np.eye(4)*99999
-                # dx=self.linear_solve(H,-b)
-                Cov=inv(H)
-                dx=-Cov@b
+                dx=self.linear_solve(H,-b)
                 x+=dx
                 i+=1
-            self.update_nodes(graph, x,Cov, idx_map)
+            self.update_nodes(graph, x,inv(H), idx_map)
             return x, H
             
     def __init__(self, x_init, ekf):
@@ -203,7 +202,7 @@ class Graph_SLAM:
         self.front_end=self.Front_end()
         self.back_end=self.Back_end()
         self.front_end.add_node([1.714, -0.1067, 0.0688, np.pi/2],"feature", "12")
-        self.current_node_id=self.front_end.add_node(self.mu, "pose",[])
+        self.current_node_id=self.front_end.add_node(self.mu, "pose")
         self.omega=np.eye(3)*0.001
         self.global_map={"map":[], "info":[], "tree":None, "anomaly":[]}
         self.feature_tree=None
