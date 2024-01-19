@@ -37,7 +37,7 @@ class Graph_SLAM:
                 self.children={}
                 self.parents={}
                 self.local_map=None
-                self.prune=False 
+                self.pruned=False 
                 
             def set_mu(self,mu):
                 self.mu=mu.copy()
@@ -47,6 +47,11 @@ class Graph_SLAM:
                 else:
                     self.T=v2t(mu)
                     
+            def prune(self):
+                self.pruned=True
+                for child in self.children.values():
+                    child["edge"].pruned=True
+                    
         class Edge:
             def __init__(self, node1, node2, Z, omega, edge_type):
                 self.node1=node1
@@ -54,6 +59,7 @@ class Graph_SLAM:
                 self.Z=Z
                 self.omega=omega
                 self.type=edge_type
+                self.pruned=False
                 node1.children[node2.id]={"edge": self, "children": node2}
                 node2.parents[node1.id]={"edge": self, "parents": node1}
 
@@ -75,7 +81,7 @@ class Graph_SLAM:
             if node_type=="pose":
                 self.pose_nodes.append(node)
                 if len(self.pose_nodes)>=self.window:
-                    self.pose_nodes[-self.window].prune=True
+                    self.pose_nodes[-self.window].prune()
             if node_type=="feature":
                 self.feature_nodes[feature_id]=node
             return i
@@ -147,7 +153,7 @@ class Graph_SLAM:
                 
                 b[i:i+n]+=A.T@omega@e
                 b[j:j+m]+=B.T@omega@e
-            return (H+H.T)/2,b
+            return H,b
         
         def __init__(self):
             pass
@@ -156,19 +162,20 @@ class Graph_SLAM:
             idx_map={}
             x=[]
             for node in graph.nodes:
-                if not node.prune:
+                if not node.pruned:
                     idx_map[str(node.id)]=len(x)
                     x=np.concatenate((x, node.mu.copy()))
             return np.array(x), idx_map
         
         def linear_solve(self, A,b):
+            A=(A+A.T)/2
             L=np.linalg.cholesky(A)
             y=solve_triangular(L,b, lower=True)
             return solve_triangular(L.T, y)
         
         def update_nodes(self, graph,x, cov, idx_map):
             for node in graph.nodes:
-                if not node.prune:
+                if not node.pruned:
                     idx=idx_map[str(node.id)]
                     nodex=x[idx:idx+node.n]
                     nodeCov=cov[idx:idx+node.n,idx:idx+node.n]
@@ -324,7 +331,7 @@ class Graph_SLAM:
         points=[]
         colors=[]
         for node in self.front_end.pose_nodes[-20:]:
-            if not node.local_map == None and not node.prune:
+            if not node.local_map == None and not node.pruned:
                 cloud=deepcopy(node.local_map).transform(node.T)
                 points.append(np.array(cloud.points))
                 colors.append(np.array(cloud.colors))
