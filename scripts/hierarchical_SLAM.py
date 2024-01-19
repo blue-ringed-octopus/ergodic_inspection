@@ -133,26 +133,27 @@ class Graph_SLAM:
             H=np.zeros((len(x), len(x)))
             b=np.zeros(len(x))
             for edge in edges:
-                i=idx_map[str(edge.node1.id)]
-                j=idx_map[str(edge.node2.id)]
-                omega=edge.omega 
-                Z=edge.Z
-                if edge.type=="odom":
-                    A,B=self.get_pose_jacobian(x[i:i+3], x[j:j+3], Z)
-                    e=self.pose_error_function(x[i:i+3], x[j:j+3], Z)
-                else:
-                    A,B=self.get_feature_jacobian(x[i:i+3], x[j:j+4])
-                    e=self.feature_error_function(x[i:i+3], x[j:j+4], Z)
+                if not edge.pruned:
+                    i=idx_map[str(edge.node1.id)]
+                    j=idx_map[str(edge.node2.id)]
+                    omega=edge.omega 
+                    Z=edge.Z
+                    if edge.type=="odom":
+                        A,B=self.get_pose_jacobian(x[i:i+3], x[j:j+3], Z)
+                        e=self.pose_error_function(x[i:i+3], x[j:j+3], Z)
+                    else:
+                        A,B=self.get_feature_jacobian(x[i:i+3], x[j:j+4])
+                        e=self.feature_error_function(x[i:i+3], x[j:j+4], Z)
+                        
+                    n=A.shape[1] 
+                    m=B.shape[1] 
+                    H[i:i+n,i:i+n]+=A.T@omega@A
+                    H[j:j+m,j:j+m]+=B.T@omega@B
+                    H[i:i+n,j:j+m]+=A.T@omega@B
+                    H[j:j+m,i:i+n]+=H[i:i+n,j:j+m].T
                     
-                n=A.shape[1] 
-                m=B.shape[1] 
-                H[i:i+n,i:i+n]+=A.T@omega@A
-                H[j:j+m,j:j+m]+=B.T@omega@B
-                H[i:i+n,j:j+m]+=A.T@omega@B
-                H[j:j+m,i:i+n]+=H[i:i+n,j:j+m].T
-                
-                b[i:i+n]+=A.T@omega@e
-                b[j:j+m]+=B.T@omega@e
+                    b[i:i+n]+=A.T@omega@e
+                    b[j:j+m]+=B.T@omega@e
             return H,b
         
         def __init__(self):
