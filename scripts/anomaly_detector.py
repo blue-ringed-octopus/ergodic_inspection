@@ -56,6 +56,10 @@ if __name__ == "__main__":
     marker.color.g = 0.2
     marker.color.b = 0.2
     marker.color.a = 0.5
+    marker.scale.x = 1
+    marker.scale.y = 1
+    marker.scale.z = 1
+
     while not rospy.is_shutdown():
         cad_pub.publish(marker)
         rate.sleep()
