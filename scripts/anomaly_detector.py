@@ -46,12 +46,16 @@ if __name__ == "__main__":
     marker=Marker()
     marker.header.frame_id = "map"
     marker.header.stamp = rospy.Time.now()
-    marker.mesh_resource = "file:///" +path+"/resources/ballast.STL"
+    marker.mesh_resource = "file:///" + path + "/resources/ballast.STL"
     marker.type = 10
     marker.pose.orientation.x=0
     marker.pose.orientation.y=0
     marker.pose.orientation.z=0
     marker.pose.orientation.w=1
+    marker.color.r = 0.2
+    marker.color.g = 0.2
+    marker.color.b = 0.2
+    marker.color.a = 0.5
     while not rospy.is_shutdown():
         cad_pub.publish(marker)
         rate.sleep()
