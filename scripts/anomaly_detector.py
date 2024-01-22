@@ -13,6 +13,7 @@ from copy import deepcopy
 # from numba import cuda 
 import rospkg
 from scipy.linalg import sqrtm
+from visualization_msgs.msg import Marker, MarkerArray
 
 rospack=rospkg.RosPack()
 
@@ -36,5 +37,14 @@ class Anomaly_Detector:
         
     
 if __name__ == "__main__":
+    rospy.init_node('cad_pub',anonymous=False)
+    cad_pub = rospy.Publisher("/ref", Marker, queue_size = 2)
+    rate = rospy.Rate(30) 
+
+    path = rospack.get_path("ergodic_inspection")
     detector=Anomaly_Detector()
-    
+    marker=Marker()
+    marker.mesh_resource = path+"/resources/ballast.STL"
+    while not rospy.is_shutdown():
+        cad_pub.publish(marker)
+        rate.sleep()
