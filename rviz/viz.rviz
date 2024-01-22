@@ -11,6 +11,8 @@ Panels:
         - /MarkerArray1
         - /MarkerArray1/Status1
         - /MarkerArray1/Namespaces1
+        - /Marker1
+        - /Marker1/Status1
       Splitter Ratio: 0.5
     Tree Height: 751
   - Class: rviz/Selection
@@ -168,7 +170,15 @@ Visualization Manager:
       Marker Topic: /factor_graph
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /ref
+      Name: Marker
+      Namespaces:
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -199,7 +209,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 12.538459777832031
+      Distance: 11.490760803222656
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -215,9 +225,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.669796347618103
+      Pitch: 0.9797970652580261
       Target Frame: <Fixed Frame>
-      Yaw: 2.762660264968872
+      Yaw: 3.202662467956543
     Saved: ~
 Window Geometry:
   Displays:
