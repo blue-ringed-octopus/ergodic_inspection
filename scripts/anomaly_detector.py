@@ -22,7 +22,7 @@ class Anomaly_Detector:
         path = rospack.get_path("ergodic_inspection")
         mesh = o3d.io.read_triangle_mesh(path+"/resources/ballast.STL")
         pc = mesh.sample_points_uniformly(number_of_points=10000, use_triangle_normal=True)
-        o3d.visualization.draw([pc])
+      #  o3d.visualization.draw([pc])
         self.reference = pc 
         
     def get_mdist(self, cloud):
