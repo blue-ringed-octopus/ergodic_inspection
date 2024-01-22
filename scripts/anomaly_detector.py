@@ -44,6 +44,8 @@ if __name__ == "__main__":
     path = rospack.get_path("ergodic_inspection")
     detector=Anomaly_Detector()
     marker=Marker()
+    marker.header.frame_id = "map"
+    marker.header.stamp = rospy.Time.now()
     marker.mesh_resource = path+"/resources/ballast.STL"
     while not rospy.is_shutdown():
         cad_pub.publish(marker)
