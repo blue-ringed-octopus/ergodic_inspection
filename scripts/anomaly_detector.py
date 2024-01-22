@@ -46,7 +46,7 @@ if __name__ == "__main__":
     marker=Marker()
     marker.header.frame_id = "map"
     marker.header.stamp = rospy.Time.now()
-    marker.mesh_resource = "package://resources/ballast.dae"
+    marker.mesh_resource = path+"/resources/ballast.STL"
     marker.type = 10
     marker.pose.orientation.x=0
     marker.pose.orientation.y=0
