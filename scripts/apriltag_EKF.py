@@ -188,8 +188,13 @@ class EKF:
         
     def get_cloud_covariance(self, depth_img):
         n, m = depth_img.shape
-        print("depth shape", (n, m))
+        T=self.T_c_to_r[0:3,0:3].copy()@inv(self.K.copy())
+        J=[T@np.array([[depth_img[i,j],0,i],
+                    [0,depth_img[i,j],j],
+                    [0,0,1]]) for i in range(n) for j in range(m)]
 
+        cov=[j@self.Q[0:3,0:3]@j for j in J]
+        self.cloud.covariances =  o3d.utility.Vector3dVector(cov)       
     def get_tf(self):
         mu=self.mu[0:3].copy()
         return v2t([mu[0], mu[1], 0 ,mu[2]])
