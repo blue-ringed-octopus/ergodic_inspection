@@ -79,7 +79,7 @@ def get_camera_to_robot_tf():
 
 def msg2pc(msg):
     pc=ros_numpy.numpify(msg)
-    m,n = pc['x'].shape()
+    m,n = pc['x'].shape
     print("pc shape", (m,n))
     x=pc['x'].reshape(-1)
     points=np.zeros((len(x),3))
@@ -187,7 +187,7 @@ class EKF:
         print("EKF initialized")
         
     def get_cloud_covariance(self, depth_img):
-        n, m = depth_img.shape()
+        n, m = depth_img.shape
         print("depth shape", (n, m))
 
     def get_tf(self):
