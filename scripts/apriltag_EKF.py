@@ -194,7 +194,7 @@ class EKF:
                     [0,0,1]]) for i in range(n) for j in range(m)]
 
         cov=[j@self.Q[0:3,0:3]@j for j in J]
-        self.cloud.covariances =  o3d.utility.Vector3dVector(cov)       
+        self.cloud.covariances =  o3d.utility.Vector3dVector(np.asarray(cov))       
     def get_tf(self):
         mu=self.mu[0:3].copy()
         return v2t([mu[0], mu[1], 0 ,mu[2]])
