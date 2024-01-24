@@ -79,8 +79,9 @@ def get_camera_to_robot_tf():
 
 def msg2pc(msg):
     pc=ros_numpy.numpify(msg)
+    m,n = pc['x'].shape()
+    print("pc shape", (m,n))
     x=pc['x'].reshape(-1)
-
     points=np.zeros((len(x),3))
     points[:,0]=x
     points[:,1]=pc['y'].reshape(-1)
@@ -103,15 +104,14 @@ def draw_frame(img, tag, K):
     x_axis=K@np.concatenate((R,t),1)@np.array([0.06,0,0,1])
     x_axis=x_axis/(x_axis[2])
     
-    # z_axis=K@np.concatenate((R,t),1)@np.array([0,0,0.06,1])
-    # z_axis=z_axis/(z_axis[2])
-    
     img=cv2.arrowedLine(img, (int(tag["xp"]), int(tag["yp"])), (int(x_axis[0]), int(x_axis[1])), 
                                      (0,0,255), 5)  
     return img
 class EKF:
     def __init__(self, node_id):
         print("EKF initialize")
+        self.bridge = CvBridge()
+
         T_c_to_r, T_r_to_c = get_camera_to_robot_tf()
 
         self.T_c_to_r=T_c_to_r
@@ -171,7 +171,12 @@ class EKF:
         
     def reset(self, node_id):
         with self.lock:
-            self.cloud=msg2pc(rospy.wait_for_message("/depth_registered/points",PointCloud2))
+            pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
+            depth_msg=rospy.wait_for_message("/camera/depth_registered/image_raw", Image)
+            self.cloud=msg2pc(pc_msg)
+            depth=self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
+            self.get_cloud_covariance(depth)
+            
             self.cloud.transform(self.T_c_to_r)
             
             self.id=node_id
@@ -180,6 +185,11 @@ class EKF:
             self.landmarks={}
             # self.cloud.header.frame_id="node_"+str(node_id)+"_camera"
         print("EKF initialized")
+        
+    def get_cloud_covariance(self, depth_img):
+        n, m = depth_img.shape()
+        print("depth shape", (n, m))
+
     def get_tf(self):
         mu=self.mu[0:3].copy()
         return v2t([mu[0], mu[1], 0 ,mu[2]])
@@ -187,11 +197,11 @@ class EKF:
     
         
     def get_message(self, topic, msgtype):
-    	try:
-    		data=rospy.wait_for_message(topic,msgtype)
-    		return data 
-    	except rospy.ServiceException as e:
-    		print("Service all failed: %s"%e)
+        	try:
+        		data=rospy.wait_for_message(topic,msgtype)
+        		return data 
+        	except rospy.ServiceException as e:
+        		print("Service all failed: %s"%e)
 
     def odom_callback(self, data):
         with self.lock:
@@ -357,15 +367,14 @@ class EKF:
         
     def camera_callback(self, rgb_msg, depth_msg):
         with self.lock:
-            bridge = CvBridge()
-            rgb = bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
-            depth = bridge.imgmsg_to_cv2(depth_msg,"32FC1")
+            rgb = self.bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
+            depth = self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
             features=self.detect_apriltag(rgb, depth)
             for feature in features.values():
                 rgb=draw_frame(rgb, feature, self.K)
             self._initialize_new_landmarks(features)
             self._correction(features)
-            self.image_pub.publish(bridge.cv2_to_imgmsg(rgb))
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(rgb))
             
 def get_pose_marker(tags, mu):
     markers=[]

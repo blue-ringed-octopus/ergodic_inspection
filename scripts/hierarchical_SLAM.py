@@ -370,8 +370,6 @@ class Graph_SLAM:
         mu=self.ekf.mu.copy()
         sigma=self.ekf.sigma.copy()
         features = self.ekf.landmarks
-
-      #  node_x=self.front_end.nodes[self.current_node_id].mu.copy()
         node_to_origin=self.front_end.nodes[self.current_node_id].T.copy()
         T=v2t([mu[0], mu[1], 0, mu[2]])
         
