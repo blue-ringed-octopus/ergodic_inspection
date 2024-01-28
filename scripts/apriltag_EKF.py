@@ -25,6 +25,8 @@ import ros_numpy
 import threading
 from common_functions import angle_wrapping, v2t, t2v
 import open3d as o3d 
+from open3d.utility import Matrix3dVector
+
 
 rospack=rospkg.RosPack()
 np.set_printoptions(precision=2)
@@ -183,7 +185,7 @@ class EKF:
             self.mu=np.zeros(3)
             self.sigma=np.zeros((3,3))
             self.landmarks={}
-            # self.cloud.header.frame_id="node_"+str(node_id)+"_camera"
+
         print("EKF initialized")
         
     def get_cloud_covariance(self, depth_img):
