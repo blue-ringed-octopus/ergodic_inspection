@@ -25,7 +25,7 @@ import ros_numpy
 import threading
 from common_functions import angle_wrapping, v2t, t2v
 import open3d as o3d 
-from open3d.utility import Matrix3dVector
+from open3d.cpu.pybind.utility import Matrix3dVector
 
 
 rospack=rospkg.RosPack()
