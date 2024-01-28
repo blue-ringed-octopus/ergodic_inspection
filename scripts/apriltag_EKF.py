@@ -197,7 +197,7 @@ class EKF:
         cov=np.asarray([j@self.Q[0:3,0:3]@j for j in J])
         print(cov.shape)
         print(time.time()-t)
-        self.cloud.covariances =  o3d.utility.Vector3dVector(cov)       
+        self.cloud.covariances =  o3d.utility.Matrix3dVector(cov)       
         
     def get_tf(self):
         mu=self.mu[0:3].copy()
