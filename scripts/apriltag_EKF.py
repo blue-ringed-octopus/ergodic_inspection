@@ -187,6 +187,7 @@ class EKF:
         print("EKF initialized")
         
     def get_cloud_covariance(self, depth_img):
+        t=time.time()
         n, m = depth_img.shape
         T=self.T_c_to_r[0:3,0:3].copy()@inv(self.K.copy())
         J=[T@np.array([[depth_img[i,j],0,i],
@@ -195,6 +196,7 @@ class EKF:
 
         cov=np.asarray([j@self.Q[0:3,0:3]@j for j in J])
         print(cov.shape)
+        print(time.time()-t)
         self.cloud.covariances =  o3d.utility.Vector3dVector(cov)       
         
     def get_tf(self):
