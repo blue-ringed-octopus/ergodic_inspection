@@ -193,8 +193,10 @@ class EKF:
                     [0,depth_img[i,j],j],
                     [0,0,1]]) for i in range(n) for j in range(m)]
 
-        cov=[j@self.Q[0:3,0:3]@j for j in J]
-        self.cloud.covariances =  o3d.utility.Vector3dVector(np.asarray(cov))       
+        cov=np.asarray([j@self.Q[0:3,0:3]@j for j in J])
+        print(cov.shape)
+        self.cloud.covariances =  o3d.utility.Vector3dVector(cov)       
+        
     def get_tf(self):
         mu=self.mu[0:3].copy()
         return v2t([mu[0], mu[1], 0 ,mu[2]])
