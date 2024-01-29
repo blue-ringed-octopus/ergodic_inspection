@@ -110,7 +110,6 @@ def draw_frame(img, tag, K):
     return img
 class EKF:
     def __init__(self, node_id):
-        print("initializing EKF")
         self.bridge = CvBridge()
 
         T_c_to_r, T_r_to_c = get_camera_to_robot_tf()
@@ -171,6 +170,7 @@ class EKF:
 
         
     def reset(self, node_id):
+        print("reseting EKF")
         with self.lock:
             pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
             depth_msg=rospy.wait_for_message("/camera/depth_registered/image_raw", Image)
