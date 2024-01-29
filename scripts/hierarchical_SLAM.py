@@ -185,7 +185,7 @@ class Graph_SLAM:
 
             
         def optimize(self, graph):
-            print("optimizaing graph")
+            print("optimizing graph")
             x, idx_map= self.node_to_vector(graph)
             H,b=self.linearize(x,graph.edges, idx_map)
             H[0:4,0:4]+=np.eye(4)*99999
@@ -368,7 +368,10 @@ class Graph_SLAM:
                 self.front_end.add_node(x,"feature", feature_id)
     
     def update(self): 
-        optimized=False
+        if self.optimized:
+            self.ekf.reset(self.current_node_id)
+            optimized=False
+            
         mu=self.ekf.mu.copy()
         sigma=self.ekf.sigma.copy()
         features = self.ekf.landmarks
@@ -386,7 +389,6 @@ class Graph_SLAM:
             self._posterior_to_factor(mu, sigma, node_to_origin)
             self._create_new_node(sigma, T)
             self._global_map_assemble()
-            self.ekf.reset(self.current_node_id)
         if np.isnan(self.mu).any():
             rospy.signal_shutdown("nan")
 
