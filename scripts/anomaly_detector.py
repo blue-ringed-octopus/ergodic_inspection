@@ -130,21 +130,20 @@ if __name__ == "__main__":
     mesh_resource = "file:///" + path + "/resources/ballast.STL"
     
     mesh = o3d.io.read_triangle_mesh(path+"/resources/ballast.STL")
-    rospy.init_node('cad_pub',anonymous=False)
-    cad_pub = rospy.Publisher("/ref", Marker, queue_size = 2)
-    rate = rospy.Rate(30) 
+
+
     marker = get_mesh_marker(mesh_resource)
-    detector=Anomaly_Detector(mesh)
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
     ekf=apriltag_EKF.EKF(0)
     graph_slam=Graph_SLAM(np.zeros(3), ekf)
+    detector=Anomaly_Detector(mesh)
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
-
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
+    cad_pub = rospy.Publisher("/ref", Marker, queue_size = 2)
 
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
