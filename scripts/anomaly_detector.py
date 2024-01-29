@@ -60,7 +60,7 @@ class Anomaly_Detector:
         t=time.time()
 
         cloud=deepcopy(node.local_map).transform(node.T)
-        point_cov=self.get_cloud_covariance(node.depth)
+        point_cov=self.get_cloud_covariance(node.depth_img)
         sigma_node=node.Cov
         points=np.asarray(cloud.points)
         mu=deepcopy(self.reference)

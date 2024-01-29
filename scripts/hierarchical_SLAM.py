@@ -38,6 +38,7 @@ class Graph_SLAM:
                 self.parents={}
                 self.local_map=None
                 self.pruned=False 
+                self.depth_img=None
                 
             def set_mu(self,mu):
                 self.mu=mu.copy()
@@ -306,6 +307,8 @@ class Graph_SLAM:
         points=[]    
         cov=[]
         self.front_end.nodes[self.current_node_id].local_map=self.ekf.cloud
+        self.front_end.nodes[self.current_node_id].depth_img=self.ekf.depth
+
         new_node_id=self.front_end.add_node(self.mu,"pose")
         omega=np.linalg.inv(sigma[0:3, 0:3]+np.eye(3)*0.001)
         self.front_end.add_edge(self.current_node_id,new_node_id, Z, omega)
