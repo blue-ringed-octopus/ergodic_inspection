@@ -54,7 +54,7 @@ class Anomaly_Detector:
         sigma_node=node.Cov
         points=np.asarray(cloud.points)
         mu=deepcopy(self.reference)
-        theta_node=node.mu[3]
+        theta_node=node.mu[2]
         c=cos(theta_node)
         s=sin(theta_node)
         J_p=np.array([[c, -s,0],
@@ -152,7 +152,8 @@ if __name__ == "__main__":
                         rospy.Time.now(),
                         "base_footprint",
                         "map")
-    
+        detector.detect(graph_slam.front_end.pose_nodes[0])
+
         if optimized:
             detector.detect(graph_slam.front_end.pose_nodes[0])
             pc_msg=pc_to_msg(graph_slam.global_map)
