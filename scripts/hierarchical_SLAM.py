@@ -204,6 +204,7 @@ class Graph_SLAM:
             return x, H
             
     def __init__(self, x_init, ekf):
+        self.optimized = False
         self.mu=x_init.copy()
         self.ekf=ekf
         self.reset()
