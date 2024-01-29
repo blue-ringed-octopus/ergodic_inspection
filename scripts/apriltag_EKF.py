@@ -176,8 +176,7 @@ class EKF:
             pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
             depth_msg=rospy.wait_for_message("/camera/depth_registered/image_raw", Image)
             self.cloud=msg2pc(pc_msg)
-            depth=self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
-            self.get_cloud_covariance(depth)
+            self.depth=self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
             
             self.cloud.transform(self.T_c_to_r)
             
@@ -188,18 +187,7 @@ class EKF:
 
         print("EKF initialized")
         
-    def get_cloud_covariance(self, depth_img):
-        t=time.time()
-        n, m = depth_img.shape
-        T=self.T_c_to_r[0:3,0:3].copy()@inv(self.K.copy())
-        J=[T@np.array([[depth_img[i,j],0,i],
-                    [0,depth_img[i,j],j],
-                    [0,0,1]]) for i in range(n) for j in range(m)]
-
-        cov=np.asarray([j@self.Q[0:3,0:3]@j for j in J])
-        print(cov.shape)
-        print(time.time()-t)
-        self.cloud.covariances =  o3d.utility.Matrix3dVector(cov)       
+    
         
     def get_tf(self):
         mu=self.mu[0:3].copy()

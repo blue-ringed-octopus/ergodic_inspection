@@ -18,6 +18,11 @@ import ros_numpy
 from sensor_msgs.msg import PointCloud2
 from numpy.linalg import inv
 from scipy.spatial import KDTree
+import time 
+from numpy import sin, cos
+from hierarchical_SLAM import Graph_SLAM, plot_graph
+import tf
+import apriltag_EKF
 
 rospack=rospkg.RosPack()
 
@@ -30,6 +35,16 @@ class Anomaly_Detector:
         self.p_anomaly = np.ones(len(pc.points))
         self.ref_tree=KDTree(np.asarray(pc.points))
 
+    def get_cloud_covariance(self, depth_img):
+        n, m = depth_img.shape
+        T=self.T_c_to_r[0:3,0:3].copy()@inv(self.K.copy())
+        J=[T@np.array([[depth_img[i,j],0,i],
+                    [0,depth_img[i,j],j],
+                    [0,0,1]]) for i in range(n) for j in range(m)]
+    
+        cov=np.asarray([j@self.Q[0:3,0:3]@j for j in J])
+        return cov
+    
     def get_mdist(self, cloud):
         mds=[]
         correspondence=[]
@@ -38,18 +53,31 @@ class Anomaly_Detector:
         return np.array(mds), correspondence
     
     def detect(self, node):
+        t=time.time()
+
         cloud=deepcopy(node.local_map).transform(node.T)
+        point_cov=self.get_cloud_covariance(node.depth)
         sigma_node=node.Cov
         points=np.asarray(cloud.points)
         mu=deepcopy(self.reference)
-
+        theta_node=node.mu[3]
+        c=cos(theta_node)
+        s=sin(theta_node)
+        J_p=np.array([[c, -s,0],
+                      [s, c,0],
+                      [0,0, 1]])
+        
+        self.ref_tree.query(points, 1)
         for i in range(len(points)):
-            sigma_p=cloud.covariances
-            # omega=inv(sigma_p)
-            # D=sqrtm(omega)
-            # mu.trasform(D)
-            # x=D@points[i]
+            p=points[i]
+            J_node = np.array([[1, 0 , -p[1]*c - p[0]*s ],
+                               [0, 1, p[0]*c - p[1]*s],
+                               [0,0,1]])
             
+            sigma=J_node@node.cov@J_node.T+J_p@point_cov[i,:,:]@J_p.T
+
+        print(time.time()-t)
+
             
 def get_mesh_marker(mesh_resource):
     marker=Marker()
@@ -105,8 +133,36 @@ if __name__ == "__main__":
     marker = get_mesh_marker(mesh_resource)
     detector=Anomaly_Detector()
     
+    br = tf.TransformBroadcaster()
+    rospy.init_node('estimator',anonymous=False)
+    
+    ekf=apriltag_EKF.EKF(0)
+    graph_slam=Graph_SLAM(np.zeros(3), ekf)
 
+    factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
+
+    pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
+
+    rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
         marker.header.stamp = rospy.Time.now()
         cad_pub.publish(marker)
+
+        optimized=graph_slam.update()
+    
+     
+        plot_graph(graph_slam.front_end)
+        
+        mu=graph_slam.mu.copy()        
+        br.sendTransform([mu[0], mu[1], 0],
+                        tf.transformations.quaternion_from_euler(0, 0, mu[2]),
+                        rospy.Time.now(),
+                        "base_footprint",
+                        "map")
+    
+        if optimized:
+            detector.detect(graph_slam.front_end.pose_nodes[0])
+            pc_msg=pc_to_msg(graph_slam.global_map)
+            pc_pub.publish(pc_msg)
         rate.sleep()
+
