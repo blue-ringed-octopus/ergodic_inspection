@@ -56,6 +56,7 @@ class Anomaly_Detector:
         return np.array(mds), correspondence
     
     def detect(self, node):
+        print("estimating anomaly")
         t=time.time()
 
         cloud=deepcopy(node.local_map).transform(node.T)

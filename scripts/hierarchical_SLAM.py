@@ -188,7 +188,6 @@ class Graph_SLAM:
             x, idx_map= self.node_to_vector(graph)
             H,b=self.linearize(x,graph.edges, idx_map)
             H[0:4,0:4]+=np.eye(4)*99999
-            print(np.max(H-H.T))
             dx=self.linear_solve(H,-b)
             x+=dx
             i=0
