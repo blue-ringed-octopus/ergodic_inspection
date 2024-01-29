@@ -22,7 +22,7 @@ from numpy.linalg import inv
 from scipy.spatial import KDTree
 import time 
 from numpy import sin, cos
-from hierarchical_SLAM import Graph_SLAM, plot_graph
+from hierarchical_SLAM import *
 import tf
 import apriltag_EKF
 
