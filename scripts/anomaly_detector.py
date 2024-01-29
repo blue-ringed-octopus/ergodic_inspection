@@ -23,6 +23,7 @@ from numpy import sin, cos
 from hierarchical_SLAM import Graph_SLAM, plot_graph
 import tf
 import apriltag_EKF
+np.float = np.float64 
 
 rospack=rospkg.RosPack()
 
