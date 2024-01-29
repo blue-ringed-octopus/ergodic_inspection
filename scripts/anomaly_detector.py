@@ -134,7 +134,7 @@ if __name__ == "__main__":
     cad_pub = rospy.Publisher("/ref", Marker, queue_size = 2)
     rate = rospy.Rate(30) 
     marker = get_mesh_marker(mesh_resource)
-    detector=Anomaly_Detector()
+    detector=Anomaly_Detector(mesh)
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
