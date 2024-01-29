@@ -542,7 +542,7 @@ def get_factor_markers(graph):
     marker.points = P
     return marker 
 
-def plot_graph(graph):
+def plot_graph(graph, pub):
     markerArray=MarkerArray()
     pose_marker = get_pose_markers(graph.pose_nodes)
     feature_markers = get_landmark_markers(graph.feature_nodes)
@@ -552,7 +552,7 @@ def plot_graph(graph):
     feature_markers.append(factor_marker)
 
     markerArray.markers=feature_markers
-    factor_graph_marker_pub.publish(markerArray)
+    pub.publish(markerArray)
     
     
 if __name__ == "__main__":
@@ -571,7 +571,7 @@ if __name__ == "__main__":
         optimized=graph_slam.update()
     
      
-        plot_graph(graph_slam.front_end)
+        plot_graph(graph_slam.front_end, factor_graph_marker_pub)
         
         mu=graph_slam.mu.copy()        
         br.sendTransform([mu[0], mu[1], 0],

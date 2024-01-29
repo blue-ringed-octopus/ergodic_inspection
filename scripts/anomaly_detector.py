@@ -153,7 +153,7 @@ if __name__ == "__main__":
         optimized=graph_slam.update()
     
      
-        plot_graph(graph_slam.front_end)
+        plot_graph(graph_slam.front_end, factor_graph_marker_pub)
         
         mu=graph_slam.mu.copy()        
         br.sendTransform([mu[0], mu[1], 0],
