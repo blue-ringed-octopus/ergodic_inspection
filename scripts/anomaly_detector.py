@@ -132,7 +132,6 @@ if __name__ == "__main__":
     mesh = o3d.io.read_triangle_mesh(path+"/resources/ballast.STL")
 
 
-    marker = get_mesh_marker(mesh_resource)
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
@@ -140,6 +139,7 @@ if __name__ == "__main__":
     ekf=apriltag_EKF.EKF(0)
     graph_slam=Graph_SLAM(np.zeros(3), ekf)
     detector=Anomaly_Detector(mesh)
+    marker = get_mesh_marker(mesh_resource)
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
