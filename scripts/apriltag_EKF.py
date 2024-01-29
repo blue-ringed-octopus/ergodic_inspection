@@ -110,7 +110,7 @@ def draw_frame(img, tag, K):
     return img
 class EKF:
     def __init__(self, node_id):
-        print("EKF initialize")
+        print("initializing EKF")
         self.bridge = CvBridge()
 
         T_c_to_r, T_r_to_c = get_camera_to_robot_tf()

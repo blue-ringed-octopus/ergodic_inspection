@@ -185,6 +185,7 @@ class Graph_SLAM:
 
             
         def optimize(self, graph):
+            print("optimizaing graph")
             x, idx_map= self.node_to_vector(graph)
             H,b=self.linearize(x,graph.edges, idx_map)
             H[0:4,0:4]+=np.eye(4)*99999
@@ -198,6 +199,8 @@ class Graph_SLAM:
                 x+=dx
                 i+=1
             self.update_nodes(graph, x,inv(H), idx_map)
+            print("optimized")
+
             return x, H
             
     def __init__(self, x_init, ekf):

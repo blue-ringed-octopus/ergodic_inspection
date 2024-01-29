@@ -152,7 +152,7 @@ if __name__ == "__main__":
         cad_pub.publish(marker)
 
         optimized=graph_slam.update()
-    
+        
      
         plot_graph(graph_slam.front_end, factor_graph_marker_pub)
         
