@@ -307,7 +307,7 @@ class Graph_SLAM:
         points=[]    
         cov=[]
         self.front_end.nodes[self.current_node_id].local_map=self.ekf.cloud
-        self.front_end.nodes[self.current_node_id].depth_img=self.ekf.depth
+        self.front_end.nodes[self.current_node_id].cloud_cov=self.ekf.cloud_cov
 
         new_node_id=self.front_end.add_node(self.mu,"pose")
         omega=np.linalg.inv(sigma[0:3, 0:3]+np.eye(3)*0.001)

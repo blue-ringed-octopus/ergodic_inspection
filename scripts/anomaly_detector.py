@@ -37,16 +37,6 @@ class Anomaly_Detector:
         self.reference = pc 
         self.p_anomaly = np.ones(len(pc.points))
         self.ref_tree=KDTree(np.asarray(pc.points))
-
-    def get_cloud_covariance(self, depth_img):
-        n, m = depth_img.shape
-        T=self.T_c_to_r[0:3,0:3].copy()@inv(self.K.copy())
-        J=[T@np.array([[depth_img[i,j],0,i],
-                    [0,depth_img[i,j],j],
-                    [0,0,1]]) for i in range(n) for j in range(m)]
-    
-        cov=np.asarray([j@self.Q[0:3,0:3]@j for j in J])
-        return cov
     
     def get_mdist(self, cloud):
         mds=[]
@@ -60,7 +50,7 @@ class Anomaly_Detector:
         t=time.time()
 
         cloud=deepcopy(node.local_map).transform(node.T)
-        point_cov=self.get_cloud_covariance(node.depth_img)
+        point_cov=node.cloud_cov
         sigma_node=node.Cov
         points=np.asarray(cloud.points)
         mu=deepcopy(self.reference)
