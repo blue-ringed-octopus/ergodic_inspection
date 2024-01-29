@@ -7,6 +7,8 @@ Created on Mon Jan 15 14:26:02 2024
 """
 
 import numpy as np
+np.float = np.float64 
+np.set_printoptions(precision=2)
 import rospy
 import open3d as o3d
 from copy import deepcopy
@@ -23,7 +25,7 @@ from numpy import sin, cos
 from hierarchical_SLAM import Graph_SLAM, plot_graph
 import tf
 import apriltag_EKF
-np.float = np.float64 
+
 
 rospack=rospkg.RosPack()
 
