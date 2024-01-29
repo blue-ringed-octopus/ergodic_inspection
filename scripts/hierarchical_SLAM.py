@@ -371,7 +371,7 @@ class Graph_SLAM:
     def update(self): 
         if self.optimized:
             self.ekf.reset(self.current_node_id)
-            optimized=False
+            self.optimized=False
             
         mu=self.ekf.mu.copy()
         sigma=self.ekf.sigma.copy()
@@ -386,7 +386,7 @@ class Graph_SLAM:
         delta=t2v(np.linalg.inv(node_to_origin)@pose_global)
         delta[2]*=2
         if np.linalg.norm(delta)>=1.5:
-            optimized=True
+            self.optimized=True
             self._posterior_to_factor(mu, sigma, node_to_origin)
             self._create_new_node(sigma, T)
             self._global_map_assemble()
@@ -394,7 +394,7 @@ class Graph_SLAM:
             rospy.signal_shutdown("nan")
 
 
-        return optimized
+        return self.optimized
 
 def pc_to_msg(pc):
     points=np.asarray(pc.points)
