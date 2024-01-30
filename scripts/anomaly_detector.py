@@ -68,7 +68,7 @@ class Anomaly_Detector:
                                [0, 1, p[0]*c - p[1]*s],
                                [0,0,1]])
             
-            sigma=J_node@node.cov@J_node.T+J_p@point_cov[i,:,:]@J_p.T
+            sigma=J_node@sigma_node@J_node.T+J_p@point_cov[i,:,:]@J_p.T
 
         print(time.time()-t)
 
