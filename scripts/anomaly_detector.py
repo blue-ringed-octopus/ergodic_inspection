@@ -152,7 +152,6 @@ if __name__ == "__main__":
                         rospy.Time.now(),
                         "base_footprint",
                         "map")
-        detector.detect(graph_slam.front_end.pose_nodes[0])
 
         if optimized:
             detector.detect(graph_slam.front_end.pose_nodes[0])
