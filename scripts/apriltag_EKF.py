@@ -81,6 +81,7 @@ def get_camera_to_robot_tf():
 def msg2pc(msg):
     pc=ros_numpy.numpify(msg)
     m,n = pc['x'].shape
+    depth = pc['z']
     x=pc['x'].reshape(-1)
     points=np.zeros((len(x),3))
     points[:,0]=x
@@ -94,7 +95,8 @@ def msg2pc(msg):
     p=o3d.geometry.PointCloud()
     p.points=o3d.utility.Vector3dVector(points)
     p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
-    return p   
+    
+    return p, depth   
 
 def draw_frame(img, tag, K):
     img=cv2.circle(img, (int(tag["xp"]), int(tag["yp"])), 5, (0, 0, 255), -1)
@@ -173,8 +175,8 @@ class EKF:
         with self.lock:
             pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
             depth_msg=rospy.wait_for_message("/camera/depth_registered/image_raw", Image)
-            self.cloud=msg2pc(pc_msg)
-            depth=self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
+            self.cloud, depth = msg2pc(pc_msg)
+           # depth=self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
             self.cloud_cov = self.get_cloud_covariance(depth)
             self.cloud.transform(self.T_c_to_r)
             
