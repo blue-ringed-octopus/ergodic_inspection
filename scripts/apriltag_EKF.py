@@ -174,7 +174,7 @@ class EKF:
         print("reseting EKF")
         with self.lock:
             pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
-            depth_msg=rospy.wait_for_message("/camera/depth_registered/image_raw", Image)
+        #    depth_msg=rospy.wait_for_message("/camera/depth_registered/image_raw", Image)
             self.cloud, depth = msg2pc(pc_msg)
            # depth=self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
             self.cloud_cov = self.get_cloud_covariance(depth)
