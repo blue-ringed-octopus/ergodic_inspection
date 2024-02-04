@@ -169,7 +169,7 @@ class EKF:
         self.mu=np.zeros(3)
         self.t=time.time()
         self.marker_pub = rospy.Publisher("/apriltags", Marker, queue_size = 2)
-        self.image_pub = rospy.Publisher("//camera/rgb/rgb_detected", Image, queue_size = 2)
+        self.image_pub = rospy.Publisher("/camera/rgb/rgb_detected", Image, queue_size = 2)
 
         self.R=np.eye(3)
         self.R[0,0]=0.01
