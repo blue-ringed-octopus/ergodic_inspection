@@ -12,7 +12,6 @@ np.set_printoptions(precision=2)
 import rospy
 import open3d as o3d
 from copy import deepcopy
-# from numba import cuda 
 import rospkg
 from scipy.linalg import sqrtm
 from visualization_msgs.msg import Marker, MarkerArray
@@ -26,6 +25,7 @@ from hierarchical_SLAM import *
 import tf
 import apriltag_EKF
 from numba import cuda
+from scipy.stats import chi2 
 
 TPB=32
 
@@ -99,18 +99,17 @@ rospack=rospkg.RosPack()
 class Anomaly_Detector:
     def __init__(self, mesh):
         self.mesh = mesh
-        pc = mesh.sample_points_uniformly(number_of_points=20000, use_triangle_normal=True)
+        number_of_points=20000
+        pc = mesh.sample_points_uniformly(number_of_points=number_of_points, use_triangle_normal=True)
         self.reference = pc 
         self.p_anomaly = np.ones(len(pc.points))
-        self.ref_tree=KDTree(np.asarray(pc.points))
-    
-    def get_mdist(self, cloud):
-        mds=[]
-        correspondence=[]
-        H=np.asarray(cloud.covariance)
-            
-        return np.array(mds), correspondence
-    
+        self.ref_normal = np.asarray(pc.normals)
+        self.ref_points = np.asarray(pc.points)
+        self.ref_tree=KDTree(self.ref_points)
+        self.thres = 0.05
+        self.n_sample = np.zeros(number_of_points)
+        self.md_ref = np.zeros((number_of_points,2))
+        self.chi2= np.zeros((number_of_points,2))
     def detect(self, node):
         print("estimating anomaly")
         t=time.time()
@@ -119,23 +118,19 @@ class Anomaly_Detector:
         point_cov=node.cloud_cov
         sigma_node=node.Cov
         points=np.asarray(cloud.points)
-        mu=deepcopy(self.reference)
-        theta_node=node.mu[2]
-        c=cos(theta_node)
-        s=sin(theta_node)
-        J_p=np.array([[c, -s,0],
-                      [s, c,0],
-                      [0,0, 1]])
-        
-        self.ref_tree.query(points, 1)
-        for i in range(len(points)):
-            p=points[i]
-            J_node = np.array([[1, 0 , -p[1]*c - p[0]*s ],
-                               [0, 1, p[0]*c - p[1]*s],
-                               [0,0,1]])
+        cov=get_global_cov(point_cov, node.T, sigma_node)
+        _, corr = self.ref_tree.query(points, 1)
+        normals=self.ref_normal[corr]
+        mus=self.ref_points[corr]
+        mds=get_md_par(points,mus , self.thres , cov, normals)
+        for i, idx in enumerate(corr):
+            self.n_sample[idx]+=1
+            self.md_ref[idx,0]+=mds[i,0]
+            self.md_ref[idx,1]+=mds[i,1]
             
-            sigma=J_node@sigma_node@J_node.T+J_p@point_cov[i,:,:]@J_p.T
-
+        
+        self.chi2[:,0] = chi2.sf(self.md_ref[:,0], self.n_sample)
+        self.chi2[:,1] = chi2.sf(self.md_ref[:,1], self.n_sample)    
         print(time.time()-t)
 
             

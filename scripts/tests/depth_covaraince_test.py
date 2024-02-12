@@ -208,17 +208,6 @@ origin=o3d.geometry.TriangleMesh.create_coordinate_frame(0.1)
 o3d.visualization.draw_geometries([origin, pc,frame])
 
 #%%
-
-Q=np.array([[20**2,0,0],
-            [0, 20**2, 0],
-            [0, 0, 0.01**2]])
-cov=get_cloud_covariance_par(depth_image*depth_scale, Q, inv(K.intrinsic_matrix))
-#cov=np.asarray([m for m in cov if not np.linalg.det(m) == 0])
-cov=cov[det(cov)!=0]
-
-# cov_test_ser = np.array([T_global[0:3,0:3]@sigma@T_global[0:3,0:3].T for sigma in cov])
-cov=get_global_cov(cov, T_global, np.zeros((3,3)))
-#%%
 wall = o3d.geometry.TriangleMesh.create_box()
 T_plane=np.array([[0.01, 0, 0, -0.005 ],
                   [0   , 1,0,-0.5],
@@ -234,6 +223,18 @@ o3d.visualization.draw_geometries([origin, pc,ref, frame])
 ref_points=np.asarray(ref.points)
 ref_normal=np.asarray(ref.normals)
 ref_tree=KDTree(ref_points)
+
+#%%
+
+Q=np.array([[20**2,0,0],
+            [0, 20**2, 0],
+            [0, 0, 0.01**2]])
+cov=get_cloud_covariance_par(depth_image*depth_scale, Q, inv(K.intrinsic_matrix))
+#cov=np.asarray([m for m in cov if not np.linalg.det(m) == 0])
+cov=cov[det(cov)!=0]
+
+# cov_test_ser = np.array([T_global[0:3,0:3]@sigma@T_global[0:3,0:3].T for sigma in cov])
+cov=get_global_cov(cov, T_global, np.zeros((3,3)))
 
 
 #%%
