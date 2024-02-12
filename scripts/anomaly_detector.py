@@ -25,8 +25,74 @@ from numpy import sin, cos
 from hierarchical_SLAM import *
 import tf
 import apriltag_EKF
+from numba import cuda
+
+TPB=32
+
+@cuda.jit()
+def md_kernel(d_out, d_epsilon, d_cov, d_normal, d_p, d_mu):
+    i = cuda.grid(1)
+    n=d_out.shape[0]
+    if i<n:
+        nmu=d_mu[i,0]*d_normal[i,0]+d_mu[i,1]*d_normal[i,1]+d_mu[i,2]*d_normal[i,2]
+        npoint=d_p[i,0]*d_normal[i,0]+d_p[i,1]*d_normal[i,1]+d_p[i,2]*d_normal[i,2]
+        ncn=d_cov[i,0,0]*d_normal[i,0]**2 + 2*d_cov[i,0,1]*d_normal[i,0]*d_normal[i,1] + 2*d_cov[i,0,2]*d_normal[i,0]*d_normal[i,2] + d_cov[i,1,1]*d_normal[i,1]**2 + 2*d_cov[i,1,2]*d_normal[i,1]*d_normal[i,2] + d_cov[i,2,2]*d_normal[i,2]**2
+
+        if npoint<=nmu:
+            d0 = 0 
+        else:
+            d0 = (nmu-npoint)**2/ncn
+
+        if npoint>=nmu+d_epsilon:
+            d1 = 0
+        else:
+            d1 = (d_epsilon + nmu-npoint)**2/ncn
+
+        d_out[i,0] = d0
+        d_out[i,1] = d1
+
+def get_md_par(points, mu, epsilon, cov, normal):
+   n = points.shape[0]
+   d_mu=cuda.to_device(mu)
+   d_cov = cuda.to_device(cov)
+   d_normal = cuda.to_device(normal)
+   d_p = cuda.to_device(points)
+   thread=TPB
+   d_out=cuda.device_array((n,2),dtype=(np.float64))
+   blocks=(n+TPB-1)//TPB
+   md_kernel[blocks, thread](d_out, epsilon, d_cov, d_normal, d_p, d_mu)
+   return d_out.copy_to_host()
+
+@cuda.jit()
+def global_cov_kernel(d_out, d_point_cov, d_T, d_T_cov):
+    i = cuda.grid(1)
+    n=d_out.shape[0]
+    if i<n:
+        d_out[i,0,0] = d_point_cov[i,0,0]*d_T[0,0]**2 + 2*d_point_cov[i,0,1]*d_T[0,0]*d_T[0,1] + 2*d_point_cov[i,0,2]*d_T[0,0]*d_T[0,2] + d_point_cov[i,1,1]*d_T[0,1]**2 + 2*d_point_cov[i,1,2]*d_T[0,1]*d_T[0,2] + d_point_cov[i,2,2]*d_T[0,2]**2
+        d_out[i,0,1] = d_T[1,0]*(d_point_cov[i,0,0]*d_T[0,0] + d_point_cov[i,0,1]*d_T[0,1] + d_point_cov[i,0,2]*d_T[0,2]) + d_T[1,1]*(d_point_cov[i,0,1]*d_T[0,0] + d_point_cov[i,1,1]*d_T[0,1] + d_point_cov[i,1,2]*d_T[0,2]) + d_T[1,2]*(d_point_cov[i,0,2]*d_T[0,0] + d_point_cov[i,1,2]*d_T[0,1] + d_point_cov[i,2,2]*d_T[0,2])
+        d_out[i,0,2] = d_T[2,0]*(d_point_cov[i,0,0]*d_T[0,0] + d_point_cov[i,0,1]*d_T[0,1] + d_point_cov[i,0,2]*d_T[0,2]) + d_T[2,1]*(d_point_cov[i,0,1]*d_T[0,0] + d_point_cov[i,1,1]*d_T[0,1] + d_point_cov[i,1,2]*d_T[0,2]) + d_T[2,2]*(d_point_cov[i,0,2]*d_T[0,0] + d_point_cov[i,1,2]*d_T[0,1] + d_point_cov[i,2,2]*d_T[0,2])
 
 
+        d_out[i,1,1] = d_point_cov[i,0,0]*d_T[1,0]**2 + 2*d_point_cov[i,0,1]*d_T[1,0]*d_T[1,1] + 2*d_point_cov[i,0,2]*d_T[1,0]*d_T[1,2] + d_point_cov[i,1,1]*d_T[1,1]**2 + 2*d_point_cov[i,1,2]*d_T[1,1]*d_T[1,2] + d_point_cov[i,2,2]*d_T[1,2]**2
+        d_out[i,1,2] = d_T[2,0]*(d_point_cov[i,0,0]*d_T[1,0] + d_point_cov[i,0,1]*d_T[1,1] + d_point_cov[i,0,2]*d_T[1,2]) + d_T[2,1]*(d_point_cov[i,0,1]*d_T[1,0] + d_point_cov[i,1,1]*d_T[1,1] + d_point_cov[i,1,2]*d_T[1,2]) + d_T[2,2]*(d_point_cov[i,0,2]*d_T[1,0] + d_point_cov[i,1,2]*d_T[1,1] + d_point_cov[i,2,2]*d_T[1,2])
+
+        d_out[i,2,2] = d_point_cov[i,0,0]*d_T[2,0]**2 + 2*d_point_cov[i,0,1]*d_T[2,0]*d_T[2,1] + 2*d_point_cov[i,0,2]*d_T[2,0]*d_T[2,2] + d_point_cov[i,1,1]*d_T[2,1]**2 + 2*d_point_cov[i,1,2]*d_T[2,1]*d_T[2,2] + d_point_cov[i,2,2]*d_T[2,2]**2
+
+     
+        d_out[i,1,0] = d_out[i,0,1] 
+        d_out[i,2,1] = d_out[i,1,2] 
+        d_out[i,2,0] = d_out[i,0,2] 
+
+def get_global_cov(point_cov, T_global, T_cov):
+    n=len(point_cov)
+    d_point_cov = cuda.to_device(point_cov)
+    d_T = cuda.to_device(T_global)
+    d_T_cov = cuda.to_device(T_cov)
+    d_out=cuda.device_array((n,3,3),dtype=(np.float64))
+    thread=TPB
+    blocks=(n+TPB-1)//TPB
+    global_cov_kernel[blocks, thread](d_out, d_point_cov, d_T, d_T_cov)
+    return d_out.copy_to_host()
 rospack=rospkg.RosPack()
 
 

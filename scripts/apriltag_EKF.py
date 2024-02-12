@@ -26,7 +26,6 @@ import threading
 from common_functions import angle_wrapping, v2t, t2v
 import open3d as o3d 
 from numba import cuda
-TPB=128
 
 TPB=32
 @cuda.jit()
@@ -37,29 +36,29 @@ def cloud_cov_kernel(d_out, d_depth, d_Q, d_T):
     if i<nx and j<ny:
         n=int(j+i*ny)
         d = d_depth[i,j]
-        J00 = d*d_T[0,0]
-        J01 = d*d_T[0,1]
-        J02 = d_T[0,2] + i*d_T[0,0] + j*d_T[0,1]
-        J10 = d*d_T[1,0]
-        J11 = d*d_T[1,1]
-        J12 = d_T[1,2] + i*d_T[1,0] + j*d_T[1,1]
-        J20 = d*d_T[2,0]
-        J21 =  d*d_T[2,1]
-        J22 = d_T[2,2] + i*d_T[2,0] + j*d_T[2,1]
-    
-        d_out[n,0,0] = d_Q[0,0]*J00**2 + d_Q[1,1]*J01**2 + d_Q[2,2]*J02**2
-        d_out[n,0,1] = d_Q[0,0]*J00*J10 + d_Q[1,1]*J01*J11 + d_Q[2,2]*J02*J12
-        d_out[n,0,2] = d_Q[0,0]*J00*J20 + d_Q[1,1]*J01*J21 + d_Q[2,2]*J02*J22
+        if not d == 0:
+            J00 = d*d_T[0,0]
+            J01 = d*d_T[0,1]
+            J02 = d_T[0,2] + i*d_T[0,0] + j*d_T[0,1]
+            J10 = d*d_T[1,0]
+            J11 = d*d_T[1,1]
+            J12 = d_T[1,2] + i*d_T[1,0] + j*d_T[1,1]
+            J20 = d*d_T[2,0]
+            J21 =  d*d_T[2,1]
+            J22 = d_T[2,2] + i*d_T[2,0] + j*d_T[2,1]
         
-        d_out[n,1,0] = d_out[n,0,1] 
-        d_out[n,1,1] = d_Q[0,0]*J10**2 + d_Q[1,1]*J11**2 + d_Q[2,2]*J12**2
-        d_out[n,1,2] = d_Q[0,0]*J10*J20 + d_Q[1,1]*J11*J21 + d_Q[2,2]*J12*J22
-        
-        d_out[n,2,0] = d_out[n,0,2]
-        d_out[n,2,1] = d_out[n,1,2]
-        d_out[n,2,2] = d_Q[0,0]*J20**2 + d_Q[1,1]*J21**2 + d_Q[2,2]*J22**2
-
-
+            d_out[n,0,0] = d_Q[0,0]*J00**2 + d_Q[1,1]*J01**2 + d_Q[2,2]*J02**2
+            d_out[n,0,1] = d_Q[0,0]*J00*J10 + d_Q[1,1]*J01*J11 + d_Q[2,2]*J02*J12
+            d_out[n,0,2] = d_Q[0,0]*J00*J20 + d_Q[1,1]*J01*J21 + d_Q[2,2]*J02*J22
+            
+            d_out[n,1,0] = d_out[n,0,1] 
+            d_out[n,1,1] = d_Q[0,0]*J10**2 + d_Q[1,1]*J11**2 + d_Q[2,2]*J12**2
+            d_out[n,1,2] = d_Q[0,0]*J10*J20 + d_Q[1,1]*J11*J21 + d_Q[2,2]*J12*J22
+            
+            d_out[n,2,0] = d_out[n,0,2]
+            d_out[n,2,1] = d_out[n,1,2]
+            d_out[n,2,2] = d_Q[0,0]*J20**2 + d_Q[1,1]*J21**2 + d_Q[2,2]*J22**2
+            
 def get_cloud_covariance_par(depth, Q, T):
     nx, ny=depth.shape
     d_depth=cuda.to_device(depth)
@@ -154,6 +153,8 @@ def draw_frame(img, tag, K):
     img=cv2.arrowedLine(img, (int(tag["xp"]), int(tag["yp"])), (int(x_axis[0]), int(x_axis[1])), 
                                      (0,0,255), 5)  
     return img
+
+
 class EKF:
     def __init__(self, node_id):
         self.bridge = CvBridge()
@@ -222,7 +223,7 @@ class EKF:
         #    depth_msg=rospy.wait_for_message("/camera/depth_registered/image_raw", Image)
             self.cloud, depth = msg2pc(pc_msg)
            # depth=self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
-            self.cloud_cov = self.get_cloud_covariance(depth)
+            self.cloud_cov = get_cloud_covariance_par(depth, self.Q, self.K_inv@self.T_c_to_r)
             self.cloud.transform(self.T_c_to_r)
             
             self.id=node_id
@@ -233,15 +234,15 @@ class EKF:
         print("EKF initialized")
         
     
-    def get_cloud_covariance(self, depth):
-        n, m = depth.shape
-        T=self.T_c_to_r[0:3,0:3].copy()@inv(self.K.copy())
-        J=[T@np.array([[depth[i,j],0,i],
-                    [0,depth[i,j],j],
-                    [0,0,1]]) for i in range(n) for j in range(m)]
+    # def get_cloud_covariance(self, depth):
+    #     n, m = depth.shape
+    #     T=self.T_c_to_r[0:3,0:3].copy()@inv(self.K.copy())
+    #     J=[T@np.array([[depth[i,j],0,i],
+    #                 [0,depth[i,j],j],
+    #                 [0,0,1]]) for i in range(n) for j in range(m)]
     
-        cov=np.asarray([j@self.Q[0:3,0:3]@j for j in J])
-        return cov
+    #     cov=np.asarray([j@self.Q[0:3,0:3]@j for j in J])
+    #     return cov
     
     def get_tf(self):
         mu=self.mu[0:3].copy()

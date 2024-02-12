@@ -85,8 +85,8 @@ at_detector = Detector(families='tag36h11',
 
 
 K=np.array([[cam_param[0], 0, cam_param[2]],
-   [0, cam_param[1], cam_param[3]],
-   [0,0,1]])
+            [0, cam_param[1], cam_param[3]],
+            [0,0,1]])
 
 def draw_frame(img, R,t, K):
     T=K@np.concatenate((R,t),1)
