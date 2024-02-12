@@ -223,8 +223,8 @@ class EKF:
         #    depth_msg=rospy.wait_for_message("/camera/depth_registered/image_raw", Image)
             self.cloud, depth = msg2pc(pc_msg)
            # depth=self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
-            T = self.K_inv@self.T_c_to_r[0:3,0:3]
-            self.cloud_cov = get_cloud_covariance_par(depth, self.Q, T)
+            T =  np.ascontiguousarray(self.K_inv.copy()@self.T_c_to_r[0:3,0:3].copy())
+            self.cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q), T)
             self.cloud.transform(self.T_c_to_r)
             
             self.id=node_id
