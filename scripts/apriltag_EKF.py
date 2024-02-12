@@ -223,7 +223,7 @@ class EKF:
         #    depth_msg=rospy.wait_for_message("/camera/depth_registered/image_raw", Image)
             self.cloud, depth = msg2pc(pc_msg)
            # depth=self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
-            self.cloud_cov = get_cloud_covariance_par(depth, self.Q, self.K_inv@self.T_c_to_r)
+            self.cloud_cov = get_cloud_covariance_par(depth, self.Q, self.K_inv@self.T_c_to_r[0:3,0:3])
             self.cloud.transform(self.T_c_to_r)
             
             self.id=node_id
