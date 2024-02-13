@@ -119,7 +119,7 @@ class Anomaly_Detector:
         sigma_node=node.Cov
         points=np.asarray(cloud.points)
         cov=get_global_cov(point_cov, node.T, sigma_node)
-        _, corr = self.ref_tree.query(points, 1)
+        _, corr = self.ref_tree.query(points, k=1)
         print(max(corr))
         normals=self.ref_normal[corr]
         mus=self.ref_points[corr]
