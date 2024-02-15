@@ -114,11 +114,13 @@ class Anomaly_Detector:
         print("estimating anomaly")
         t=time.time()
 
-        cloud=deepcopy(node.local_map).transform(node.T)
+        node_pose=node.T.copy()
+        cloud=deepcopy(node.local_map).transform(node_pose)
         point_cov=node.cloud_cov
         sigma_node=node.Cov
         points=np.asarray(cloud.points)
-        cov=get_global_cov(point_cov, node.T, sigma_node)
+        print(points)
+        cov=get_global_cov(point_cov, node_pose, sigma_node)
         _, corr = self.ref_tree.query(points, k=1)
         print(np.sum(corr==20000))
         normals=self.ref_normal[corr]
