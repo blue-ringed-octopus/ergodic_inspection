@@ -26,6 +26,7 @@ import tf
 import apriltag_EKF
 from numba import cuda
 from scipy.stats import chi2 
+import pickle
 
 TPB=32
 
@@ -119,7 +120,7 @@ class Anomaly_Detector:
         point_cov=node.cloud_cov
         sigma_node=node.Cov
         points=np.asarray(cloud.points)
-        print(points)
+        pickle.dump(points, "pc.p")
         cov=get_global_cov(point_cov, node_pose, sigma_node)
         _, corr = self.ref_tree.query(points, k=1)
         print(np.sum(corr==20000))
