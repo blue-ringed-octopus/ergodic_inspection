@@ -305,3 +305,4 @@ ref.colors = o3d.utility.Vector3dVector(color/255)
 # pc_heatmap=deepcopy(pc)
 # pc_heatmap.colors=o3d.utility.Vector3dVector(color)
 o3d.visualization.draw_geometries([ref,origin, pc,frame])
+
