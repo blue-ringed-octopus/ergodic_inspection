@@ -226,7 +226,7 @@ class EKF:
             T =  np.ascontiguousarray(self.K_inv.copy()@self.T_c_to_r[0:3,0:3].copy())
             self.cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q), T)
             indx=np.isnan(depth)
-            self.cloud.select_by_index(indx)
+            self.cloud=self.cloud.select_by_index(np.where(indx))
             self.cloud_cov = self.cloud_cov[indx]
             self.cloud.transform(self.T_c_to_r)
 
