@@ -225,7 +225,7 @@ class EKF:
            # depth=self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
             T =  np.ascontiguousarray(self.K_inv.copy()@self.T_c_to_r[0:3,0:3].copy())
             self.cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q), T)
-            indx=np.isnan(depth)
+            indx=np.isnan(depth.reshape(-1))
             self.cloud=self.cloud.select_by_index(np.where(indx)[0])
             self.cloud_cov = self.cloud_cov[indx]
             self.cloud.transform(self.T_c_to_r)
