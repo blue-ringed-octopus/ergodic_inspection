@@ -248,7 +248,7 @@ class EKF:
             
             u = SE3.Log(dX)
             mu=self.mu.copy()
-            tau_prev=np.aray([mu[0], mu[1],0,0, 0, mu[2]])
+            tau_prev=np.array([mu[0], mu[1],0,0, 0, mu[2]])
             tau =SE3.Log(SE3.Exp(tau_prev)@dX)
             mu[0:3] = [tau[0], tau[1], tau[5]]
             F=np.zeros((3,mu.shape[0]))
