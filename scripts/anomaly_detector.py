@@ -27,6 +27,8 @@ import apriltag_EKF
 from numba import cuda
 from scipy.stats import chi2 
 import pickle
+import threading
+import cv2
 
 TPB=32
 
@@ -103,7 +105,7 @@ class Anomaly_Detector:
         number_of_points=20000
         pc = mesh.sample_points_uniformly(number_of_points=number_of_points, use_triangle_normal=True)
         self.reference = pc 
-        self.p_anomaly = np.ones(len(pc.points))
+        self.p_anomaly = np.ones(len(pc.points))*0.5
         self.ref_normal = np.asarray(pc.normals)
         self.ref_points = np.asarray(pc.points)
         self.ref_tree=KDTree(self.ref_points)
@@ -111,6 +113,9 @@ class Anomaly_Detector:
         self.n_sample = np.zeros(number_of_points)
         self.md_ref = np.zeros((number_of_points,2))
         self.chi2= np.zeros((number_of_points,2))
+  #  def detect_thread(self, node):
+        
+        
     def detect(self, node):
         print("estimating anomaly")
         t=time.time()
@@ -126,7 +131,6 @@ class Anomaly_Detector:
 
         cov=get_global_cov(point_cov, node_pose, sigma_node)
         _, corr = self.ref_tree.query(points, k=1)
-        print(np.sum(corr==20000))
         normals=self.ref_normal[corr]
         mus=self.ref_points[corr]
         mds=get_md_par(points,mus , self.thres , cov, normals)
@@ -184,6 +188,33 @@ def pc_to_msg(pc):
     
     return pc_msg
 
+def get_ref_pc(points, chi2):
+    chi=chi2[:,1]/(chi2[:,1]+chi2[:,2])
+    colors = (chi*255).astype(np.uint8)
+    colors = cv2.applyColorMap(colors, cv2.COLORMAP_TURBO)
+    colors = cv2.cvtColor(colors, cv2.COLOR_BGR2RGB)
+    colors = np.squeeze(colors)
+    
+    pc_array = np.zeros(len(points), dtype=[
+    ('x', np.float32),
+    ('y', np.float32),
+    ('z', np.float32),
+    ('r', np.uint32),
+    ('g', np.uint32),
+    ('b', np.uint32),
+    ])
+    pc_array['x'] = points[:,0]
+    pc_array['y'] = points[:, 1]
+    pc_array['z'] = points[:, 2]
+    pc_array['r'] = (colors[:,0]*255).astype(np.uint32)
+    pc_array['g'] = (colors[:, 1]*255).astype(np.uint32)
+    pc_array['b'] = (colors[:, 2]*255).astype(np.uint32)
+    pc_array= ros_numpy.point_cloud2.merge_rgb_fields(pc_array)
+    pc_msg = ros_numpy.msgify(PointCloud2, pc_array, stamp=rospy.Time.now(), frame_id="map")
+    
+    return pc_msg
+
+    
 if __name__ == "__main__":
     path = rospack.get_path("ergodic_inspection")
     mesh_resource = "file:///" + path + "/resources/ballast.STL"
@@ -225,5 +256,7 @@ if __name__ == "__main__":
             detector.detect(graph_slam.front_end.pose_nodes[0])
             pc_msg=pc_to_msg(graph_slam.global_map)
             pc_pub.publish(pc_msg)
+            
+            ref_pc = get_ref_pc(detector.ref_points, detector.p_anomaly)
         rate.sleep()
 
