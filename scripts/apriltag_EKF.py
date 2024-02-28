@@ -332,6 +332,7 @@ class EKF:
         n = len(features)
         H=np.zeros((6*n,mu.shape[0]))
         Q=np.zeros((6*n,6*n))
+        dtau = np.zeros(6*n)
         
         for i,feature_id in enumerate(features):    
             feature=features[feature_id]
@@ -346,8 +347,8 @@ class EKF:
       
             M_tag_c=feature["M"]
 
-            dtau = SE3.Log(M_tag_c) - tau_tag_c_bar#measurement error 
-            dtau = SE3.Log(SE3.Exp(dtau))
+            dtau_i = SE3.Log(M_tag_c) - tau_tag_c_bar#measurement error 
+            dtau[6*i:6*i+6] = SE3.Log(SE3.Exp(dtau_i))
             
             J_cr=np.zeros((6,6))
             J_cr[0:3,0:3] = self.T_c_to_r[0:3,0:3].T
