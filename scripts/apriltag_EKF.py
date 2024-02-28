@@ -104,10 +104,9 @@ def msg2pc(msg):
 
 def draw_frame(img, tag, K):
     img=cv2.circle(img, (int(tag["xp"]), int(tag["yp"])), 5, (0, 0, 255), -1)
-    R=tag["R"].copy()
-    t=tag['t'].copy()
+    M=tag["M"].copy()
     
-    x_axis=K@np.concatenate((R,t),1)@np.array([0.06,0,0,1])
+    x_axis=K@M@np.array([0.06,0,0,1])
     x_axis=x_axis/(x_axis[2])
     
     img=cv2.arrowedLine(img, (int(tag["xp"]), int(tag["yp"])), (int(x_axis[0]), int(x_axis[1])), 
@@ -281,8 +280,11 @@ class EKF:
             R=R@np.array([[0,1,0],
                             [0,0,-1],
                             [-1,0,0]]) #rotate such that x-axis points outward, z-axis points upward 
+            M = np.eye(4)
+            M[0:3,0:3] = R
+            M[0:3, 3] = np.squeeze(r.pose_t)
             if z<2:
-                landmarks[r.tag_id]= {"xp": xp, "yp": yp, "z":z, "R": R, "t": np.squeeze(r.pose_t)}
+                landmarks[r.tag_id]= {"xp": xp, "yp": yp, "z":z, "M":M }
         return landmarks
     
         
@@ -292,7 +294,6 @@ class EKF:
         sigma=self.sigma.copy() #current covariance
         T=SE3.Exp([mu[0], mu[1], 0,0,0, mu[2]])@self.T_c_to_r    #coordinate transformation from camera coordinate to world coordinate
         for landmark_id in landmarks:
-            print(landmark_id)
             if not landmark_id in self.landmarks.keys():
                 landmark=landmarks[landmark_id]
                 
