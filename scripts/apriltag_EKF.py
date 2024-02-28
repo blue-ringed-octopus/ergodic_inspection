@@ -163,12 +163,16 @@ class EKF:
                     )
         odom=rospy.wait_for_message("/odom",Odometry)
 
-        self.odom_prev=tf.transformations.quaternion_matrix([odom.pose.pose.orientation.x,
+        M=tf.transformations.quaternion_matrix([odom.pose.pose.orientation.x,
                                                    odom.pose.pose.orientation.y,
                                                    odom.pose.pose.orientation.z,
                                                    odom.pose.pose.orientation.w])
-        self.odom_prev[0:3,3]=[odom.pose.pose.position.x,
-                          odom.pose.pose.position.y,0]
+        theta = SO3.Log(M[0:3,0:3])
+        R = SO2.Exp(theta)
+        self.odom_prev = np.eye(3)
+        self.odom_prev[0:2,0:2] = R
+        self.odom_prev[0:2,2]=[odom.pose.pose.position.x,
+                          odom.pose.pose.position.y]
     
         self.reset(node_id)
 
@@ -230,24 +234,20 @@ class EKF:
 
     def odom_callback(self, data):
         with self.lock:
-            odom=tf.transformations.quaternion_matrix([data.pose.pose.orientation.x,
+
+            M=tf.transformations.quaternion_matrix([data.pose.pose.orientation.x,
                                                        data.pose.pose.orientation.y,
                                                        data.pose.pose.orientation.z,
                                                        data.pose.pose.orientation.w])
-            odom[0:3,3]=[data.pose.pose.position.x,
-                              data.pose.pose.position.y,0]
+            theta = SO3.Log(M[0:3,0:3])
+            R = SO2.Exp(theta)
+            odom = np.eye(3)
+            odom[0:2,0:2] = R
+            odom[0:2,2]=[data.pose.pose.position.x,
+                              data.pose.pose.position.y]
             
             #get relative transformation
-            dX=np.linalg.inv(self.odom_prev)@odom
-            
-            
-            dtheta = SO3.Log(dX[0:3,0:3])
-            dtheta = dtheta[2]
-            R = SO2.Exp(dtheta)
-            
-            U = np.eye(3)
-            U[0:2,0:2]=R
-            U[0:2,2]=dX[0:2,2]
+            U = np.linalg.inv(self.odom_prev)@odom
             u = SE2.Log(U)
             
             mu=self.mu.copy()
@@ -436,7 +436,8 @@ if __name__ == "__main__":
         # pc_pub.publish(ekf.cloud)
         markers=get_pose_marker(ekf.landmarks, ekf.mu)
         factor_graph_marker_pub.publish(markers)
-        br.sendTransform((ekf.mu[0], ekf.mu[1] , 0),
+        M = SE2.Exp(ekf.mu[0:3])
+        br.sendTransform((M[0,2], M[1,2] , 0),
                         tf.transformations.quaternion_from_euler(0, 0, ekf.mu[2]),
                         rospy.Time.now(),
                         "base_footprint",
