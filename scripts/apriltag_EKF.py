@@ -146,9 +146,9 @@ class EKF:
         self.R[2,2]=0.1
         
         self.Q=np.eye(6)
-        self.Q[0,0]=20**2 # x pixel
-        self.Q[1,1]=20**2 # y pixel
-        self.Q[2,2]=1**2  # depth
+        self.Q[0,0]=1**2 # 
+        self.Q[1,1]=1**2 # 
+        self.Q[2,2]=1**2 #
         self.Q[3:6, 3:6] *= (np.pi/2)**2 #axis angle
         
         
