@@ -292,6 +292,7 @@ class EKF:
         sigma=self.sigma.copy() #current covariance
         T=SE3.Exp([mu[0], mu[1], 0,0,0, mu[2]])@self.T_c_to_r    #coordinate transformation from camera coordinate to world coordinate
         for landmark_id in landmarks:
+            print(landmark_id)
             if not landmark_id in self.landmarks.keys():
                 landmark=landmarks[landmark_id]
                 
