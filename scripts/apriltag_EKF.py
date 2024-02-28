@@ -168,7 +168,7 @@ class EKF:
                                                    odom.pose.pose.orientation.z,
                                                    odom.pose.pose.orientation.w])
         theta = SO3.Log(M[0:3,0:3])
-        R = SO2.Exp(theta)
+        R = SO2.Exp(theta[2])
         self.odom_prev = np.eye(3)
         self.odom_prev[0:2,0:2] = R
         self.odom_prev[0:2,2]=[odom.pose.pose.position.x,
@@ -240,7 +240,7 @@ class EKF:
                                                        data.pose.pose.orientation.z,
                                                        data.pose.pose.orientation.w])
             theta = SO3.Log(M[0:3,0:3])
-            R = SO2.Exp(theta)
+            R = SO2.Exp(theta[2])
             odom = np.eye(3)
             odom[0:2,0:2] = R
             odom[0:2,2]=[data.pose.pose.position.x,
