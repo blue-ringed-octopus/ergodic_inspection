@@ -328,7 +328,12 @@ class EKF:
         T_c_to_w=SE3.Exp(tau_r)@self.T_c_to_r
         T_w_to_c=inv(T_c_to_w)
         dmu=np.zeros(mu.shape)
-        for feature_id in features:    
+        
+        n = len(features)
+        H=np.zeros((6*n,mu.shape[0]))
+        Q=np.zeros((6*n,6*n))
+        
+        for i,feature_id in enumerate(features):    
             feature=features[feature_id]
             idx=self.landmarks[feature_id]
             
@@ -353,20 +358,20 @@ class EKF:
             Jr=-SE3.Jl_inv(tau_tag_c_bar)@J_cr@SE3.Jr(tau_r)@self.fr #jacobian of robot pose
             Jtag=SE3.Jr_inv(tau_tag_c_bar)@SE3.Jr(tau_tag_bar)@self.ftag   #jacobian of tag pose
             
-            H=np.zeros((6,7)) #number of obervation: 6, number of state:7 
-            H[0:6, 0:3] = Jr
-            H[0:6:, 3:7] = Jtag
+            h=np.zeros((6,7)) #number of obervation: 6, number of state:7 
+            h[0:6, 0:3] = Jr
+            h[0:6:, 3:7] = Jtag
             
             F=np.zeros((7,mu.shape[0]))
             F[0:3,0:3]=np.eye(3)
             F[3:7, idx:idx+4]=np.eye(4) 
 
-            H=H@F
-            Q=self.Q.copy()
-            K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
-            dmu+=K@(dtau)
-            sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
-
+            H += h@F
+            Q[6*i:6*i+6] =self.Q.copy()
+            
+        K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
+        dmu+=K@(dtau)
+        sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
         self.mu=mu+dmu
         self.sigma=sigma
         
