@@ -369,7 +369,7 @@ class EKF:
 
             
             H[6*i:6*i+6,:] += h@F
-            Q[6*i:6*i+6] =self.Q.copy()
+            Q[6*i:6*i+6, 6*i:6*i+6] =self.Q.copy()
             
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
         dmu+=K@(dtau)
