@@ -298,14 +298,14 @@ class EKF:
                 landmark=landmarks[landmark_id]
                 
                 #remove x,y rotation
-                R=landmark["R"] #feature orientation in camera frame
+                R=landmark["M"][0:3,0:3] #feature orientation in camera frame
                 theta=SO3.Log(R)
                 theta[0:2]=[0,0]
                 R=SO3.Exp(theta)
                 
                 M = np.eye(4)
                 M[0:3,0:3]=R
-                M[0:3,3] = landmark["t"]
+                M[0:3,3] = landmark["M"][0:3,3]
                 M=T@M #feature orientation in world frame 
                 tau=SE3.Log(M) #tangent space
                 tau_hat = self.ftag@tau #only take the planer pose
