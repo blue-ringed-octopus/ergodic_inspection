@@ -259,9 +259,11 @@ class EKF:
             
             
             Jx=SE2.Jr_inv(tau)@inv(SE2.Ad(U))@SE2.Jr(tau_prev)
+            
+            Jx = F.T@Jx@F
             Ju=SE2.Jr_inv(tau)@SE2.Jr(u)
             self.mu = mu
-            self.sigma=F.T@(Jx)@self.sigma@(Jx.T)@F+F.T@(Ju)@self.R@(Ju.T)@F
+            self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@self.R@(Ju.T)@F
             self.odom_prev=odom
         
     def detect_apriltag(self,rgb, depth):
