@@ -368,7 +368,7 @@ class EKF:
             F[3:7, idx:idx+4]=np.eye(4) 
 
             
-            H[6*i:6:i+6,:] += h@F
+            H[6*i:6*i+6,:] += h@F
             Q[6*i:6*i+6] =self.Q.copy()
             
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
