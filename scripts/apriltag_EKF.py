@@ -367,26 +367,26 @@ class EKF:
         self.sigma=sigma
         
     def camera_callback(self, rgb_msg, depth_msg):
-        pass
-        # with self.lock:
-        #     rgb = self.bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
-        #     depth = self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
-        #     features=self.detect_apriltag(rgb, depth)
-        #     for feature in features.values():
-        #         rgb=draw_frame(rgb, feature, self.K)
-        #     self._initialize_new_landmarks(features)
-        #     #self._correction(features)
-        #     self.image_pub.publish(self.bridge.cv2_to_imgmsg(rgb))
+        with self.lock:
+            rgb = self.bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
+            depth = self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
+            features=self.detect_apriltag(rgb, depth)
+            for feature in features.values():
+                rgb=draw_frame(rgb, feature, self.K)
+            self._initialize_new_landmarks(features)
+            self._correction(features)
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(rgb))
             
 def get_pose_marker(tags, mu):
     markers=[]
     for tag_id, idx in tags.items():
         marker=Marker()
         x=mu[idx:idx+4]
+        M = SE2.Exp([x[0], x[1], x[3]])
         p=Pose()
-        p.position.x=x[0]
-        p.position.y=x[1]
-        p.position.z=x[2]
+        p.position.x = M[0,2]
+        p.position.y = M[1,2]
+        p.position.z = x[2]
         
         p.orientation.w = cos(x[3]/2)
         p.orientation.x = 0
