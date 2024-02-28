@@ -80,7 +80,7 @@ class SE2:
         return inv(Jr)
     
     def Ad(M):
-        ad=np.zeros(3,3)
+        ad=np.zeros((3,3))
         R=M[0:2, 0:2]
         t=M[0:2,2]
         ad[0:2,0:2]=R
