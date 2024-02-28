@@ -367,15 +367,16 @@ class EKF:
         self.sigma=sigma
         
     def camera_callback(self, rgb_msg, depth_msg):
-        with self.lock:
-            rgb = self.bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
-            depth = self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
-            features=self.detect_apriltag(rgb, depth)
-            for feature in features.values():
-                rgb=draw_frame(rgb, feature, self.K)
-            self._initialize_new_landmarks(features)
-            #self._correction(features)
-            self.image_pub.publish(self.bridge.cv2_to_imgmsg(rgb))
+        pass
+        # with self.lock:
+        #     rgb = self.bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
+        #     depth = self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
+        #     features=self.detect_apriltag(rgb, depth)
+        #     for feature in features.values():
+        #         rgb=draw_frame(rgb, feature, self.K)
+        #     self._initialize_new_landmarks(features)
+        #     #self._correction(features)
+        #     self.image_pub.publish(self.bridge.cv2_to_imgmsg(rgb))
             
 def get_pose_marker(tags, mu):
     markers=[]
