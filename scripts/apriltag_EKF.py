@@ -299,16 +299,16 @@ class EKF:
             if not landmark_id in self.landmarks.keys():
                 landmark=landmarks[landmark_id]
                 
+                M = T@landmark["M"].copy()#feature orientation in world frame 
+                
                 #remove x,y rotation
-                R=landmark["M"][0:3,0:3] #feature orientation in camera frame
+                R=M[0:3,0:3] #feature orientation in camera frame
                 theta=SO3.Log(R)
                 theta[0:2]=[0,0]
                 R=SO3.Exp(theta)
                 
-                M = np.eye(4)
                 M[0:3,0:3]=R
-                M[0:3,3] = landmark["M"][0:3,3]
-                M=T@M #feature orientation in world frame 
+
                 tau=SE3.Log(M) #tangent space
                 tau_hat = self.ftag.T@tau 
                 
@@ -439,7 +439,6 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         # pc_pub.publish(ekf.cloud)
         markers=get_pose_marker(ekf.landmarks, ekf.mu)
-        print(ekf.landmarks)
         factor_graph_marker_pub.publish(markers)
         M = SE2.Exp(ekf.mu[0:3])
         br.sendTransform((M[0,2], M[1,2] , 0),
