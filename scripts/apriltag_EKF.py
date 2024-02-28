@@ -106,7 +106,7 @@ def draw_frame(img, tag, K):
     img=cv2.circle(img, (int(tag["xp"]), int(tag["yp"])), 5, (0, 0, 255), -1)
     M=tag["M"].copy()
     
-    x_axis=K@M@np.array([0.06,0,0,1])
+    x_axis=K@M[0:3,:]@np.array([0.06,0,0,1])
     x_axis=x_axis/(x_axis[2])
     
     img=cv2.arrowedLine(img, (int(tag["xp"]), int(tag["yp"])), (int(x_axis[0]), int(x_axis[1])), 
