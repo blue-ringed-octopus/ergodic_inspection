@@ -308,7 +308,7 @@ class EKF:
                 M[0:3,3] = landmark["M"][0:3,3]
                 M=T@M #feature orientation in world frame 
                 tau=SE3.Log(M) #tangent space
-                tau_hat = self.ftag@tau #only take the planer pose
+                tau_hat = self.ftag.T@tau 
                 
                 self.landmarks[landmark_id]=mu.shape[0]
                 mu=np.hstack((mu.copy(),tau_hat))
