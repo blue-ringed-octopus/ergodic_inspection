@@ -435,6 +435,7 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         # pc_pub.publish(ekf.cloud)
         markers=get_pose_marker(ekf.landmarks, ekf.mu)
+        print(ekf.landmarks)
         factor_graph_marker_pub.publish(markers)
         M = SE2.Exp(ekf.mu[0:3])
         br.sendTransform((M[0,2], M[1,2] , 0),
