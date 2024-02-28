@@ -26,7 +26,7 @@ import threading
 from common_functions import angle_wrapping, v2t, t2v
 import open3d as o3d 
 from numba import cuda
-from Lie import SO3, SE3
+from Lie import SO3, SE3, SE2, SO2
 TPB=32
 @cuda.jit()
 def cloud_cov_kernel(d_out, d_depth, d_Q, d_T):
@@ -162,10 +162,7 @@ class EKF:
                     debug=0
                     )
         odom=rospy.wait_for_message("/odom",Odometry)
-        self.odom_prev=v2t([odom.pose.pose.position.x,
-                          odom.pose.pose.position.y,
-                          0,
-                          odom.pose.pose.orientation.z])
+
         self.odom_prev=tf.transformations.quaternion_matrix([odom.pose.pose.orientation.x,
                                                    odom.pose.pose.orientation.y,
                                                    odom.pose.pose.orientation.z,
@@ -242,27 +239,30 @@ class EKF:
             
             #get relative transformation
             dX=np.linalg.inv(self.odom_prev)@odom
-            dtheta = SO3.Log(dX[0:3,0:3])
-            dtheta[0:2]= [0,0]
-            dX[0:3,0:3]= SO3.Exp(dtheta)
             
-            u = SE3.Log(dX)
+            
+            dtheta = SO3.Log(dX[0:3,0:3])
+            dtheta = dtheta[2]
+            R = SO2.Exp(dtheta)
+            
+            U = np.eye(3)
+            U[0:2,0:2]=R
+            U[0:2,2]=dX[0:2,2]
+            u = SE2.Log(U)
+            
             mu=self.mu.copy()
-            tau_prev=np.array([mu[0], mu[1],0,0, 0, mu[2]])
-            tau =SE3.Log(SE3.Exp(tau_prev)@dX)
-            mu[0:3] = [tau[0], tau[1], tau[5]]
+            tau_prev=mu[0:3]
+            tau =SE2.Log(SE2.Exp(tau_prev)@U)
+            mu[0:3] = tau
+            
             F=np.zeros((3,mu.shape[0]))
             F[0:3,0:3]=np.eye(3)
             
-            Ad_inv = np.zeros((6,6))
-            Ad_inv[0:3,0:3] = dX[0:3,0:3].T
-            Ad_inv[3:6,3:6] = dX[0:3,0:3].T
-            Ad_inv[0:3,3:6] = -dX[0:3,0:3].T@dX[0:3,3]
             
-            Jx=SE3.Jr_inv(tau)@Ad_inv@SE3.Jr(tau_prev)
-            Ju=SE3.Jr_inv(tau)@SE3.Jr(u)
+            Jx=SE2.Jr_inv(tau)@inv(SE2.Ad(U))@SE2.Jr(tau_prev)
+            Ju=SE2.Jr_inv(tau)@SE2.Jr(u)
             self.mu = mu
-            self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@self.R@(Ju.T)@F
+            self.sigma=F.T@(Jx)@self.sigma@(Jx.T)@F+F.T@(Ju)@self.R@(Ju.T)@F
             self.odom_prev=odom
         
     def detect_apriltag(self,rgb, depth):

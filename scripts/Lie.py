@@ -5,8 +5,88 @@ Created on Mon Feb 26 18:25:49 2024
 @author: hibad
 """
 import numpy as np
-from numpy import arccos, sin, cos, trace
+from numpy import arccos, sin, cos, trace, arctan2
 from numpy.linalg import norm, matrix_power, inv
+class SO2:
+    @staticmethod
+    def hat(theta):
+       return np.array([[0, -theta],
+                        [theta, 0]])
+    @staticmethod
+    def Log(M):
+        return arctan2(M[1,0], M[0,0])
+    
+    @staticmethod
+    def Exp(theta):
+        c = cos(theta)
+        s = sin(theta)
+        return np.array([[c, -s],
+                         [s, c]])
+class SE2:
+    @staticmethod
+    def V(theta):
+        if theta==0:
+            return np.eye(2)
+        return sin(theta)/theta* np.eye(2) +(1-cos(theta))/theta * SO2.hat(1)
+    
+    @staticmethod
+    def Log(M):
+        tau = np.zeros(3)
+        theta = SO2.Log(M[0:2,0:2])
+        v = SE2.V(theta)
+        rho = inv(v)@M[0:2,2]
+        tau[0:2]=rho
+        tau[2] = theta
+        return tau
+
+    
+    @staticmethod
+    def Exp(tau):
+        M=np.eye(3)
+        M[0:2,0:2]=SO2.Exp(tau[2])
+        v = SE2.V(tau[2])
+        M[0:2,2] = v@tau[0:2]
+        return M
+    
+    @staticmethod
+    def Jr(tau):
+        Jr = np.eye(3)
+        if tau[2]==0:
+            return Jr
+        
+        s = sin(tau[2])
+        c = cos(tau[2])
+        
+        Jr[0,0] = sin(tau[2])/tau[2]
+        Jr[0,1] = (1-c)/tau[2]
+        Jr[0,2] = (tau[2]*tau[0]-tau[1]+tau[1]*c-tau[0]*s)/tau[2]**2
+        Jr[1,0] = (c-1)/tau[2]
+        Jr[1,1] = sin(tau[2])/tau[2]
+        Jr[1,2] = (tau[0]+tau[2]*tau[1]-tau[0]*c-tau[1]*s)/tau[2]**2
+        return Jr
+    
+    @staticmethod
+    def Jl(tau):
+        Jl = SE2.Jr(-np.array(tau))
+        return Jl
+    
+    @staticmethod
+    def Jl_inv(tau):
+        Jl = SE2.Jl(tau)
+        return inv(Jl)
+    
+    def Jr_inv(tau):
+        Jr = SE2.Jl_inv(-np.array(tau))
+        return inv(Jr)
+    
+    def Ad(M):
+        ad=np.zeros(3,3)
+        R=M[0:2, 0:2]
+        t=M[0:2,2]
+        ad[0:2,0:2]=R
+        ad[0:2,2] = SO2.hat(1)@t
+        return ad
+
 class SO3:
     @staticmethod
     def vee(W):
