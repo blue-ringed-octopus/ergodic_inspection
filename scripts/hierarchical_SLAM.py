@@ -12,19 +12,27 @@ import numpy as np
 import apriltag_EKF
 from geometry_msgs.msg import Point, Pose
 from visualization_msgs.msg import Marker, MarkerArray
-from common_functions import angle_wrapping, v2t, t2v, np2pc
+from common_functions import np2pc
 from scipy.linalg import solve_triangular
 from scipy.spatial import KDTree
 from numpy import sin, cos, arctan2
-from numpy.linalg import inv
+from numpy.linalg import inv, norm
 from copy import deepcopy
 import ros_numpy
+from Lie import SE3, SE2, SO3, SO2
+
 np.float = np.float64 
 
 np.set_printoptions(precision=2)
-
-def pose_dist(x1, x2):
-    return np.sqrt((x1[0]-x2[0])**2+(x1[1]-x2[1])**2+10*(x1[2]-x2[2])**2)
+fr = np.zeros((6,3))
+fr[0,0]=1
+fr[1,1]=1
+fr[5,2]=1
+ftag = np.zeros((6,4))
+ftag[0,0]=1
+ftag[1,1]=1
+ftag[2,2] = 1
+ftag[5,3] = 1
 
 class Graph_SLAM:
     class Front_end:
@@ -34,140 +42,141 @@ class Graph_SLAM:
                 self.set_mu(mu)
                 self.Cov=np.eye(3)*9999999
                 self.id=node_id
-                self.children={}
-                self.parents={}
                 self.local_map=None
                 self.pruned=False 
                 self.depth_img=None
+                self.factor=[]
                 
             def set_mu(self,mu):
-                self.mu=mu.copy()
                 self.n=len(self.mu)
-                if self.n==3:
-                    self.T=v2t([mu[0], mu[1], 0, mu[2]])
+                if self.node_type == "pose":
+                    self.M=SE3.Exp([mu[0], mu[1], 0,0,0, mu[2]])
+                    self.mu = fr.T@SE3.Log(self.M)
                 else:
-                    self.T=v2t(mu)
-                    
-            def prune(self):
-                self.pruned=True
-                for child in self.children.values():
-                    child["edge"].pruned=True
-                    
-        class Edge:
-            def __init__(self, node1, node2, Z, omega, edge_type):
-                self.node1=node1
-                self.node2=node2
-                self.Z=Z
-                self.omega=omega
-                self.type=edge_type
-                self.pruned=False
-                node1.children[node2.id]={"edge": self, "children": node2}
-                node2.parents[node1.id]={"edge": self, "parents": node1}
+                    self.M=SE3.Exp([mu[0], mu[1], mu[2],0,0, mu[4]])
+                    self.mu = ftag.T@SE3.Log(self.M)
 
-            # def get_error(self):
-            #     e=t2v(np.linalg.inv(self.Z)@(np.linalg.inv(v2t(self.node1.x))@v2t(self.node2.x)))
-            #     return e
-                
+                    
+        class Factor:
+            def __init__(self, parent_node, child_node, feature_nodes, z, sigma, idx_map):
+                self.parent=parent_node
+                self.child_node=child_node
+                self.feature_nodes=feature_nodes
+                self.z=z
+                self.omega=inv(sigma)
+                self.pruned=False
+                self.n = len(feature_nodes)
+                self.idx_map = idx_map
+            
+            def Jacobian(self):
+                pass 
+            
         def __init__(self):
             self.nodes=[]
-            self.pose_nodes=[]
-            self.edges=[]
+            self.pose_nodes={}
+            self.factors=[]
             self.feature_nodes={}
             self.window = 20
+            self.current_pose_id = 0
             
-        def add_node(self, x, node_type, feature_id=None, ):
-            i=len(self.nodes)
-            node=self.Node(i,x, node_type)
-            self.nodes.append(node)
-            if node_type=="pose":
-                self.pose_nodes.append(node)
-                if len(self.pose_nodes)>=self.window:
-                    self.pose_nodes[-self.window].prune()
-            if node_type=="feature":
-                self.feature_nodes[feature_id]=node
-            return i
+        def prune_graph(self):
+            pass
         
-        def add_edge(self, node_1_id, node_2_id, Z, omega, edge_type="odom"):
-            self.edges.append(self.Edge(self.nodes[node_1_id], self.nodes[node_2_id],Z,omega,edge_type))
+        def add_node(self, x, node_type, feature_id=None, ):
+            i=self.current_pose_id
+            if node_type=="pose":
+                node=self.Node(i,x, node_type)
+                self.pose_nodes[i]=node
+                self.current_pose_id += 1
+                if len(self.pose_nodes)>=self.window:
+                    self.prun_graph()
+                    
+            if node_type=="feature":
+                node=self.Node(feature_id,x, node_type)
+                self.feature_nodes[feature_id]=node
+            self.nodes.append(node)                
+            return self.current_pose_id.copy()
+        
+        def add_factor(self, parent_id, child_id, feature_ids, Z, sigma, idx_map):
+            parent = self.pose_nodes[parent_id]
+            child = self.pose_nodes[child_id]
+            features=[self.feature_nodes[feature_id] for feature_id in feature_ids]
+            self.factors.append(self.Factor(parent,child,features ,Z,sigma, idx_map))
         
         
     class Back_end:
-        def get_pose_jacobian(self, x1, x2, Z):
-            ztheta=arctan2(Z[1,0], Z[0,0])
-            
-            J1=np.array([[-cos(x1[2] + ztheta), -sin(x1[2] + ztheta), x2[1]*cos(x1[2] + ztheta) - x1[1]*cos(x1[2] + ztheta) + x1[0]*sin(x1[2] + ztheta) - x2[0]*sin(x1[2] + ztheta)],
-                         [ sin(x1[2] + ztheta), -cos(x1[2] + ztheta), x1[0]*cos(x1[2] + ztheta) - x2[0]*cos(x1[2] + ztheta) + x1[1]*sin(x1[2] + ztheta) - x2[1]*sin(x1[2] + ztheta)],
-                         [                    0,                     0,                                                                                                        -1]])
-
-            J2=np.array([[ cos(x1[2] + ztheta), sin(x1[2] + ztheta), 0],
-                         [-sin(x1[2] + ztheta), cos(x1[2] + ztheta), 0],
-                         [ 0,                    0, 1]     ]        )
+        def get_pose_jacobian(self, tau_1, tau_2, z_bar):
+            J1=-fr.T@SE3.Jl_inv(z_bar)@SE3.Jr(tau_1)@fr
+            J2=fr.T@SE3.Jr_inv(z_bar)@SE3.Jr(tau_2)@fr
             return J1, J2
         
-        def pose_error_function(self, x1,x2,Z):
-            e=t2v(np.linalg.inv(Z)@(np.linalg.inv(v2t([x1[0], x1[1], 0, x1[2]]))@v2t([x2[0], x2[1], 0, x2[2]])))
-            return np.array([e[0], e[1], e[3]])
-
-        def get_feature_jacobian(self, x1 ,x2):
-            
-            J1 = np.array([[ cos(x1[2]), sin(x1[2]), x1[1]*cos(x1[2]) - x2[1]*cos(x1[2]) + x2[0]*sin(x1[2]) - x1[0]*sin(x1[2])],
-                           [-sin(x1[2]), cos(x1[2]), x2[0]*cos(x1[2]) - x1[0]*cos(x1[2]) + x2[1]*sin(x1[2]) - x1[1]*sin(x1[2])],
-                           [          0,          0,                                                                   0],
-                           [          0,          0,                                                                   1]])
-       
-       
-            J2 = np.array([[-cos(x1[2]), -sin(x1[2]),  0, 0],
-                           [ sin(x1[2]), -cos(x1[2]),  0, 0],
-                           [          0,           0, -1, 0],
-                           [          0,           0,  0, -1]])
+      
+        def get_feature_jacobian(self, tau_1, tau_2, z_bar):
+            J1=-ftag.T@SE3.Jl_inv(z_bar)@SE3.Jr(tau_1)@fr
+            J2=ftag.T@SE3.Jr_inv(z_bar)@SE3.Jr(tau_2)@ftag
             return J1, J2
-        
-        def feature_error_function(self, x1,x2,z):
-            e = np.array([z[0] - x2[0]*cos(x1[2]) + x1[0]*cos(x1[2]) - x2[1]*sin(x1[2]) + x1[1]*sin(x1[2]),
-                          z[1] - x2[1]*cos(x1[2]) + x1[1]*cos(x1[2]) + x2[0]*sin(x1[2]) - x1[0]*sin(x1[2]),
-                                                                  z[2] - x2[2],
-                          angle_wrapping(z[3]-arctan2(sin(x2[3] - x1[2]), cos(x2[3] - x1[2])))])
-            
-            return e
-        
-        def linearize(self,x, edges, idx_map):
-            H=np.zeros((len(x), len(x)))
-            b=np.zeros(len(x))
-            for edge in edges:
-                if not edge.pruned:
-                    i=idx_map[str(edge.node1.id)]
-                    j=idx_map[str(edge.node2.id)]
-                    omega=edge.omega 
-                    Z=edge.Z
-                    if edge.type=="odom":
-                        A,B=self.get_pose_jacobian(x[i:i+3], x[j:j+3], Z)
-                        e=self.pose_error_function(x[i:i+3], x[j:j+3], Z)
-                    else:
-                        A,B=self.get_feature_jacobian(x[i:i+3], x[j:j+4])
-                        e=self.feature_error_function(x[i:i+3], x[j:j+4], Z)
-                        
-                    n=A.shape[1] 
-                    m=B.shape[1] 
-                    H[i:i+n,i:i+n]+=A.T@omega@A
-                    H[j:j+m,j:j+m]+=B.T@omega@B
-                    H[i:i+n,j:j+m]+=A.T@omega@B
-                    H[j:j+m,i:i+n]+=H[i:i+n,j:j+m].T
-                    
-                    b[i:i+n]+=A.T@omega@e
-                    b[j:j+m]+=B.T@omega@e
-            return H,b
         
         def __init__(self):
             pass
         
         def node_to_vector(self, graph):
-            idx_map={}
+            self.pose_idx_map={}
+            self.feature_idx_map={}
             x=[]
-            for node in graph.nodes:
+            for node_id, node in graph.pose_nodes.items():
                 if not node.pruned:
-                    idx_map[str(node.id)]=len(x)
+                    self.pose_idx_map[node_id]=len(x)
                     x=np.concatenate((x, node.mu.copy()))
-            return np.array(x), idx_map
+            for node_id,node in graph.feature_nodes.items():
+                self.feature_idx_map[node_id]=len(x)
+                x=np.concatenate((x, node.mu.copy()))
+                    
+            return np.array(x)
+        
+        def linearize(self,x, factors):
+            H = np.zeros((len(x), len(x)))
+            b = np.zeros(len(x))
+            for factor in factors:
+                idx_map = factor.idx_map
+                F = np.zeros(len(x), 6+factor.n*4)                
+                J = np.zeros(3+factor.n*4,6+factor.n*4)
+                e = np.zeros(3+factor.n*4)
+                omega = factor.omega 
+                
+                idx=self.pose_idx_map[factor.parent_node.id]
+                F[idx:idx+3,0:3] = np.eye(3)
+                M_r1_inv = inv(factor.parent_node.M.copy())
+                z = factor.z[0:3].copy()
+                tau_r1 = fr.T@factor.parent_node.mu.copy()
+                tau_r2 = fr.T@factor.child_node.mu.copy()
+                z_bar = SE3.Log(M_r1_inv@factor.child_node.M.copy())
+                J1,J2 = self.get_pose_jacobian(tau_r1, tau_r2, z_bar)
+                J[0:3,0:3] = J1
+                J[0:3, 3:6] = J2
+                e[0:3] = z - z_bar
+                
+                idx=self.pose_idx_map[factor.child_node.id]
+                F[idx:idx+3,3:6] = np.eye(3)
+
+                for feature in factor.feature_nodes:
+                    i = idx_map[feature.id]
+                    tau_r2 = ftag.T@feature.mu.copy()
+                    z = factor.z[i:i+4].copy()
+                    z_bar = SE3.Log(M_r1_inv@feature.M.copy())
+
+                    J1,J2 = self.get_feature_jacobian(tau_r1, tau_r2, np.array([z[0], z[1], z[2],0,0,z[2]]))
+                    J[i:i+4, 0:3] = J1
+                    J[i,i+4, 3+i,3+i+4] = J2
+                    e[i:i+4] = z - z_bar
+                    
+                    idx=self.feature_idx_map[feature.id]
+                    F[idx:idx+4,i:i+4] = np.eye(4)
+
+
+                H+=F@J.T@omega@J@F.T
+       
+                b+=F@J.T@omega@e
+            return H,b
         
         def linear_solve(self, A,b):
             A=(A+A.T)/2
@@ -188,17 +197,18 @@ class Graph_SLAM:
         def optimize(self, graph):
             print("optimizing graph")
             x, idx_map= self.node_to_vector(graph)
-            H,b=self.linearize(x,graph.edges, idx_map)
-            H[0:4,0:4]+=np.eye(4)*99999
+            H,b=self.linearize(x,graph.factors, idx_map)
             dx=self.linear_solve(H,-b)
             x+=dx
             i=0
+            self.update_nodes(graph, x,np.zeros(H.shape), idx_map)
             while np.max(dx)>0.001 and i<1000:
                 H,b=self.linearize(x,graph.edges, idx_map)
-                H[0:4,0:4]+=np.eye(4)*99999
                 dx=self.linear_solve(H,-b)
                 x+=dx
                 i+=1
+                self.update_nodes(graph, x,np.zeros(H.shape), idx_map)
+
             self.update_nodes(graph, x,inv(H), idx_map)
             print("optimized")
 
@@ -220,134 +230,36 @@ class Graph_SLAM:
         self.feature_tree=None
         
         # self.costmap=self.anomaly_detector.costmap
-
-        
-    def _buid_feature_tree(self):
-        loc=[self.front_end.feature_nodes[key].x[0:2].copy() for key in self.front_end.feature_nodes]
-        # loc=[node.mu for node in self.front_end.nodes]
-        self.feature_tree=KDTree(loc)
-        # self.feature_id=[key for key in self.front_end.feature_nodes]
-    # def k_nearest_node(self, x,k):        
-    #      _, idx = self.node_tree.query(x=x,k=k)
-         
-         # return deepcopy(self.front_end.nodes[idx])
-    # def _loop_closure(self, target, matching_features):
-    #     print("loop close")
-    #     self.loop_closed=True
-    #     current_node=self.front_end.nodes[self.current_node_id]
-    #     z1=[]
-    #     z2=[]
-    #     for feature in matching_features:
-    #         z1.append(t2v(current_node.children[feature]["edge"].Z)[0:2])
-    #         z2.append(t2v(target.children[feature]["edge"].Z)[0:2])
-        
-    #     centroid1=np.mean(z1, axis=0)
-    #     centroid2=np.mean(z2, axis=0)
-    #     q1=z1-centroid1
-    #     q2=z2-centroid2
-
-    #     H=q1.T@q2
-    #     U, _, V_t = np.linalg.svd(H)
-    #     Rot = V_t.T@U.T
-    #     dz = centroid2 - Rot@centroid1
-    #     Z=np.hstack((Rot, dz.reshape((-1,1))))
-    #     Z=np.vstack((Z,[0,0,1]))
-    #     omega=np.eye(3)*0.001
-    #     self.front_end.add_edge(self.current_node_id,target.id, Z, omega, edge_type="loop_closure")
-    #     x, H=self.back_end.optimize(self.front_end)
-    #     self.omega=H
-        
-               
-    def _posterior_to_factor(self, mu, sigma,node_to_origin):
-        features=self.ekf.landmarks
-        for feature_id in features:
-              idx=features[feature_id]
-              z=mu[idx:idx+4]
-              #z=np.append(z,1)
-              # print(z)
-              # print(node_to_origin)
-              # z=node_to_origin@z
-
-              feature_node_id=self.front_end.feature_nodes[feature_id].id
-              omega=np.linalg.inv(sigma[idx:idx+4, idx:idx+4])
-              omega=(omega+omega.T)/2
-              self.front_end.add_edge(self.current_node_id,feature_node_id, z,omega , edge_type="measurement")
-
-    # def search_proximity_nodes(self, pose, radius):
-    #     nodes=[deepcopy(node) for node in self.front_end.pose_nodes if np.linalg.norm(t2v(np.linalg.inv(v2t(node.mu))@v2t(pose)))<radius]
-    #     return nodes
     
-    def search_proximity_features(self, pose, radius):
-        # features=[deepcopy(self.front_end.feature_nodes[key]) for key in self.front_end.feature_nodes if np.linalg.norm(pose-self.front_end.feature_nodes[key].x[0:2])<radius]
-        if self.feature_tree:
-            idx=self.feature_tree.query_ball_point(pose[0:2], radius)
-            id_=list(self.front_end.feature_nodes.keys())
-            feature=[self.front_end.feature_nodes[id_[i]] for i in idx]
-        else:
-            feature=[]
-        return feature
-    
-    def _create_new_node(self, sigma, Z):
-       # node.local_map=self.ekf.cloud
-            
-        # points=np.asarray([point["loc"] for point in local_map])
-        # info=np.asarray([np.linalg.inv(point["cov"]) for point in local_map])
-        
-        # if len(points):
-        #     cloud=o3d.geometry.PointCloud()
-        #     cloud.points=o3d.utility.Vector3dVector(np.concatenate((np.asarray(points), np.zeros(len(points)).reshape(-1,1)), axis=1))
-        #     _,_, idx=cloud.voxel_down_sample_and_trace(0.01, 
-        #                                                    cloud.get_min_bound(), 
-        #                                                    cloud.get_max_bound(), 
-        #                                                    False)
-            
-        #     cov=np.asarray([np.linalg.inv(np.sum(info[i,:,:], axis=0)) for i in idx])
-        #     points=np.array([np.sum([info[j,:,:]@points[j] for j in i], axis=0) for i in idx  ])
-        #     points=[cov[i]@point for i, point in enumerate(points)]
-        points=[]    
-        cov=[]
+    def _posterior_to_factor(self, mu, sigma):
         self.front_end.nodes[self.current_node_id].local_map=self.ekf.cloud
         self.front_end.nodes[self.current_node_id].cloud_cov=self.ekf.cloud_cov
+        new_node_id=self.front_end.add_node(mu[0:3],"pose")
 
-        new_node_id=self.front_end.add_node(self.mu,"pose")
-        omega=np.linalg.inv(sigma[0:3, 0:3]+np.eye(3)*0.001)
-        self.front_end.add_edge(self.current_node_id,new_node_id, Z, omega)
+        idx_map=self.ekf.landmarks
+        feature_node_id = idx_map.keys()
+       
+        self.front_end.add_factor(self.current_node_id,new_node_id,feature_node_id, mu.coppy(),sigma.copy(), idx_map)
         self.current_node_id=new_node_id      
-        _, H=self.back_end.optimize(self.front_end)
-        self.omega=H
-        # self._buid_feature_tree()
+
+        
         
     def occupancy_map(self, pointcloud):
         return 
-    
-    def _get_map_info(self, node, point):
-        theta=node.mu[2]
-        x=node.mu[0]
-        y=node.mu[1]
-        xm=point["loc"][0]
-        ym=point["loc"][1]
-        # hx=np.array([[cos(theta), -sin(theta), - y*cos(theta) - x*sin(theta)],
-        #              [sin(theta),  cos(theta),   x*cos(theta) - y*sin(theta)]])
-        hx=np.array([[1, 0, - ym*cos(theta) - xm*sin(theta)],
-                     [0,  1,   xm*cos(theta) - ym*sin(theta)]])
-        
-        H=np.linalg.inv(v2t(node.mu)[0:2,0:2]@point["cov"][0:2, 0:2]@v2t(node.mu)[0:2,0:2].T+hx@np.linalg.inv(node.H)@hx.T)
-        return H
     
     def _global_map_assemble(self):
         points=[]
         colors=[]
         for node in self.front_end.pose_nodes[-20:]:
             if not node.local_map == None and not node.pruned:
-                cloud=deepcopy(node.local_map).transform(node.T)
+                cloud=deepcopy(node.local_map).transform(node.M)
                 points.append(np.array(cloud.points))
                 colors.append(np.array(cloud.colors))
         points=np.concatenate(points)  
         colors=np.concatenate(colors)  
 
         self.global_map = np2pc(points, colors)
-        # if len(self.front_end.pose_nodes)%5==0:
-        #     o3d.visualization.draw_geometries([self.global_map])
+     
     def update_costmap(self):
         # image = cv2.flip(cv2.imread("map_actual.png"),0)
         # w=int(image.shape[1]*10)
@@ -367,9 +279,10 @@ class Graph_SLAM:
             if not feature_id in self.front_end.feature_nodes.keys():
                 idx=features[feature_id]
                 z=mu[idx:idx+4]
-                Z=v2t(z)
-                x=t2v(node_to_origin@Z)
-                self.front_end.add_node(x,"feature", feature_id)
+                Z=SE3.Exp([z[0], z[1], z[2], 0, 0, z[3]])
+                x=SE3.Log(node_to_origin@Z)
+                
+                self.front_end.add_node(ftag.T@x,"feature", feature_id)
     
     def update(self): 
         if self.optimized:
@@ -378,21 +291,22 @@ class Graph_SLAM:
             
         mu=self.ekf.mu.copy()
         sigma=self.ekf.sigma.copy()
-        features = self.ekf.landmarks
-        node_to_origin=self.front_end.nodes[self.current_node_id].T.copy()
-        T=v2t([mu[0], mu[1], 0, mu[2]])
+        features = self.ekf.landmarks.copy()
+        node_to_origin=self.front_end.nodes[self.current_node_id].M.copy()
+        T=SE3.Exp([mu[0], mu[1], 0, 0, 0, mu[2]])
         
         pose_global = node_to_origin@T
-        mu_r=t2v(pose_global)
-        self.mu = [mu_r[0],mu_r[1], mu_r[3] ]
+        mu_r=SE3.Log(pose_global)
+        self.mu = [mu_r[0],mu_r[1], mu_r[5] ]
         self.init_new_features(mu, node_to_origin, features)
-        delta=t2v(np.linalg.inv(node_to_origin)@pose_global)
-        delta[2]*=2
-        if np.linalg.norm(delta)>=1.5:
-            self.optimized=True
+        delta=norm(mu[0:3])
+        if delta>=1.5:
             self._posterior_to_factor(mu, sigma, node_to_origin)
-            self._create_new_node(sigma, T)
+            _, H=self.back_end.optimize(self.front_end)
+            self.omega=H
             self._global_map_assemble()
+            self.optimized=True
+
         if np.isnan(self.mu).any():
             rospy.signal_shutdown("nan")
 

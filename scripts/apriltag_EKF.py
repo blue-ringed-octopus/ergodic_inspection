@@ -23,7 +23,6 @@ from geometry_msgs.msg import Pose
 np.float = np.float64 
 import ros_numpy
 import threading
-from common_functions import angle_wrapping, v2t, t2v
 import open3d as o3d 
 from numba import cuda
 from Lie import SO3, SE3, SE2, SO2
@@ -217,12 +216,6 @@ class EKF:
     
     #     cov=np.asarray([j@self.Q[0:3,0:3]@j for j in J])
     #     return cov
-    
-    def get_tf(self):
-        mu=self.mu[0:3].copy()
-        return v2t([mu[0], mu[1], 0 ,mu[2]])
-        
-    
         
     def get_message(self, topic, msgtype):
         	try:
@@ -270,7 +263,7 @@ class EKF:
         gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
         result=self.at_detector.detect(gray, estimate_tag_pose=True, tag_size=0.13636, 
         				camera_params=[self.K[0,0], self.K[1,1], self.K[0,2], self.K[1,2]])
-        landmarks={}
+        features={}
         for r in result:
             xp=r.center[0]
             yp=r.center[1] 
@@ -286,8 +279,8 @@ class EKF:
             M[0:3,0:3] = R
             M[0:3, 3] = np.squeeze(r.pose_t)
             if z<2:
-                landmarks[r.tag_id]= {"xp": xp, "yp": yp, "z":z, "M":M }
-        return landmarks
+                features[r.tag_id]= {"xp": xp, "yp": yp, "z":z, "M":M }
+        return features
     
         
 
