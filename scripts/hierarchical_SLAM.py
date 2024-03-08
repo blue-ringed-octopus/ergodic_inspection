@@ -164,7 +164,7 @@ class Graph_SLAM:
                     J1,J2 = self.get_pose_jacobian(tau_r1, tau_r2, z_bar)
                     J[0:3,0:3] = J1
                     J[0:3, 3:6] = J2
-                    e[0:3] = z - ftag.T@z_bar
+                    e[0:3] = z - fr.T@z_bar
                     
                     idx=self.pose_idx_map[factor.child.id]
                     F[idx:idx+3,3:6] = np.eye(3)
@@ -178,7 +178,7 @@ class Graph_SLAM:
                         J1,J2 = self.get_feature_jacobian(tau_r1, tau_r2, np.array([z[0], z[1], z[2],0,0,z[2]]))
                         J[i:i+4, 0:3] = J1
                         J[i,i+4, 3+i,3+i+4] = J2
-                        e[i:i+4] = z - z_bar
+                        e[i:i+4] = z - ftag.T@z_bar
                         
                         idx=self.feature_idx_map[feature.id]
                         F[idx:idx+4,i:i+4] = np.eye(4)
