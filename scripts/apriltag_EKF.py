@@ -225,40 +225,40 @@ class EKF:
         		print("Service all failed: %s"%e)
 
     def odom_callback(self, data):
-        pass
-        # with self.lock:
+        with self.lock:
 
-        #     M=tf.transformations.quaternion_matrix([data.pose.pose.orientation.x,
-        #                                                data.pose.pose.orientation.y,
-        #                                                data.pose.pose.orientation.z,
-        #                                                data.pose.pose.orientation.w])
-        #     theta = SO3.Log(M[0:3,0:3])
-        #     R = SO2.Exp(theta[2])
-        #     odom = np.eye(3)
-        #     odom[0:2,0:2] = R
-        #     odom[0:2,2]=[data.pose.pose.position.x,
-        #                       data.pose.pose.position.y]
+            M=tf.transformations.quaternion_matrix([data.pose.pose.orientation.x,
+                                                        data.pose.pose.orientation.y,
+                                                        data.pose.pose.orientation.z,
+                                                        data.pose.pose.orientation.w])
+            theta = SO3.Log(M[0:3,0:3])
+            R = SO2.Exp(theta[2])
+            odom = np.eye(3)
+            odom[0:2,0:2] = R
+            odom[0:2,2]=[data.pose.pose.position.x,
+                              data.pose.pose.position.y]
             
-        #     #get relative transformation
-        #     U = np.linalg.inv(self.odom_prev)@odom
-        #     u = SE2.Log(U)
+            #get relative transformation
+            U = np.linalg.inv(self.odom_prev)@odom
+            u = SE2.Log(U)
             
-        #     mu=self.mu.copy()
-        #     tau_prev=mu[0:3]
-        #     tau =SE2.Log(SE2.Exp(tau_prev)@U)
-        #     mu[0:3] = tau
+            mu=self.mu.copy()
+            tau_prev=mu[0:3]
+            tau =SE2.Log(SE2.Exp(tau_prev)@U)
+            mu[0:3] = tau
             
-        #     F=np.zeros((3,mu.shape[0]))
-        #     F[0:3,0:3]=np.eye(3)
+            F=np.zeros((3,mu.shape[0]))
+            F[0:3,0:3]=np.eye(3)
             
             
-        #     Jx=SE2.Jr_inv(tau)@inv(SE2.Ad(U))@SE2.Jr(tau_prev)
+            Jx=SE2.Jr_inv(tau)@inv(SE2.Ad(U))@SE2.Jr(tau_prev)
             
-        #     Jx = F.T@Jx@F
-        #     Ju=SE2.Jr_inv(tau)@SE2.Jr(u)
-        #     self.mu = mu
-        #     self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@self.R@(Ju.T)@F
-        #     self.odom_prev=odom
+            Jx = F.T@Jx@F
+            Jx[3:,3:]=np.eye(Jx[3:,3:].shape())
+            Ju=SE2.Jr_inv(tau)@SE2.Jr(u)
+            self.mu = mu
+            self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@self.R@(Ju.T)@F
+            self.odom_prev=odom
         
     def detect_apriltag(self,rgb, depth):
         gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
