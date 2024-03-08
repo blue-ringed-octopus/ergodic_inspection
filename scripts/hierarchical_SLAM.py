@@ -60,7 +60,7 @@ class Graph_SLAM:
         class Factor:
             def __init__(self, parent_node, child_node, feature_nodes, z, sigma, idx_map):
                 self.parent=parent_node
-                self.child_node=child_node
+                self.child=child_node
                 self.feature_nodes=feature_nodes
                 self.z=z
                 self.omega=inv(sigma)
@@ -146,27 +146,27 @@ class Graph_SLAM:
             H = np.zeros((len(x), len(x)))
             b = np.zeros(len(x))
             for factor in factors:
-                if not factor.parent_node == None:
+                if not factor.parent == None:
                     idx_map = factor.idx_map
                     F = np.zeros(len(x), 6+factor.n*4)                
                     J = np.zeros(3+factor.n*4,6+factor.n*4)
                     e = np.zeros(3+factor.n*4)
                     omega = factor.omega 
                     
-                    idx=self.pose_idx_map[factor.parent_node.id]
+                    idx=self.pose_idx_map[factor.parent.id]
                     F[idx:idx+3,0:3] = np.eye(3)
-                    M_r1_inv = inv(factor.parent_node.M.copy())
+                    M_r1_inv = inv(factor.parent.M.copy())
                     z = factor.z[0:3].copy()
-                    tau_r1 = fr.T@factor.parent_node.mu.copy()
+                    tau_r1 = fr.T@factor.parent.mu.copy()
                     
-                    tau_r2 = fr.T@factor.child_node.mu.copy()
-                    z_bar = SE3.Log(M_r1_inv@factor.child_node.M.copy())
+                    tau_r2 = fr.T@factor.child.mu.copy()
+                    z_bar = SE3.Log(M_r1_inv@factor.child.M.copy())
                     J1,J2 = self.get_pose_jacobian(tau_r1, tau_r2, z_bar)
                     J[0:3,0:3] = J1
                     J[0:3, 3:6] = J2
                     e[0:3] = z - z_bar
                     
-                    idx=self.pose_idx_map[factor.child_node.id]
+                    idx=self.pose_idx_map[factor.child.id]
                     F[idx:idx+3,3:6] = np.eye(3)
     
                     for feature in factor.feature_nodes:
@@ -187,8 +187,8 @@ class Graph_SLAM:
                     F = np.zeros(len(x), len(factor.z))   
                     e = np.zeros(len(factor.z))
                     if not factor.child == None:
-                        e[0:3]=factor.child_node.mu.copy()
-                        idx=self.pose_idx_map[factor.child_node.id]
+                        e[0:3]=factor.child.mu.copy()
+                        idx=self.pose_idx_map[factor.child.id]
                         F[idx:idx+3,0:3] = np.eye(3)
                         
                     for feature in factor.feature_nodes:
