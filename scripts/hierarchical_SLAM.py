@@ -77,17 +77,17 @@ class Graph_SLAM:
             self.factors=[]
             self.feature_nodes={}
             self.window = 20
-            self.current_pose_id = 0
+            self.current_pose_id = -1
             
         def prune_graph(self):
             pass
         
         def add_node(self, x, node_type, feature_id=None, ):
-            i=self.current_pose_id
+            i=self.current_pose_id+1
             if node_type=="pose":
                 node=self.Node(i,x, node_type)
                 self.pose_nodes[i]=node
-                self.current_pose_id += 1
+                self.current_pose_id = i
                 if len(self.pose_nodes)>=self.window:
                     self.prun_graph()
                     
