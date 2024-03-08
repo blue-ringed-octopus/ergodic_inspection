@@ -48,7 +48,7 @@ class Graph_SLAM:
                 self.factor=[]
                 
             def set_mu(self,mu):
-                self.n=len(self.mu)
+                self.n=len(mu)
                 if self.node_type == "pose":
                     self.M=SE3.Exp([mu[0], mu[1], 0,0,0, mu[2]])
                     self.mu = fr.T@SE3.Log(self.M)
@@ -98,10 +98,19 @@ class Graph_SLAM:
             return self.current_pose_id.copy()
         
         def add_factor(self, parent_id, child_id, feature_ids, Z, sigma, idx_map):
-            parent = self.pose_nodes[parent_id]
-            child = self.pose_nodes[child_id]
+            if  parent_id == None:
+                parent = None
+            else:
+                parent = self.pose_nodes[parent_id]
+                
+            if  child_id == None:
+                child = None
+            else:
+                child = self.pose_nodes[child_id]
+                
             features=[self.feature_nodes[feature_id] for feature_id in feature_ids]
             self.factors.append(self.Factor(parent,child,features ,Z,sigma, idx_map))
+                
         
         
     class Back_end:
@@ -137,41 +146,61 @@ class Graph_SLAM:
             H = np.zeros((len(x), len(x)))
             b = np.zeros(len(x))
             for factor in factors:
-                idx_map = factor.idx_map
-                F = np.zeros(len(x), 6+factor.n*4)                
-                J = np.zeros(3+factor.n*4,6+factor.n*4)
-                e = np.zeros(3+factor.n*4)
-                omega = factor.omega 
-                
-                idx=self.pose_idx_map[factor.parent_node.id]
-                F[idx:idx+3,0:3] = np.eye(3)
-                M_r1_inv = inv(factor.parent_node.M.copy())
-                z = factor.z[0:3].copy()
-                tau_r1 = fr.T@factor.parent_node.mu.copy()
-                tau_r2 = fr.T@factor.child_node.mu.copy()
-                z_bar = SE3.Log(M_r1_inv@factor.child_node.M.copy())
-                J1,J2 = self.get_pose_jacobian(tau_r1, tau_r2, z_bar)
-                J[0:3,0:3] = J1
-                J[0:3, 3:6] = J2
-                e[0:3] = z - z_bar
-                
-                idx=self.pose_idx_map[factor.child_node.id]
-                F[idx:idx+3,3:6] = np.eye(3)
-
-                for feature in factor.feature_nodes:
-                    i = idx_map[feature.id]
-                    tau_r2 = ftag.T@feature.mu.copy()
-                    z = factor.z[i:i+4].copy()
-                    z_bar = SE3.Log(M_r1_inv@feature.M.copy())
-
-                    J1,J2 = self.get_feature_jacobian(tau_r1, tau_r2, np.array([z[0], z[1], z[2],0,0,z[2]]))
-                    J[i:i+4, 0:3] = J1
-                    J[i,i+4, 3+i,3+i+4] = J2
-                    e[i:i+4] = z - z_bar
+                if not factor.parent_node == None:
+                    idx_map = factor.idx_map
+                    F = np.zeros(len(x), 6+factor.n*4)                
+                    J = np.zeros(3+factor.n*4,6+factor.n*4)
+                    e = np.zeros(3+factor.n*4)
+                    omega = factor.omega 
                     
-                    idx=self.feature_idx_map[feature.id]
-                    F[idx:idx+4,i:i+4] = np.eye(4)
-
+                    idx=self.pose_idx_map[factor.parent_node.id]
+                    F[idx:idx+3,0:3] = np.eye(3)
+                    M_r1_inv = inv(factor.parent_node.M.copy())
+                    z = factor.z[0:3].copy()
+                    tau_r1 = fr.T@factor.parent_node.mu.copy()
+                    
+                    tau_r2 = fr.T@factor.child_node.mu.copy()
+                    z_bar = SE3.Log(M_r1_inv@factor.child_node.M.copy())
+                    J1,J2 = self.get_pose_jacobian(tau_r1, tau_r2, z_bar)
+                    J[0:3,0:3] = J1
+                    J[0:3, 3:6] = J2
+                    e[0:3] = z - z_bar
+                    
+                    idx=self.pose_idx_map[factor.child_node.id]
+                    F[idx:idx+3,3:6] = np.eye(3)
+    
+                    for feature in factor.feature_nodes:
+                        i = idx_map[feature.id]
+                        tau_r2 = ftag.T@feature.mu.copy()
+                        z = factor.z[i:i+4].copy()
+                        z_bar = SE3.Log(M_r1_inv@feature.M.copy())
+    
+                        J1,J2 = self.get_feature_jacobian(tau_r1, tau_r2, np.array([z[0], z[1], z[2],0,0,z[2]]))
+                        J[i:i+4, 0:3] = J1
+                        J[i,i+4, 3+i,3+i+4] = J2
+                        e[i:i+4] = z - z_bar
+                        
+                        idx=self.feature_idx_map[feature.id]
+                        F[idx:idx+4,i:i+4] = np.eye(4)
+                else:
+                    J=np.eye(len(factor.z))
+                    F = np.zeros(len(x), len(factor.z))   
+                    e = np.zeros(len(factor.z))
+                    if not factor.child == None:
+                        e[0:3]=factor.child_node.mu.copy()
+                        idx=self.pose_idx_map[factor.child_node.id]
+                        F[idx:idx+3,0:3] = np.eye(3)
+                        
+                    for feature in factor.feature_nodes:
+                        i = idx_map[feature.id]
+                        tau_r2 = ftag.T@feature.mu.copy()
+                        z = factor.z[i:i+4].copy()
+                        z_bar = feature.mu.copy()
+                        e[i:i+4] = z - z_bar
+                        
+                        idx=self.feature_idx_map[feature.id]
+                        F[idx:idx+4,i:i+4] = np.eye(4)
+    
 
                 H+=F@J.T@omega@J@F.T
        
@@ -223,7 +252,6 @@ class Graph_SLAM:
     def reset(self):
         self.front_end=self.Front_end()
         self.back_end=self.Back_end()
-        self.front_end.add_node([-1.714, 0.1067, 0.1188, np.pi/2],"feature", 12)
         self.current_node_id=self.front_end.add_node(self.mu, "pose")
         self.omega=np.eye(3)*0.001
         self.global_map={"map":[], "info":[], "tree":None, "anomaly":[]}
@@ -340,10 +368,10 @@ def get_pose_markers(nodes):
       P=[]
       for node in nodes:
           
-          mu=node.mu
+          M=node.M
           p=Point()
-          p.x=mu[0]
-          p.y=mu[1]
+          p.x=M[3,0]
+          p.y=M[3,1]
           p.z=0
           
           P.append(p)
@@ -379,10 +407,11 @@ def get_landmark_markers(nodes):
     for node in nodes.values():
         marker=Marker()
         x=node.mu
+        M = SE2.Exp([x[0], x[1], x[3]])
         p=Pose()
-        p.position.x=x[0]
-        p.position.y=x[1]
-        p.position.z=x[2]
+        p.position.x = M[0,2]
+        p.position.y = M[1,2]
+        p.position.z = x[2]
         
         p.orientation.w = cos(x[3]/2)
         p.orientation.x = 0
@@ -417,61 +446,60 @@ def get_landmark_markers(nodes):
         markers.append(marker)
     return markers
     
-def get_factor_markers(graph):
-    P=[]
-    node=graph.nodes
-    for edge in graph.edges:
+# def get_factor_markers(graph):
+#     P=[]
+#     node=graph.nodes
+#     for factor in graph.factor:
         
-        mu1=node[edge.node1.id].mu
-        p1=Point()
-        p1.x=mu1[0]
-        p1.y=mu1[1]
-        p1.z=0
-        P.append(p1)
+#         mu1=node[edge.node1.id].mu
+#         p1=Point()
+#         p1.x=mu1[0]
+#         p1.y=mu1[1]
+#         p1.z=0
+#         P.append(p1)
         
         
-        mu2=node[edge.node2.id].mu
-        p2=Point()
-        p2.x=mu2[0]
-        p2.y=mu2[1]
-        if edge.node2.type=="pose":
-            p2.z=0
-        else:
-            p2.z=mu2[2]
-        P.append(p2)
+#         mu2=node[edge.node2.id].mu
+#         p2=Point()
+#         p2.x=mu2[0]
+#         p2.y=mu2[1]
+#         if edge.node2.type=="pose":
+#             p2.z=0
+#         else:
+#             p2.z=mu2[2]
+#         P.append(p2)
 
 
-    # x=self.landmark["0"]
-    marker = Marker()
-    marker.type = 5
-    marker.id = 2
+#     marker = Marker()
+#     marker.type = 5
+#     marker.id = 2
 
-    marker.header.frame_id = "map"
-    marker.header.stamp = rospy.Time.now()
-    marker.pose.orientation.x=0
-    marker.pose.orientation.y=0
-    marker.pose.orientation.z=0
-    marker.pose.orientation.w=1
-    marker.scale.x = 0.01
+#     marker.header.frame_id = "map"
+#     marker.header.stamp = rospy.Time.now()
+#     marker.pose.orientation.x=0
+#     marker.pose.orientation.y=0
+#     marker.pose.orientation.z=0
+#     marker.pose.orientation.w=1
+#     marker.scale.x = 0.01
 
     
-    # Set the color
-    marker.color.r = 0.0
-    marker.color.g = 1.0
-    marker.color.b = 1.0
-    marker.color.a = 0.1
+#     # Set the color
+#     marker.color.r = 0.0
+#     marker.color.g = 1.0
+#     marker.color.b = 1.0
+#     marker.color.a = 0.1
     
-    marker.points = P
-    return marker 
+#     marker.points = P
+#     return marker 
 
 def plot_graph(graph, pub):
     markerArray=MarkerArray()
     pose_marker = get_pose_markers(graph.pose_nodes)
     feature_markers = get_landmark_markers(graph.feature_nodes)
-    factor_marker= get_factor_markers(graph)
+  #  factor_marker= get_factor_markers(graph)
     
     feature_markers.append(pose_marker)
-    feature_markers.append(factor_marker)
+ #   feature_markers.append(factor_marker)
 
     markerArray.markers=feature_markers
     pub.publish(markerArray)
@@ -485,7 +513,8 @@ if __name__ == "__main__":
     graph_slam=Graph_SLAM(np.zeros(3), ekf)
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
-
+    graph_slam.front_end.add_node([-1.714, 0.1067, 0.1188, np.pi/2],"feature", 12)
+    graph_slam.front_end.add_factor(None, None, 12, [-1.714, 0.1067, 0.1188, np.pi/2], np.eye(4)*9999999,{"12": 0})
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
 
     rate = rospy.Rate(30) 
