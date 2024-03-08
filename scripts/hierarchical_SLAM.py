@@ -514,7 +514,7 @@ if __name__ == "__main__":
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     graph_slam.front_end.add_node([-1.714, 0.1067, 0.1188, np.pi/2],"feature", 12)
-    graph_slam.front_end.add_factor(None, None, 12, [-1.714, 0.1067, 0.1188, np.pi/2], np.eye(4)*9999999,{"12": 0})
+    graph_slam.front_end.add_factor(None, None, [12], [-1.714, 0.1067, 0.1188, np.pi/2], np.eye(4)*0.00001,{"12": 0})
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
 
     rate = rospy.Rate(30) 
