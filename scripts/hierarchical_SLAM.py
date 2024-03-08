@@ -215,7 +215,7 @@ class Graph_SLAM:
         def update_nodes(self, graph,x, cov):
             for node in graph.pose_nodes.values():
                 if not node.pruned:
-                    idx=self.pose_idx_map[str(node.id)]
+                    idx=self.pose_idx_map[node.id]
                     nodex=x[idx:idx+node.n]
                     nodeCov=cov[idx:idx+node.n,idx:idx+node.n]
                     node.set_mu(nodex.copy())
