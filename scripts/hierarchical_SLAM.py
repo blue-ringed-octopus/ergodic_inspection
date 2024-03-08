@@ -513,8 +513,13 @@ if __name__ == "__main__":
     graph_slam=Graph_SLAM(np.zeros(3), ekf)
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
-    graph_slam.front_end.add_node([-1.714, 0.1067, 0.1188, np.pi/2],"feature", 12)
-    graph_slam.front_end.add_factor(None, None, [12], [-1.714, 0.1067, 0.1188, np.pi/2], np.eye(4)*0.00001,{"12": 0})
+    R=SO3.Exp([0,0,np.pi/2])
+    M=np.eye(4)
+    M[0:3,0:3]=R
+    M[0:3,3]=[-1.714, 0.1067, 0.1188]
+    tau=ftag.T@SO3.Log(M)
+    graph_slam.front_end.add_node(tau,"feature", 12)
+    graph_slam.front_end.add_factor(None, None, [12],tau, np.eye(4)*0.00001,{"12": 0})
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
 
     rate = rospy.Rate(30) 
