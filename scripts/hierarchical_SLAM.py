@@ -146,8 +146,8 @@ class Graph_SLAM:
             H = np.zeros((len(x), len(x)))
             b = np.zeros(len(x))
             for factor in factors:
+                idx_map = factor.idx_map
                 if not factor.parent == None:
-                    idx_map = factor.idx_map
                     F = np.zeros(len(x), 6+factor.n*4)                
                     J = np.zeros(3+factor.n*4,6+factor.n*4)
                     e = np.zeros(3+factor.n*4)
