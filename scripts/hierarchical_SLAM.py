@@ -264,7 +264,7 @@ class Graph_SLAM:
         self.front_end.nodes[self.current_node_id].cloud_cov=self.ekf.cloud_cov
         new_node_id=self.front_end.add_node(mu[0:3],"pose")
 
-        idx_map=self.ekf.landmarks
+        idx_map=self.ekf.landmarks.copy()
         feature_node_id = idx_map.keys()
        
         self.front_end.add_factor(self.current_node_id,new_node_id,feature_node_id, mu.copy(),sigma.copy(), idx_map)
