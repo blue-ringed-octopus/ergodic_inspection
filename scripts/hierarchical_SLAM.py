@@ -213,7 +213,7 @@ class Graph_SLAM:
             return solve_triangular(L.T, y)
         
         def update_nodes(self, graph,x, cov):
-            for node in graph.pose_nodes.items():
+            for node in graph.pose_nodes.values():
                 if not node.pruned:
                     idx=self.pose_idx_map[str(node.id)]
                     nodex=x[idx:idx+node.n]
@@ -221,7 +221,7 @@ class Graph_SLAM:
                     node.set_mu(nodex.copy())
                     node.H=nodeCov.copy()
                     
-            for node in graph.feature_nodes.items():
+            for node in graph.feature_nodes.values():
                 idx=self.feature_idx_map[node.id]
                 nodex=x[idx:idx+node.n]
                 nodeCov=cov[idx:idx+node.n,idx:idx+node.n]
