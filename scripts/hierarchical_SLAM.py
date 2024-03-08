@@ -267,7 +267,7 @@ class Graph_SLAM:
         idx_map=self.ekf.landmarks
         feature_node_id = idx_map.keys()
        
-        self.front_end.add_factor(self.current_node_id,new_node_id,feature_node_id, mu.coppy(),sigma.copy(), idx_map)
+        self.front_end.add_factor(self.current_node_id,new_node_id,feature_node_id, mu.copy(),sigma.copy(), idx_map)
         self.current_node_id=new_node_id      
 
         
@@ -320,7 +320,7 @@ class Graph_SLAM:
         mu=self.ekf.mu.copy()
         sigma=self.ekf.sigma.copy()
         features = self.ekf.landmarks.copy()
-        node_to_origin=self.front_end.nodes[self.current_node_id].M.copy()
+        node_to_origin=self.front_end.pose_nodes[self.current_node_id].M.copy()
         T=SE3.Exp([mu[0], mu[1], 0, 0, 0, mu[2]])
         
         pose_global = node_to_origin@T
