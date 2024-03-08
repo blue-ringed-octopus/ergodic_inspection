@@ -366,7 +366,7 @@ def pc_to_msg(pc):
     
 def get_pose_markers(nodes):
       P=[]
-      for node in nodes:
+      for node in nodes.values():
           
           M=node.M
           p=Point()
