@@ -370,8 +370,8 @@ def get_pose_markers(nodes):
           
           M=node.M
           p=Point()
-          p.x=M[3,0]
-          p.y=M[3,1]
+          p.x=M[0,3]
+          p.y=M[1,3]
           p.z=0
           
           P.append(p)
@@ -529,8 +529,9 @@ if __name__ == "__main__":
      
         plot_graph(graph_slam.front_end, factor_graph_marker_pub)
         
-        mu=graph_slam.mu.copy()        
-        br.sendTransform([mu[0], mu[1], 0],
+        mu=graph_slam.mu.copy() 
+        M = SE2.Exp(mu[0:3])
+        br.sendTransform([M[0,2], mu[1,2], 0],
                         tf.transformations.quaternion_from_euler(0, 0, mu[2]),
                         rospy.Time.now(),
                         "base_footprint",
