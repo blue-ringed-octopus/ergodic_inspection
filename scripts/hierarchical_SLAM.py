@@ -160,7 +160,7 @@ class Graph_SLAM:
                     tau_r1 = fr@factor.parent.mu.copy()
                     
                     tau_r2 = fr@factor.child.mu.copy()
-                    z_bar = SE3.Log(M_r1_inv@factor.child.M.copy())
+                    z_bar = ftag.T@SE3.Log(M_r1_inv@factor.child.M.copy())
                     J1,J2 = self.get_pose_jacobian(tau_r1, tau_r2, z_bar)
                     J[0:3,0:3] = J1
                     J[0:3, 3:6] = J2
