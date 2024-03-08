@@ -53,7 +53,7 @@ class Graph_SLAM:
                     self.M=SE3.Exp([mu[0], mu[1], 0,0,0, mu[2]])
                     self.mu = fr.T@SE3.Log(self.M)
                 else:
-                    self.M=SE3.Exp([mu[0], mu[1], mu[2],0,0, mu[4]])
+                    self.M=SE3.Exp([mu[0], mu[1], mu[2],0,0, mu[3]])
                     self.mu = ftag.T@SE3.Log(self.M)
 
                     
