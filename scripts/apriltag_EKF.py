@@ -366,7 +366,6 @@ class EKF:
 
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
         sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
-        print(sigma)
         dmu=K@(dtau)
         self.mu=mu+dmu
         self.sigma=(sigma+sigma.T)/2
