@@ -177,7 +177,7 @@ class Graph_SLAM:
     
                         J1,J2 = self.get_feature_jacobian(tau_r1, tau_r2, np.array([z[0], z[1], z[2],0,0,z[2]]))
                         J[i:i+4, 0:3] = J1
-                        J[i,i+4, 3+i,3+i+4] = J2
+                        J[i:i+4, 3+i:3+i+4] = J2
                         e[i:i+4] = z - ftag.T@z_bar
                         
                         idx=self.feature_idx_map[feature.id]
