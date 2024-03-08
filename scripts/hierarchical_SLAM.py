@@ -329,6 +329,7 @@ class Graph_SLAM:
         self.init_new_features(mu, node_to_origin, features)
         delta=norm(mu[0:3])
         if delta>=1.5:
+            print(sigma)
             self._posterior_to_factor(mu, sigma)
             _, H=self.back_end.optimize(self.front_end)
             self.omega=H
