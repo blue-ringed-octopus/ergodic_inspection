@@ -225,20 +225,20 @@ class Graph_SLAM:
             
         def optimize(self, graph):
             print("optimizing graph")
-            x, idx_map= self.node_to_vector(graph)
+            x = self.node_to_vector(graph)
             H,b=self.linearize(x,graph.factors)
             dx=self.linear_solve(H,-b)
             x+=dx
             i=0
-            self.update_nodes(graph, x,np.zeros(H.shape), idx_map)
+            self.update_nodes(graph, x,np.zeros(H.shape), self.idx_map)
             while np.max(dx)>0.001 and i<1000:
                 H,b=self.linearize(x,graph.edges)
                 dx=self.linear_solve(H,-b)
                 x+=dx
                 i+=1
-                self.update_nodes(graph, x,np.zeros(H.shape), idx_map)
+                self.update_nodes(graph, x,np.zeros(H.shape), self.idx_map)
 
-            self.update_nodes(graph, x,inv(H), idx_map)
+            self.update_nodes(graph, x,inv(H), self.idx_map)
             print("optimized")
 
             return x, H
