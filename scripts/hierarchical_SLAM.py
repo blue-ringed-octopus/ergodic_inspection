@@ -517,7 +517,7 @@ if __name__ == "__main__":
     rospy.init_node('estimator',anonymous=False)
     
     ekf=apriltag_EKF.EKF(0)
-    graph_slam=Graph_SLAM(np.zeros(3), ekf)
+    graph_slam=Graph_SLAM(np.array([0,0,np.pi]), ekf)
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     R=SO3.Exp([0,0,np.pi/2])
