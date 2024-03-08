@@ -147,11 +147,12 @@ class Graph_SLAM:
             b = np.zeros(len(x))
             for factor in factors:
                 idx_map = factor.idx_map
+                omega = factor.omega
                 if not factor.parent == None:
                     F = np.zeros(len(x), 6+factor.n*4)                
                     J = np.zeros(3+factor.n*4,6+factor.n*4)
                     e = np.zeros(3+factor.n*4)
-                    omega = factor.omega 
+                     
                     
                     idx=self.pose_idx_map[factor.parent.id]
                     F[idx:idx+3,0:3] = np.eye(3)
