@@ -212,14 +212,21 @@ class Graph_SLAM:
             y=solve_triangular(L,b, lower=True)
             return solve_triangular(L.T, y)
         
-        def update_nodes(self, graph,x, cov, idx_map):
-            for node in graph.nodes:
+        def update_nodes(self, graph,x, cov):
+            for node in graph.pose_nodes.items():
                 if not node.pruned:
-                    idx=idx_map[str(node.id)]
+                    idx=self.pose_idx_map[str(node.id)]
                     nodex=x[idx:idx+node.n]
                     nodeCov=cov[idx:idx+node.n,idx:idx+node.n]
                     node.set_mu(nodex.copy())
                     node.H=nodeCov.copy()
+                    
+            for node in graph.feature_nodes.items():
+                idx=self.feature_idx_map[node.id]
+                nodex=x[idx:idx+node.n]
+                nodeCov=cov[idx:idx+node.n,idx:idx+node.n]
+                node.set_mu(nodex.copy())
+                node.H=nodeCov.copy()
 
             
         def optimize(self, graph):
@@ -229,15 +236,15 @@ class Graph_SLAM:
             dx=self.linear_solve(H,-b)
             x+=dx
             i=0
-            self.update_nodes(graph, x,np.zeros(H.shape), self.idx_map)
+            self.update_nodes(graph, x,np.zeros(H.shape))
             while np.max(dx)>0.001 and i<1000:
                 H,b=self.linearize(x,graph.edges)
                 dx=self.linear_solve(H,-b)
                 x+=dx
                 i+=1
-                self.update_nodes(graph, x,np.zeros(H.shape), self.idx_map)
+                self.update_nodes(graph, x,np.zeros(H.shape))
 
-            self.update_nodes(graph, x,inv(H), self.idx_map)
+            self.update_nodes(graph, x,inv(H))
             print("optimized")
 
             return x, H
