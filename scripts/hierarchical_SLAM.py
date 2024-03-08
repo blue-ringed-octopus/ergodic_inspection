@@ -531,7 +531,7 @@ if __name__ == "__main__":
         
         mu=graph_slam.mu.copy() 
         M = SE2.Exp(mu[0:3])
-        br.sendTransform([M[0,2], mu[1,2], 0],
+        br.sendTransform([M[0,2], M[1,2], 0],
                         tf.transformations.quaternion_from_euler(0, 0, mu[2]),
                         rospy.Time.now(),
                         "base_footprint",
