@@ -254,7 +254,7 @@ class EKF:
             Jx=SE2.Jr_inv(tau)@inv(SE2.Ad(U))@SE2.Jr(tau_prev)
             
             Jx = F.T@Jx@F
-            Jx[3:,3:]=np.eye(Jx[3:,3:].shape())
+            Jx[3:,3:]=np.eye(Jx[3:,3:].shape[0])
             Ju=SE2.Jr_inv(tau)@SE2.Jr(u)
             self.mu = mu
             self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@self.R@(Ju.T)@F
