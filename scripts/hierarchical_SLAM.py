@@ -226,13 +226,13 @@ class Graph_SLAM:
         def optimize(self, graph):
             print("optimizing graph")
             x, idx_map= self.node_to_vector(graph)
-            H,b=self.linearize(x,graph.factors, idx_map)
+            H,b=self.linearize(x,graph.factors)
             dx=self.linear_solve(H,-b)
             x+=dx
             i=0
             self.update_nodes(graph, x,np.zeros(H.shape), idx_map)
             while np.max(dx)>0.001 and i<1000:
-                H,b=self.linearize(x,graph.edges, idx_map)
+                H,b=self.linearize(x,graph.edges)
                 dx=self.linear_solve(H,-b)
                 x+=dx
                 i+=1
@@ -519,7 +519,7 @@ if __name__ == "__main__":
     M[0:3,3]=[-1.714, 0.1067, 0.1188]
     tau=ftag.T@SE3.Log(M)
     graph_slam.front_end.add_node(tau,"feature", 12)
-    graph_slam.front_end.add_factor(None, None, [12],tau, np.eye(4)*0.00001,{"12": 0})
+    graph_slam.front_end.add_factor(None, None, [12],tau, np.eye(4)*0.001,{"12": 0})
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
 
     rate = rospy.Rate(30) 
