@@ -321,7 +321,6 @@ class EKF:
         tau_r = np.array([mu[0], mu[1], 0, 0, 0, mu[2]])
         T_c_to_w=SE3.Exp(tau_r)@self.T_c_to_r
         T_w_to_c=inv(T_c_to_w)
-        dmu=np.zeros(mu.shape)
         
         n = len(features)
         H=np.zeros((6*n,mu.shape[0]))
@@ -364,14 +363,13 @@ class EKF:
             
             H[6*i:6*i+6,:] += h@F
             Q[6*i:6*i+6, 6*i:6*i+6] =self.Q.copy()
-        
+
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
-        dmu+=K@(dtau)
         sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
         print(sigma)
-
+        dmu=K@(dtau)
         self.mu=mu+dmu
-        self.sigma=sigma
+        self.sigma=(sigma+sigma.T)/2
         
     def camera_callback(self, rgb_msg, depth_msg):
         with self.lock:
