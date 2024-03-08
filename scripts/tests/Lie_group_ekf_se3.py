@@ -141,13 +141,13 @@ def initialize_new_landmarks(features, mu, sigma, landmarks):
             loc=landmark['z']*K_inv@np.array([landmark["xp"], landmark["yp"],1])  
             loc=T@np.hstack((loc,[1]))           
             loc=loc[0:3]          
-            R=landmark["M"][0:3,0:3] #feature orientation in camera frame
-            R=T[0:3,0:3]@R  #feature orientation in world frame
-            theta=SO3.Log(R)
+            r=landmark["M"][0:3,0:3] #feature orientation in camera frame
+            r=T[0:3,0:3]@r  #feature orientation in world frame
+            theta=SO3.Log(r)
             theta[0:2]=[0,0] # remove rotations in x,y axis
             R=SO3.Exp(theta)
             M=np.eye(4)
-            M[0:3,0:3] = R
+            M[0:3,0:3] = r
             M[0:3,3] = loc
             tau = SE3.Log(M)
             zeta=np.hstack((tau[0:3], tau[5])) #only take the z rotation

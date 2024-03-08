@@ -184,7 +184,7 @@ class Graph_SLAM:
                         F[idx:idx+4,i:i+4] = np.eye(4)
                 else:
                     J=np.eye(len(factor.z))
-                    F = np.zeros(len(x), len(factor.z))   
+                    F = np.zeros((len(x), len(factor.z)))   
                     e = np.zeros(len(factor.z))
                     if not factor.child == None:
                         e[0:3]=factor.child.mu.copy()
