@@ -364,10 +364,11 @@ class EKF:
             H[6*i:6*i+6,:] += h@F
             Q[6*i:6*i+6, 6*i:6*i+6] =self.Q.copy()
         
-        print(Q)
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
         dmu+=K@(dtau)
         sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
+        print(sigma)
+
         self.mu=mu+dmu
         self.sigma=sigma
         
