@@ -95,7 +95,7 @@ class Graph_SLAM:
                 node=self.Node(feature_id,x, node_type)
                 self.feature_nodes[feature_id]=node
             self.nodes.append(node)                
-            return self.current_pose_id.copy()
+            return self.current_pose_id
         
         def add_factor(self, parent_id, child_id, feature_ids, Z, sigma, idx_map):
             if  parent_id == None:
