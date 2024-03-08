@@ -157,9 +157,9 @@ class Graph_SLAM:
                     F[idx:idx+3,0:3] = np.eye(3)
                     M_r1_inv = inv(factor.parent.M.copy())
                     z = factor.z[0:3].copy()
-                    tau_r1 = fr.T@factor.parent.mu.copy()
+                    tau_r1 = fr@factor.parent.mu.copy()
                     
-                    tau_r2 = fr.T@factor.child.mu.copy()
+                    tau_r2 = fr@factor.child.mu.copy()
                     z_bar = SE3.Log(M_r1_inv@factor.child.M.copy())
                     J1,J2 = self.get_pose_jacobian(tau_r1, tau_r2, z_bar)
                     J[0:3,0:3] = J1
@@ -171,7 +171,7 @@ class Graph_SLAM:
     
                     for feature in factor.feature_nodes:
                         i = idx_map[feature.id]
-                        tau_r2 = ftag.T@feature.mu.copy()
+                        tau_r2 = ftag@feature.mu.copy()
                         z = factor.z[i:i+4].copy()
                         z_bar = SE3.Log(M_r1_inv@feature.M.copy())
     
@@ -193,7 +193,6 @@ class Graph_SLAM:
                         
                     for feature in factor.feature_nodes:
                         i = idx_map[feature.id]
-                        tau_r2 = ftag.T@feature.mu.copy()
                         z = factor.z[i:i+4].copy()
                         z_bar = feature.mu.copy()
                         e[i:i+4] = z - z_bar
