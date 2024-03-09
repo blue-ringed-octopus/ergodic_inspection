@@ -240,7 +240,7 @@ class Graph_SLAM:
             while np.max(dx)>0.001 and i<1000:
                 H,b=self.linearize(x,graph.factors)
                 print(i)
-                print(H-H.T)
+                print(max(H-H.T))
                 dx=self.linear_solve(H,-b)
                 x+=dx
                 i+=1
@@ -286,7 +286,7 @@ class Graph_SLAM:
     def _global_map_assemble(self):
         points=[]
         colors=[]
-        for node in self.front_end.pose_nodes[-20:]:
+        for node in self.front_end.pose_nodes.values():
             if not node.local_map == None and not node.pruned:
                 cloud=deepcopy(node.local_map).transform(node.M)
                 points.append(np.array(cloud.points))
