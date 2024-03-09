@@ -241,6 +241,7 @@ class Graph_SLAM:
                 H,b=self.linearize(x,graph.factors)
                 print(i)
                 print(H)
+                print("det", np.linalg.det(H))
                 dx=self.linear_solve(H,-b)
                 print(dx)
                 x+=dx
