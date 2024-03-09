@@ -240,7 +240,7 @@ class Graph_SLAM:
             while np.max(dx)>0.001 and i<1000:
                 H,b=self.linearize(x,graph.factors)
                 print(i)
-                print(H)
+                print(H-H.T)
                 dx=self.linear_solve(H,-b)
                 x+=dx
                 i+=1
