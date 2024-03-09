@@ -146,8 +146,8 @@ class Graph_SLAM:
             H = np.zeros((len(x), len(x)))
             b = np.zeros(len(x))
             for factor in factors:
-                idx_map = factor.idx_map
-                omega = factor.omega
+                idx_map = factor.idx_map.copy()
+                omega = factor.omega.copy()
                 if not factor.parent == None:
                     F = np.zeros((len(x), 6+factor.n*4))         
                     J = np.zeros((3+factor.n*4,6+factor.n*4))
@@ -209,7 +209,7 @@ class Graph_SLAM:
         def linear_solve(self, A,b):
             A=(A+A.T)/2
             L=np.linalg.cholesky(A)
-            y=solve_triangular(L,b, lower=True)
+            y=solve_triangular(L,-b, lower=True)
             return solve_triangular(L.T, y)
         
         def update_nodes(self, graph,x, cov):
