@@ -204,7 +204,7 @@ class Graph_SLAM:
                 H+=F@J.T@omega@J@F.T
        
                 b+=F@J.T@omega@e
-            return (H+H.T)/2,b
+            return H,b
         
         def linear_solve(self, A,b):
             A=(A+A.T)/2
@@ -233,7 +233,7 @@ class Graph_SLAM:
             print("optimizing graph")
             x = self.node_to_vector(graph)
             H,b=self.linearize(x,graph.factors)
-            dx=self.linear_solve(H,-b)
+            dx=self.linear_solve(H,b)
             x+=dx
             i=0
             self.update_nodes(graph, x,np.zeros(H.shape))
@@ -242,7 +242,7 @@ class Graph_SLAM:
                 print(i)
                 print(H)
                 print("det", np.linalg.det(H))
-                dx=self.linear_solve(H,-b)
+                dx=self.linear_solve(H,b)
                 print(dx)
                 x+=dx
                 i+=1
