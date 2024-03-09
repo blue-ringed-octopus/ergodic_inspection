@@ -204,8 +204,9 @@ class Graph_SLAM:
                 H+=F@J.T@omega@J@F.T
        
                 b+=F@J.T@omega@e
-                print("omega", np.min(np.linalg.eig(omega)[0]))
-            print("H", np.min(np.linalg.eig(H)[0]))
+                print("omega", omega)
+                print("omega eig", np.min(np.linalg.eig(omega)[0]))
+            print("H eig", np.min(np.linalg.eig(H)[0]))
             return H,b
         
         def linear_solve(self, A,b):
