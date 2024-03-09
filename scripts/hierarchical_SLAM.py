@@ -239,7 +239,10 @@ class Graph_SLAM:
             self.update_nodes(graph, x,np.zeros(H.shape))
             while np.max(dx)>0.001 and i<1000:
                 H,b=self.linearize(x,graph.factors)
+                print(i)
+                print(H)
                 dx=self.linear_solve(H,-b)
+                print(dx)
                 x+=dx
                 i+=1
                 self.update_nodes(graph, x,np.zeros(H.shape))
