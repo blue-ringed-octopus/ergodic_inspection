@@ -204,7 +204,7 @@ class Graph_SLAM:
                 H+=F@J.T@omega@J@F.T
        
                 b+=F@J.T@omega@e
-            return H,b
+            return (H+H.T)/2,b
         
         def linear_solve(self, A,b):
             A=(A+A.T)/2
@@ -239,8 +239,6 @@ class Graph_SLAM:
             self.update_nodes(graph, x,np.zeros(H.shape))
             while np.max(dx)>0.001 and i<1000:
                 H,b=self.linearize(x,graph.factors)
-                print(i)
-                print(np.max(H-H.T))
                 dx=self.linear_solve(H,-b)
                 x+=dx
                 i+=1
