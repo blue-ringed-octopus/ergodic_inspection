@@ -167,7 +167,7 @@ class Graph_SLAM:
                     e[0:3] = z - fr.T@z_bar
                     
                     idx=self.pose_idx_map[factor.child.id]
-                    F[idx:idx+3,3:6] = np.eye(3)
+                    F[idx:idx+3,0:3] = np.eye(3)
     
                     for feature in factor.feature_nodes:
                         i = idx_map[feature.id]
