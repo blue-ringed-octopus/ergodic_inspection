@@ -203,6 +203,7 @@ class Graph_SLAM:
 
                 H+=F@J.T@omega@J@F.T
                 print("dh", J.T@omega@J)
+                print("dh eig", np.min(np.linalg.eig(J.T@omega@J)[0]))
                 b+=F@J.T@omega@e
                 print("omega", omega)
                 print("omega eig", np.min(np.linalg.eig(omega)[0]))
