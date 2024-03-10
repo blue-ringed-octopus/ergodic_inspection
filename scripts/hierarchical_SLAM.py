@@ -554,7 +554,7 @@ if __name__ == "__main__":
                         "base_footprint",
                         "map")
     
-        if optimized:
-            pc_msg=pc_to_msg(graph_slam.global_map)
-            pc_pub.publish(pc_msg)
+        # if optimized:
+        #     pc_msg=pc_to_msg(graph_slam.global_map)
+        #     pc_pub.publish(pc_msg)
         rate.sleep()
