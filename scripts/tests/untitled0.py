@@ -10,7 +10,7 @@ sys.path.append('../')
 import numpy as np
 from scipy.linalg import solve_triangular
 from numpy import sin, cos, arctan2
-from numpy.linalg import inv, norm
+from numpy.linalg import inv, norm, lstsq
 from copy import deepcopy
 from Lie import SE3, SE2, SO3, SO2
 import pickle 
@@ -212,7 +212,7 @@ class Back_end:
         # y=solve_triangular(L,b, lower=True)
         
         #return solve_triangular(L.T, y)
-        return inv(A)@b
+        return lstsq(A,b)[0]
     
     def update_nodes(self, graph,x, cov):
         for node in graph.pose_nodes.values():
