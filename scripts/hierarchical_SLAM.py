@@ -212,7 +212,7 @@ class Graph_SLAM:
             # L=np.linalg.cholesky(A)
             # y=solve_triangular(L,b, lower=True)
             #return solve_triangular(L.T, y)
-            return lstsq(A,b)
+            return lstsq(A,b)[0]
         
         def update_nodes(self, graph,x, cov):
             for node in graph.pose_nodes.values():
