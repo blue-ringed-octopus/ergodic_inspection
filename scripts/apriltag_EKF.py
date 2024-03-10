@@ -368,7 +368,6 @@ class EKF:
         sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
         dmu=K@(dtau)
         self.mu=mu+dmu
-        print(np.min(np.linalg.eig(sigma)[0]))
         self.sigma=(sigma+sigma.T)/2
         
     def camera_callback(self, rgb_msg, depth_msg):

@@ -202,7 +202,7 @@ class Graph_SLAM:
     
 
                 H+=F@J.T@omega@J@F.T
-       
+                print("dh", J.T@omega@J)
                 b+=F@J.T@omega@e
                 print("omega", omega)
                 print("omega eig", np.min(np.linalg.eig(omega)[0]))
@@ -242,9 +242,7 @@ class Graph_SLAM:
             self.update_nodes(graph, x,np.zeros(H.shape))
             while np.max(dx)>0.001 and i<1000:
                 H,b=self.linearize(x,graph.factors)
-                print(i)
-                print(H)
-                print("det", np.linalg.det(H))
+
                 dx=self.linear_solve(H,b)
                 print(dx)
                 x+=dx
