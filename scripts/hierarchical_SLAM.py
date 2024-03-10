@@ -16,7 +16,7 @@ from common_functions import np2pc
 from scipy.linalg import solve_triangular
 from scipy.spatial import KDTree
 from numpy import sin, cos, arctan2
-from numpy.linalg import inv, norm
+from numpy.linalg import inv, norm, lstsq
 from copy import deepcopy
 import ros_numpy
 from Lie import SE3, SE2, SO3, SO2
@@ -212,7 +212,7 @@ class Graph_SLAM:
             # L=np.linalg.cholesky(A)
             # y=solve_triangular(L,b, lower=True)
             #return solve_triangular(L.T, y)
-            return inv(A)@b
+            return lstsq(A,b)
         
         def update_nodes(self, graph,x, cov):
             for node in graph.pose_nodes.values():
