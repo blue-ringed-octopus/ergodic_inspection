@@ -9,9 +9,8 @@ sys.path.append('../')
 
 import numpy as np
 from scipy.linalg import solve_triangular
-from numpy import sin, cos, arctan2
+from numpy import sin, cos
 from numpy.linalg import inv, norm, lstsq
-from copy import deepcopy
 from Lie import SE3, SE2, SO3, SO2
 import pickle 
 import matplotlib.pyplot as plt 
@@ -139,8 +138,8 @@ class Back_end:
             idx_map = factor.idx_map.copy()
             omega = factor.omega.copy()
             if not factor.parent == None:
-                F = np.zeros((len(x), 6+factor.n*4))         
-                J = np.zeros((3+factor.n*4,6+factor.n*4))
+                F = np.zeros((len(x), 6+factor.n*4))          #map from factor to global vector
+                J = np.zeros((3+factor.n*4,6+factor.n*4)) #map from state to observation
                 e = np.zeros((3+factor.n*4))
                  
                 idx=self.pose_idx_map[factor.parent.id]
@@ -241,12 +240,12 @@ class Back_end:
         x+=dx
         i=0
         self.update_nodes(graph, x,np.zeros(H.shape))
-        while np.max(np.abs(dx))>0.0001 and i<10000:
+        while np.max(np.abs(dx))>0.0001 and i<1000:
             H,b=self.linearize(x,graph.factors)
 
             dx=self.linear_solve(H,b)
             print(dx)
-            x+=dx
+            x+= 0.001* dx
             i+=1
             self.update_nodes(graph, x,np.zeros(H.shape))
 
