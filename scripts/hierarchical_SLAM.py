@@ -176,7 +176,7 @@ class Graph_SLAM:
                         z = factor.z[i:i+4].copy()
                         z_bar = SE3.Log(M_r1_inv@feature.M.copy())
     
-                        J1,J2 = self.get_feature_jacobian(tau_r1, tau_r2, np.array([z[0], z[1], z[2],0,0,z[2]]))
+                        J1,J2 = self.get_feature_jacobian(tau_r1, tau_r2, z_bar)
                         J[i:i+4, 0:3] = J1
                         J[i:i+4, 3+i:3+i+4] = J2
                         e[i:i+4] = z - ftag.T@z_bar
@@ -203,12 +203,8 @@ class Graph_SLAM:
     
 
                 H+=F@J.T@omega@J@F.T
-                print("dh", J.T@omega@J)
-                print("dh eig", np.min(np.linalg.eig(J.T@omega@J)[0]))
                 b+=F@J.T@omega@e
-                print("omega", omega)
-                print("omega eig", np.min(np.linalg.eig(omega)[0]))
-            print("H eig", np.min(np.linalg.eig(H)[0]))
+   
             return H,b
         
         def linear_solve(self, A,b):
@@ -244,7 +240,7 @@ class Graph_SLAM:
             x+=dx
             i=0
             self.update_nodes(graph, x,np.zeros(H.shape))
-            while np.max(dx)>0.001 and i<1000:
+            while np.max(np.abs(dx))>0.0001 and i<10000:
                 H,b=self.linearize(x,graph.factors)
 
                 dx=self.linear_solve(H,b)

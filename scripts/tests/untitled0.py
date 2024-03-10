@@ -14,6 +14,8 @@ from numpy.linalg import inv, norm
 from copy import deepcopy
 from Lie import SE3, SE2, SO3, SO2
 import pickle 
+import matplotlib.pyplot as plt 
+
 np.set_printoptions(precision=2)
 fr = np.zeros((6,3))
 fr[0,0]=1
@@ -159,11 +161,11 @@ class Back_end:
 
                 for feature in factor.feature_nodes:
                     i = idx_map[feature.id]
-                    tau_r2 = ftag@feature.mu.copy()
+                    tau_tag = ftag@feature.mu.copy()
                     z = factor.z[i:i+4].copy()
                     z_bar = SE3.Log(M_r1_inv@feature.M.copy())
 
-                    J1,J2 = self.get_feature_jacobian(tau_r1, tau_r2, np.array([z[0], z[1], z[2],0,0,z[2]]))
+                    J1,J2 = self.get_feature_jacobian(tau_r1, tau_tag, z_bar)
                     J[i:i+4, 0:3] = J1
                     J[i:i+4, 3+i:3+i+4] = J2
                     e[i:i+4] = z - ftag.T@z_bar
@@ -171,11 +173,12 @@ class Back_end:
                     idx=self.feature_idx_map[feature.id]
                     F[idx:idx+4,3+i:3+i+4] = np.eye(4)
             else:
-                J=np.eye(len(factor.z))
+                J = np.eye(len(factor.z))
                 F = np.zeros((len(x), len(factor.z)))   
                 e = np.zeros(len(factor.z))
                 if not factor.child == None:
-                    e[0:3]=factor.child.mu.copy()
+                    z = factor.z[i:i+3].copy()
+                    e[0:3] = z - factor.child.mu.copy()
                     idx=self.pose_idx_map[factor.child.id]
                     F[idx:idx+3,0:3] = np.eye(3)
                     
@@ -190,24 +193,26 @@ class Back_end:
 
 
             H+=F@J.T@omega@J@F.T
-            print("J", J)
-            print(np.max(omega-omega.T))
-            print(np.max((J.T)@omega@J - ((J.T)@omega@J).T))
-            print("omega", omega)
-            print("omega eig", np.min(np.linalg.eig(omega)[0]))
-            print("dh", F@J.T@omega@J@F.T)
-            print("dh eig", np.min(np.linalg.eig(J.T@omega@J)[0]))
-            print("F", F)
+            # print("J", J)
+            # print(np.max(omega-omega.T))
+            # print(np.max((J.T)@omega@J - ((J.T)@omega@J).T))
+            # print("omega", omega)
+            # print("omega eig", np.min(np.linalg.eig(omega)[0]))
+            # print("dh", F@J.T@omega@J@F.T)
+            # print("dh eig", np.min(np.linalg.eig(J.T@omega@J)[0]))
+            # print("F", F)
             b+=F@J.T@omega@e
 
         print("H eig", np.min(np.linalg.eig(H)[0]))
-        return H,b
+        return H, b
     
     def linear_solve(self, A,b):
         A=(A+A.T)/2
-        L=np.linalg.cholesky(A)
-        y=solve_triangular(L,b, lower=True)
-        return solve_triangular(L.T, y)
+        # L=np.linalg.cholesky(A)
+        # y=solve_triangular(L,b, lower=True)
+        
+        #return solve_triangular(L.T, y)
+        return inv(A)@b
     
     def update_nodes(self, graph,x, cov):
         for node in graph.pose_nodes.values():
@@ -236,7 +241,7 @@ class Back_end:
         x+=dx
         i=0
         self.update_nodes(graph, x,np.zeros(H.shape))
-        while np.max(dx)>0.001 and i<1000:
+        while np.max(np.abs(dx))>0.0001 and i<10000:
             H,b=self.linearize(x,graph.factors)
 
             dx=self.linear_solve(H,b)
@@ -254,4 +259,16 @@ solver=Back_end()
 with open('graph.pickle', 'rb') as handle:
     graph = pickle.load(handle)
     
-solver.optimize(graph)
+x, H = solver.optimize(graph)
+#%%
+for node in graph.pose_nodes.values():
+    M=node.M
+    mu=node.mu
+    plt.plot(M[0,3], M[1,3], "o")
+    plt.arrow(M[0,3], M[1,3], 0.1*cos(mu[2]), 0.1*sin(mu[2]))
+    
+for node in graph.feature_nodes.values():
+    M=node.M
+    mu=node.mu
+    plt.plot(M[0,3], M[1,3], "x")
+    plt.arrow(M[0,3], M[1,3], 0.1*cos(mu[3]), 0.1*sin(mu[3]))
