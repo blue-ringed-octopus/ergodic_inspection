@@ -20,6 +20,7 @@ from numpy.linalg import inv, norm
 from copy import deepcopy
 import ros_numpy
 from Lie import SE3, SE2, SO3, SO2
+import pickle 
 
 np.float = np.float64 
 
@@ -167,7 +168,7 @@ class Graph_SLAM:
                     e[0:3] = z - fr.T@z_bar
                     
                     idx=self.pose_idx_map[factor.child.id]
-                    F[idx:idx+3,0:3] = np.eye(3)
+                    F[idx:idx+3,3:6] = np.eye(3)
     
                     for feature in factor.feature_nodes:
                         i = idx_map[feature.id]
@@ -234,6 +235,8 @@ class Graph_SLAM:
 
             
         def optimize(self, graph):
+            with open('graph.pickle', 'wb') as handle:
+                pickle.dump(graph, handle)
             print("optimizing graph")
             x = self.node_to_vector(graph)
             H,b=self.linearize(x,graph.factors)
