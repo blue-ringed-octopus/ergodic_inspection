@@ -145,7 +145,7 @@ def initialize_new_landmarks(features, mu, sigma, landmarks):
             r=T[0:3,0:3]@r  #feature orientation in world frame
             theta=SO3.Log(r)
             theta[0:2]=[0,0] # remove rotations in x,y axis
-            R=SO3.Exp(theta)
+            r=SO3.Exp(theta)
             M=np.eye(4)
             M[0:3,0:3] = r
             M[0:3,3] = loc

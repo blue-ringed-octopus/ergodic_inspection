@@ -214,7 +214,7 @@ class Graph_SLAM:
         def linear_solve(self, A,b):
             A=(A+A.T)/2
             L=np.linalg.cholesky(A)
-            y=solve_triangular(L,-b, lower=True)
+            y=solve_triangular(L,b, lower=True)
             return solve_triangular(L.T, y)
         
         def update_nodes(self, graph,x, cov):
