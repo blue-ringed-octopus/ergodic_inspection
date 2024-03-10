@@ -209,9 +209,10 @@ class Graph_SLAM:
         
         def linear_solve(self, A,b):
             A=(A+A.T)/2
-            L=np.linalg.cholesky(A)
-            y=solve_triangular(L,b, lower=True)
-            return solve_triangular(L.T, y)
+            # L=np.linalg.cholesky(A)
+            # y=solve_triangular(L,b, lower=True)
+            #return solve_triangular(L.T, y)
+            return inv(A)@b
         
         def update_nodes(self, graph,x, cov):
             for node in graph.pose_nodes.values():
@@ -244,7 +245,6 @@ class Graph_SLAM:
                 H,b=self.linearize(x,graph.factors)
 
                 dx=self.linear_solve(H,b)
-                print(dx)
                 x+=dx
                 i+=1
                 self.update_nodes(graph, x,np.zeros(H.shape))
