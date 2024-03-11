@@ -150,9 +150,9 @@ class Graph_SLAM:
                 idx_map = factor.idx_map.copy()
                 omega = factor.omega.copy()
                 if not factor.parent == None:
-                    F = np.zeros((len(x), 6+factor.n*4))         
-                    J = np.zeros((3+factor.n*4,6+factor.n*4))
-                    e = np.zeros((3+factor.n*4))
+                    F = np.zeros((len(x), 6+factor.n*4))          #map from factor vector to graph vector
+                    J = np.zeros((3+factor.n*4,6+factor.n*4)) #map from factor vector to observation
+                    e = np.zeros((3+factor.n*4)) #difference between observation and expected observation
                      
                     idx=self.pose_idx_map[factor.parent.id]
                     F[idx:idx+3,0:3] = np.eye(3)
@@ -182,7 +182,7 @@ class Graph_SLAM:
                         e[i:i+4] = z - ftag.T@z_bar
                         
                         idx=self.feature_idx_map[feature.id]
-                        F[idx:idx+4,i:i+4] = np.eye(4)
+                        F[idx:idx+4,3+i:3+i+4] = np.eye(4)
                 else:
                     J = np.eye(len(factor.z))
                     F = np.zeros((len(x), len(factor.z)))   
@@ -190,28 +190,28 @@ class Graph_SLAM:
                     if not factor.child == None:
                         z = factor.z[i:i+3].copy()
                         e[0:3] = z - factor.child.mu.copy()
-                        idx = self.pose_idx_map[factor.child.id]
+                        idx=self.pose_idx_map[factor.child.id]
                         F[idx:idx+3,0:3] = np.eye(3)
                         
                     for feature in factor.feature_nodes:
                         i = idx_map[feature.id]
                         z = factor.z[i:i+4].copy()
                         z_bar = feature.mu.copy()
-                       # e[i:i+4] = z - z_bar
-                        
+                        print(z - z_bar)
+                        #e[i:i+4] = z - z_bar
                         idx=self.feature_idx_map[feature.id]
                         F[idx:idx+4,i:i+4] = np.eye(4)
-    
-
+                    #print(e)
                 H+=F@J.T@omega@J@F.T
                 b+=F@J.T@omega@e
-   
-            return H,b
+    
+            return H, b
         
         def linear_solve(self, A,b):
             A=(A+A.T)/2
             # L=np.linalg.cholesky(A)
             # y=solve_triangular(L,b, lower=True)
+            
             #return solve_triangular(L.T, y)
             return lstsq(A,b)[0]
         
@@ -230,7 +230,7 @@ class Graph_SLAM:
                 nodeCov=cov[idx:idx+node.n,idx:idx+node.n]
                 node.set_mu(nodex.copy())
                 node.H=nodeCov.copy()
-
+    
             
         def optimize(self, graph):
             with open('graph.pickle', 'wb') as handle:
@@ -239,20 +239,21 @@ class Graph_SLAM:
             x = self.node_to_vector(graph)
             H,b=self.linearize(x,graph.factors)
             dx=self.linear_solve(H,b)
-            x+=dx
+            x+=dx 
             i=0
             self.update_nodes(graph, x,np.zeros(H.shape))
-            while np.max(np.abs(dx))>0.001 and i<1000:
+            while np.max(np.abs(dx))>0.00001 and i<10000:
+                print(i)
                 H,b=self.linearize(x,graph.factors)
-
+    
                 dx=self.linear_solve(H,b)
-                x+=dx
+                x+= dx
                 i+=1
                 self.update_nodes(graph, x,np.zeros(H.shape))
-
+    
             self.update_nodes(graph, x,inv(H))
             print("optimized")
-
+    
             return x, H
             
     def __init__(self, x_init, ekf):
