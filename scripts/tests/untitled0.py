@@ -138,9 +138,9 @@ class Back_end:
             idx_map = factor.idx_map.copy()
             omega = factor.omega.copy()
             if not factor.parent == None:
-                F = np.zeros((len(x), 6+factor.n*4))          #map from factor to global vector
-                J = np.zeros((3+factor.n*4,6+factor.n*4)) #map from state to observation
-                e = np.zeros((3+factor.n*4))
+                F = np.zeros((len(x), 6+factor.n*4))          #map from factor vector to graph vector
+                J = np.zeros((3+factor.n*4,6+factor.n*4)) #map from factor vector to observation
+                e = np.zeros((3+factor.n*4)) #difference between observation and expected observation
                  
                 idx=self.pose_idx_map[factor.parent.id]
                 F[idx:idx+3,0:3] = np.eye(3)
@@ -185,24 +185,14 @@ class Back_end:
                     i = idx_map[feature.id]
                     z = factor.z[i:i+4].copy()
                     z_bar = feature.mu.copy()
-                    e[i:i+4] = z - z_bar
-                    
+                    print(z - z_bar)
+                    #e[i:i+4] = z - z_bar
                     idx=self.feature_idx_map[feature.id]
                     F[idx:idx+4,i:i+4] = np.eye(4)
-
-
+                #print(e)
             H+=F@J.T@omega@J@F.T
-            # print("J", J)
-            # print(np.max(omega-omega.T))
-            # print(np.max((J.T)@omega@J - ((J.T)@omega@J).T))
-            # print("omega", omega)
-            # print("omega eig", np.min(np.linalg.eig(omega)[0]))
-            # print("dh", F@J.T@omega@J@F.T)
-            # print("dh eig", np.min(np.linalg.eig(J.T@omega@J)[0]))
-            # print("F", F)
             b+=F@J.T@omega@e
 
-        print("H eig", np.min(np.linalg.eig(H)[0]))
         return H, b
     
     def linear_solve(self, A,b):
@@ -237,15 +227,15 @@ class Back_end:
         x = self.node_to_vector(graph)
         H,b=self.linearize(x,graph.factors)
         dx=self.linear_solve(H,b)
-        x+=dx
+        x+=dx 
         i=0
         self.update_nodes(graph, x,np.zeros(H.shape))
-        while np.max(np.abs(dx))>0.0001 and i<1000:
+        while np.max(np.abs(dx))>0.00001 and i<10000:
+            print(i)
             H,b=self.linearize(x,graph.factors)
 
             dx=self.linear_solve(H,b)
-            print(dx)
-            x+= 0.001* dx
+            x+= dx
             i+=1
             self.update_nodes(graph, x,np.zeros(H.shape))
 
@@ -263,6 +253,7 @@ x, H = solver.optimize(graph)
 for node in graph.pose_nodes.values():
     M=node.M
     mu=node.mu
+    print(M)
     plt.plot(M[0,3], M[1,3], "o")
     plt.arrow(M[0,3], M[1,3], 0.1*cos(mu[2]), 0.1*sin(mu[2]))
     

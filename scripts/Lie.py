@@ -191,10 +191,13 @@ class SE3:
         t = norm(tau[3:6])
         if t==0:
             return np.zeros((3,3)) 
-            
-        Q = 1/2*rho_x + (t-sin(t))/t**3*(theta_x@rho_x + rho_x@theta_x + theta_x@rho_x@theta_x) \
-            - (1-t**2/2-cos(t))/t**4 * (theta_x_sq@rho_x + rho_x@theta_x_sq - 3*theta_x@rho_x@theta_x) \
-                -1/2*((1-t**2/2-cos(t))/t**4 - 3*(t-sin(t)-t**3/6)/t**5) * (theta_x@rho_x@theta_x_sq + theta_x_sq @rho_x@theta_x)
+        s = sin(t)
+        c = cos(t)
+        trt =  theta_x@rho_x@theta_x
+        Q = 1/2*rho_x + (t-s)/t**3*(theta_x@rho_x + rho_x@theta_x + trt) \
+            - (1-(t**2)/2-c)/t**4 * (theta_x_sq@rho_x + rho_x@theta_x_sq - 3*trt) \
+                -1/2*((1-(t**2)/2-c)/t**4 - 3*(t-s-(t**3)/6)/t**5) \
+                    * (trt@theta_x + theta_x @trt)
         return Q
     
     @staticmethod

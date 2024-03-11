@@ -172,11 +172,11 @@ class Graph_SLAM:
     
                     for feature in factor.feature_nodes:
                         i = idx_map[feature.id]
-                        tau_r2 = ftag@feature.mu.copy()
+                        tau_tag = ftag@feature.mu.copy()
                         z = factor.z[i:i+4].copy()
                         z_bar = SE3.Log(M_r1_inv@feature.M.copy())
     
-                        J1,J2 = self.get_feature_jacobian(tau_r1, tau_r2, z_bar)
+                        J1,J2 = self.get_feature_jacobian(tau_r1, tau_tag, z_bar)
                         J[i:i+4, 0:3] = J1
                         J[i:i+4, 3+i:3+i+4] = J2
                         e[i:i+4] = z - ftag.T@z_bar
@@ -184,19 +184,20 @@ class Graph_SLAM:
                         idx=self.feature_idx_map[feature.id]
                         F[idx:idx+4,i:i+4] = np.eye(4)
                 else:
-                    J=np.eye(len(factor.z))
+                    J = np.eye(len(factor.z))
                     F = np.zeros((len(x), len(factor.z)))   
                     e = np.zeros(len(factor.z))
                     if not factor.child == None:
-                        e[0:3]=factor.child.mu.copy()
-                        idx=self.pose_idx_map[factor.child.id]
+                        z = factor.z[i:i+3].copy()
+                        e[0:3] = z - factor.child.mu.copy()
+                        idx = self.pose_idx_map[factor.child.id]
                         F[idx:idx+3,0:3] = np.eye(3)
                         
                     for feature in factor.feature_nodes:
                         i = idx_map[feature.id]
                         z = factor.z[i:i+4].copy()
                         z_bar = feature.mu.copy()
-                        e[i:i+4] = z - z_bar
+                       # e[i:i+4] = z - z_bar
                         
                         idx=self.feature_idx_map[feature.id]
                         F[idx:idx+4,i:i+4] = np.eye(4)
