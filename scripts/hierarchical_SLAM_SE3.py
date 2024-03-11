@@ -136,7 +136,7 @@ class Graph_SLAM:
                      
                     idx=self.pose_idx_map[factor.parent.id]
                     F[idx:idx+6,0:6] = np.eye(6)
-                    z = factor.z[0:3].copy()
+                    z = factor.z[0:6].copy()
                     M_r1 = factor.parent.M.copy()
                     M_r1_inv = inv(M_r1)
                     M_r2 = factor.child.M.copy()
