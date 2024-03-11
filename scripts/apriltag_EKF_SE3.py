@@ -298,12 +298,12 @@ class EKF:
     def _correction(self,features):
         mu=self.mu.copy()
         sigma=self.sigma.copy()
-        tau_r = np.array([mu[0], mu[1], 0, 0, 0, mu[2]])
-        T_c_to_w=SE3.Exp(tau_r)@self.T_c_to_r
+        
+        T_c_to_w=mu[0]@self.T_c_to_r
         T_w_to_c=inv(T_c_to_w)
         
         n = len(features)
-        H=np.zeros((6*n,mu.shape[0]))
+        H=np.zeros((6*n,6*len(mu)))
         Q=np.zeros((6*n,6*n))
         dtau = np.zeros(6*n)
         
@@ -312,10 +312,8 @@ class EKF:
             idx=self.landmarks[feature_id]
             
             #global feature location
-            tau_tag_hat=mu[idx:idx+4].copy() 
-            tau_tag_bar = self.ftag@tau_tag_hat
-            M_tag_bar = SE3.Exp(tau_tag_bar)
-            M_tag_c_bar=T_w_to_c@M_tag_bar  #feature location in camera frame
+            M_tag_bar = mu[idx].copy() 
+            M_tag_c_bar = T_w_to_c@M_tag_bar  #feature location in camera frame
             tau_tag_c_bar = SE3.Log(M_tag_c_bar)
       
             M_tag_c=feature["M"]
@@ -329,16 +327,16 @@ class EKF:
             J_cr[0:3,3:6] = -self.T_c_to_r[0:3,0:3].T@SO3.hat(self.T_c_to_r[0:3,3])
             
             
-            Jr=-SE3.Jl_inv(tau_tag_c_bar)@J_cr@SE3.Jr(tau_r)@self.fr #jacobian of robot pose
-            Jtag=SE3.Jr_inv(tau_tag_c_bar)@SE3.Jr(tau_tag_bar)@self.ftag   #jacobian of tag pose
+            Jr=-SE3.Jl_inv(tau_tag_c_bar)@J_cr #jacobian of robot pose
+            Jtag=SE3.Jr_inv(tau_tag_c_bar)   #jacobian of tag pose
             
-            h=np.zeros((6,7)) #number of obervation: 6, number of state:7 
-            h[0:6, 0:3] = Jr
-            h[0:6:, 3:7] = Jtag
+            h=np.zeros((6,12)) #number of obervation: 6, number of state:7 
+            h[0:6, 0:6] = Jr
+            h[0:6:, 6:12] = Jtag
             
-            F=np.zeros((7,mu.shape[0]))
-            F[0:3,0:3]=np.eye(3)
-            F[3:7, idx:idx+4]=np.eye(4) 
+            F=np.zeros((12,mu.shape[0]))
+            F[0:6,0:6]=np.eye(6)
+            F[6:12, idx:idx+6]=np.eye(6) 
 
             
             H[6*i:6*i+6,:] += h@F
@@ -347,11 +345,11 @@ class EKF:
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
         sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
         dmu=K@(dtau)
-        self.mu=mu+dmu
+        for i in range(len(mu)):
+            self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
         self.sigma=(sigma+sigma.T)/2
         
     def camera_callback(self, rgb_msg, depth_msg):
-        return 
         with self.lock:
             rgb = self.bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
             depth = self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
