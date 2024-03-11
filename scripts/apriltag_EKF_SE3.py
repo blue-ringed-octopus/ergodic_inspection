@@ -422,7 +422,7 @@ if __name__ == "__main__":
         markers=get_pose_marker(ekf.landmarks, ekf.mu)
         factor_graph_marker_pub.publish(markers)
         M = ekf.mu[0]
-        br.sendTransform((M[0,2], M[1,2] , 0),
+        br.sendTransform((M[0,3], M[1,3] , M[2,3]),
                         tf.transformations.quaternion_from_matrix(M),
                         rospy.Time.now(),
                         "base_footprint",
