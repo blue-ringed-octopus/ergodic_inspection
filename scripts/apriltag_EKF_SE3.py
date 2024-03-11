@@ -125,7 +125,7 @@ class EKF:
         camera_info = self.get_message("/camera/rgb/camera_info", CameraInfo)
         self.K = np.reshape(camera_info.K, (3,3))
         self.K_inv=np.linalg.inv(self.K)
-        self.mu=[np.zero((4,4))]
+        self.mu=[np.eye(4)]
         self.t=time.time()
         self.marker_pub = rospy.Publisher("/apriltags", Marker, queue_size = 2)
         self.image_pub = rospy.Publisher("/camera/rgb/rgb_detected", Image, queue_size = 2)
@@ -422,9 +422,9 @@ if __name__ == "__main__":
         # pc_pub.publish(ekf.cloud)
         markers=get_pose_marker(ekf.landmarks, ekf.mu)
         factor_graph_marker_pub.publish(markers)
-        M = SE2.Exp(ekf.mu[0:3])
+        M = ekf.mu[0]
         br.sendTransform((M[0,2], M[1,2] , 0),
-                        tf.transformations.quaternion_from_euler(0, 0, ekf.mu[2]),
+                        tf.transformations.quaternion_from_matrix(M),
                         rospy.Time.now(),
                         "base_footprint",
                         "map")
