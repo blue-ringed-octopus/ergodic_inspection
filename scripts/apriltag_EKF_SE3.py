@@ -222,7 +222,7 @@ class EKF:
             R=tf.transformations.quaternion_matrix([data.pose.pose.orientation.x,
                                                         data.pose.pose.orientation.y,
                                                         data.pose.pose.orientation.z,
-                                                        data.pose.pose.orientation.w])
+                                                        data.pose.pose.orientation.w])[0:3,0:3]
 
             odom = np.eye(4)
             odom[0:3,0:3] = R
