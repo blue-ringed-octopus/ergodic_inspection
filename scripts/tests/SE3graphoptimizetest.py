@@ -211,7 +211,7 @@ class Back_end:
         print("optimizing graph")
         x = self.node_to_vector(graph)
         H,b=self.linearize(x,graph.factors)
-        dx=self.linear_solve(H,b)
+        dx=0.1*self.linear_solve(H,b)
         # x+=dx 
         i=0
         self.update_nodes(graph, dx.copy(),np.zeros(H.shape))
@@ -220,8 +220,7 @@ class Back_end:
             H,b=self.linearize(x,graph.factors)
             global dx_test
             dx_test=dx
-            print(np.max(np.abs(dx)))
-            dx=self.linear_solve(H,b)
+            dx=0.1*self.linear_solve(H,b)
             # x+= dx
             self.update_nodes(graph, dx.copy(),np.zeros(H.shape))
             i+=1
