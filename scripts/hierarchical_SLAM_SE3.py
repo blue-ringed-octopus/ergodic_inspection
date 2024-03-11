@@ -130,7 +130,7 @@ class Graph_SLAM:
                 idx_map = factor.idx_map.copy()
                 omega = factor.omega.copy()
                 if not factor.parent == None:
-                    F = np.zeros((len(x), 6+factor.n*6))          #map from factor vector to graph vector
+                    F = np.zeros((6*len(x), 6+factor.n*6))          #map from factor vector to graph vector
                     J = np.zeros((6+factor.n*6,12+factor.n*6)) #map from factor vector to observation
                     e = np.zeros((6+factor.n*6)) #difference between observation and expected observation
                      
@@ -165,7 +165,7 @@ class Graph_SLAM:
                         F[idx:idx+6,6+i:6+i+6] = np.eye(6)
                 else:
                     J = np.eye(len(factor.z))
-                    F = np.zeros((len(x), len(factor.z)))   
+                    F = np.zeros((6*len(x), len(factor.z)))   
                     e = np.zeros(len(factor.z))
                     if not factor.child == None:
                         z = factor.z[i:i+6].copy()
