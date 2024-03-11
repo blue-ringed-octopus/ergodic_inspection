@@ -238,7 +238,7 @@ class EKF:
             M = M_prev@U
             mu[0] = M
             
-            F=np.zeros((6,6*mu.shape[0]))
+            F=np.zeros((6,6*len(mu)))
             F[0:6,0:6]=np.eye(6)
             
             
