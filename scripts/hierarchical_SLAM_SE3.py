@@ -399,17 +399,18 @@ def get_landmark_markers(nodes):
     markers=[]
     for node in nodes.values():
         marker=Marker()
-        x=node.mu
-        M = SE2.Exp([x[0], x[1], x[3]])
+        M=node.M
         p=Pose()
-        p.position.x = M[0,2]
-        p.position.y = M[1,2]
-        p.position.z = x[2]
+        p.position.x = M[0,3]
+        p.position.y = M[1,3]
+        p.position.z = M[2,3]
         
-        p.orientation.w = cos(x[3]/2)
-        p.orientation.x = 0
-        p.orientation.y = 0
-        p.orientation.z = sin(x[3]/2)
+        q=tf.transformations.quaternion_from_matrix(M)
+        p.orientation.x = q[0]
+        p.orientation.y = q[1]
+        p.orientation.z = q[2]
+        p.orientation.w = q[3]
+
 
     
         marker = Marker()
@@ -522,10 +523,9 @@ if __name__ == "__main__":
      
         plot_graph(graph_slam.front_end, factor_graph_marker_pub)
         
-        mu=graph_slam.M.copy() 
-        M = SE2.Exp(mu[0:3])
-        br.sendTransform([M[0,2], M[1,2], 0],
-                        tf.transformations.quaternion_from_euler(0, 0, mu[2]),
+        M=graph_slam.M.copy() 
+        br.sendTransform([M[0,3], M[1,3], M[2,3]],
+                        tf.transformations.quaternion_from_matrix(M),
                         rospy.Time.now(),
                         "base_footprint",
                         "map")
