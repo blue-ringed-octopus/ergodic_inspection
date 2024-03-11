@@ -512,8 +512,9 @@ if __name__ == "__main__":
     M=np.eye(4)
     M[0:3,0:3]=R
     M[0:3,3]=[-1.714, 0.1067, 0.1188]
+    z=SE3.Log(M)
     graph_slam.front_end.add_node(M,"feature", 12)
-    graph_slam.front_end.add_factor(None, None, [12],M, np.eye(6)*0.0001 ,{12: 0})
+    graph_slam.front_end.add_factor(None, None, [12],z, np.eye(6)*0.0001 ,{12: 0})
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
 
     rate = rospy.Rate(30) 
