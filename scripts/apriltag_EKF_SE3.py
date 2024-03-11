@@ -287,7 +287,7 @@ class EKF:
                 M = T@landmark["M"].copy()#feature orientation in world frame 
                 
                 self.landmarks[landmark_id]=len(mu)
-                mu=mu.append(M)
+                mu.append(M)
                 sigma_new=np.diag(np.ones(sigma.shape[0]+6)*99999999999)
                 sigma_new[0:sigma.shape[0], 0:sigma.shape[0]]=sigma.copy()
                 sigma=sigma_new
