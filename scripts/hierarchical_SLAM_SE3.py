@@ -328,7 +328,7 @@ class Graph_SLAM:
             self._global_map_assemble()
             self.optimized=True
 
-        if np.isnan(self.mu).any():
+        if np.isnan(self.M).any():
             rospy.signal_shutdown("nan")
 
 
