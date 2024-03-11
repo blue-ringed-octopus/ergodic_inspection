@@ -286,7 +286,7 @@ class EKF:
                 
                 M = T@landmark["M"].copy()#feature orientation in world frame 
                 
-                self.landmarks[landmark_id]=mu.shape[0]
+                self.landmarks[landmark_id]=len(mu)
                 mu=mu.append(M)
                 sigma_new=np.diag(np.ones(sigma.shape[0]+6)*99999999999)
                 sigma_new[0:sigma.shape[0], 0:sigma.shape[0]]=sigma.copy()
@@ -364,17 +364,13 @@ def get_pose_marker(tags, mu):
     markers=[]
     for tag_id, idx in tags.items():
         marker=Marker()
-        x=mu[idx:idx+4]
-        M = SE2.Exp([x[0], x[1], x[3]])
+        M=mu[idx]
         p=Pose()
-        p.position.x = M[0,2]
-        p.position.y = M[1,2]
-        p.position.z = x[2]
-        
-        p.orientation.w = cos(x[3]/2)
-        p.orientation.x = 0
-        p.orientation.y = 0
-        p.orientation.z = sin(x[3]/2)
+        p.position.x = M[0,3]
+        p.position.y = M[1,3]
+        p.position.z = M[2,3]
+        q=tf.transformations.quaternion_from_matrix(M)
+        p.orientation = q
 
     
         marker = Marker()
