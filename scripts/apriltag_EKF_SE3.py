@@ -125,7 +125,6 @@ class EKF:
         camera_info = self.get_message("/camera/rgb/camera_info", CameraInfo)
         self.K = np.reshape(camera_info.K, (3,3))
         self.K_inv=np.linalg.inv(self.K)
-        self.mu=[np.eye(4)]
         self.t=time.time()
         self.marker_pub = rospy.Publisher("/apriltags", Marker, queue_size = 2)
         self.image_pub = rospy.Publisher("/camera/rgb/rgb_detected", Image, queue_size = 2)
@@ -192,8 +191,8 @@ class EKF:
 
 
             self.id=node_id
-            self.mu=np.zeros(3)
-            self.sigma=np.zeros((3,3))
+            self.mu=[np.eye(4)]
+            self.sigma=np.zeros((6,6))
             self.landmarks={}
 
         print("EKF initialized")
