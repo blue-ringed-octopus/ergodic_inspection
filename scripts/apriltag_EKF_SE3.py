@@ -242,7 +242,7 @@ class EKF:
             F[0:6,0:6]=np.eye(6)
             
             
-            Jx= inv(SE3.Ad(U))
+            Jx= SE3.Ad(inv(U))
             
             Jx = F.T@Jx@F
             Jx[6:,6:]=np.eye(Jx[6:,6:].shape[0])

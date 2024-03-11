@@ -25,38 +25,19 @@ import pickle
 np.float = np.float64 
 
 np.set_printoptions(precision=2)
-fr = np.zeros((6,3))
-fr[0,0]=1
-fr[1,1]=1
-fr[5,2]=1
-ftag = np.zeros((6,4))
-ftag[0,0]=1
-ftag[1,1]=1
-ftag[2,2] = 1
-ftag[5,3] = 1
 
 class Graph_SLAM:
     class Front_end:
         class Node:
-            def __init__(self, node_id, mu, node_type):
+            def __init__(self, node_id, M, node_type):
                 self.type=node_type
-                self.set_mu(mu)
-                self.Cov=np.eye(3)*9999999
+                self.M=M
+                self.H=np.zeros((6,6))
                 self.id=node_id
                 self.local_map=None
                 self.pruned=False 
                 self.depth_img=None
                 self.factor=[]
-                
-            def set_mu(self,mu):
-                self.n=len(mu)
-                if self.type == "pose":
-                    self.M=SE3.Exp([mu[0], mu[1], 0,0,0, mu[2]])
-                    self.mu = fr.T@SE3.Log(self.M)
-                else:
-                    self.M=SE3.Exp([mu[0], mu[1], mu[2],0,0, mu[3]])
-                    self.mu = ftag.T@SE3.Log(self.M)
-
                     
         class Factor:
             def __init__(self, parent_node, child_node, feature_nodes, z, sigma, idx_map):
@@ -83,22 +64,22 @@ class Graph_SLAM:
         def prune_graph(self):
             pass
         
-        def add_node(self, x, node_type, feature_id=None, ):
+        def add_node(self, M, node_type, feature_id=None, ):
             i=self.current_pose_id+1
             if node_type=="pose":
-                node=self.Node(i,x, node_type)
+                node=self.Node(i,M, node_type)
                 self.pose_nodes[i]=node
                 self.current_pose_id = i
                 if len(self.pose_nodes)>=self.window:
                     self.prun_graph()
                     
             if node_type=="feature":
-                node=self.Node(feature_id,x, node_type)
+                node=self.Node(feature_id,M, node_type)
                 self.feature_nodes[feature_id]=node
             self.nodes.append(node)                
             return self.current_pose_id
         
-        def add_factor(self, parent_id, child_id, feature_ids, Z, sigma, idx_map):
+        def add_factor(self, parent_id, child_id, feature_ids, z, sigma, idx_map):
             if  parent_id == None:
                 parent = None
             else:
@@ -110,21 +91,21 @@ class Graph_SLAM:
                 child = self.pose_nodes[child_id]
                 
             features=[self.feature_nodes[feature_id] for feature_id in feature_ids]
-            self.factors.append(self.Factor(parent,child,features ,Z,sigma, idx_map))
+            self.factors.append(self.Factor(parent,child,features ,z,sigma, idx_map))
                 
         
         
     class Back_end:
-        def get_pose_jacobian(self, tau_1, tau_2, z_bar):
-            J1=-fr.T@SE3.Jl_inv(z_bar)@SE3.Jr(tau_1)@fr
-            J2=fr.T@SE3.Jr_inv(z_bar)@SE3.Jr(tau_2)@fr
-            return J1, J2
+        # def get_pose_jacobian(self, tau_1, tau_2, z_bar):
+        #     J1=-SE3.Jl_inv(z_bar)
+        #     J2=SE3.Jr_inv(z_bar)
+        #     return J1, J2
         
       
-        def get_feature_jacobian(self, tau_1, tau_2, z_bar):
-            J1=-ftag.T@SE3.Jl_inv(z_bar)@SE3.Jr(tau_1)@fr
-            J2=ftag.T@SE3.Jr_inv(z_bar)@SE3.Jr(tau_2)@ftag
-            return J1, J2
+        # def get_feature_jacobian(self, tau_1, tau_2, z_bar):
+        #     J1=-SE3.Jl_inv(z_bar)@SE3.Jr(tau_1)
+        #     J2=SE3.Jr_inv(z_bar)@SE3.Jr(tau_2)
+        #     return J1, J2
         
         def __init__(self):
             pass
@@ -132,74 +113,73 @@ class Graph_SLAM:
         def node_to_vector(self, graph):
             self.pose_idx_map={}
             self.feature_idx_map={}
-            x=[]
+            mu=[]
             for node_id, node in graph.pose_nodes.items():
                 if not node.pruned:
-                    self.pose_idx_map[node_id]=len(x)
-                    x=np.concatenate((x, node.mu.copy()))
+                    self.pose_idx_map[node_id]=len(mu)
+                    mu.append(node.M)
             for node_id,node in graph.feature_nodes.items():
-                self.feature_idx_map[node_id]=len(x)
-                x=np.concatenate((x, node.mu.copy()))
-                    
-            return np.array(x)
+                self.feature_idx_map[node_id]=len(mu)
+                mu.append(node.M)
+            return mu
         
         def linearize(self,x, factors):
-            H = np.zeros((len(x), len(x)))
-            b = np.zeros(len(x))
+            H = np.zeros((6*len(x), 6*len(x)))
+            b = np.zeros(6*len(x))
             for factor in factors:
                 idx_map = factor.idx_map.copy()
                 omega = factor.omega.copy()
                 if not factor.parent == None:
-                    F = np.zeros((len(x), 6+factor.n*4))          #map from factor vector to graph vector
-                    J = np.zeros((3+factor.n*4,6+factor.n*4)) #map from factor vector to observation
-                    e = np.zeros((3+factor.n*4)) #difference between observation and expected observation
+                    F = np.zeros((len(x), 6+factor.n*6))          #map from factor vector to graph vector
+                    J = np.zeros((6+factor.n*6,12+factor.n*6)) #map from factor vector to observation
+                    e = np.zeros((6+factor.n*6)) #difference between observation and expected observation
                      
                     idx=self.pose_idx_map[factor.parent.id]
-                    F[idx:idx+3,0:3] = np.eye(3)
-                    M_r1_inv = inv(factor.parent.M.copy())
+                    F[idx:idx+6,0:6] = np.eye(6)
                     z = factor.z[0:3].copy()
-                    tau_r1 = fr@factor.parent.mu.copy()
-                    
-                    tau_r2 = fr@factor.child.mu.copy()
-                    z_bar = SE3.Log(M_r1_inv@factor.child.M.copy())
-                    J1,J2 = self.get_pose_jacobian(tau_r1, tau_r2, z_bar)
-                    J[0:3,0:3] = J1
-                    J[0:3, 3:6] = J2
-                    e[0:3] = z - fr.T@z_bar
+                    M_r1 = factor.parent.M.copy()
+                    M_r1_inv = inv(M_r1)
+                    M_r2 = factor.child.M.copy()
+                    z_bar = SE3.Log(M_r1_inv@M_r2)
+                    J1=-SE3.Jl_inv(z_bar)
+                    J2=SE3.Jr_inv(z_bar)
+                    J[0:6,0:6] = J1
+                    J[0:6, 6:12] = J2
+                    e[0:6] = z - z_bar
                     
                     idx=self.pose_idx_map[factor.child.id]
-                    F[idx:idx+3,3:6] = np.eye(3)
+                    F[idx:idx+6,6:12] = np.eye(6)
     
                     for feature in factor.feature_nodes:
                         i = idx_map[feature.id]
-                        tau_tag = ftag@feature.mu.copy()
-                        z = factor.z[i:i+4].copy()
+                        z = factor.z[i:i+6].copy()
                         z_bar = SE3.Log(M_r1_inv@feature.M.copy())
     
-                        J1,J2 = self.get_feature_jacobian(tau_r1, tau_tag, z_bar)
-                        J[i:i+4, 0:3] = J1
-                        J[i:i+4, 3+i:3+i+4] = J2
-                        e[i:i+4] = z - ftag.T@z_bar
+                        J1=-SE3.Jl_inv(z_bar)
+                        J2=SE3.Jr_inv(z_bar)
+                        J[i:i+6, 0:6] = J1
+                        J[i:i+6, 6+i:6+i+6] = J2
+                        e[i:i+6] = z - z_bar
                         
                         idx=self.feature_idx_map[feature.id]
-                        F[idx:idx+4,3+i:3+i+4] = np.eye(4)
+                        F[idx:idx+6,6+i:6+i+6] = np.eye(6)
                 else:
                     J = np.eye(len(factor.z))
                     F = np.zeros((len(x), len(factor.z)))   
                     e = np.zeros(len(factor.z))
                     if not factor.child == None:
-                        z = factor.z[i:i+3].copy()
-                        e[0:3] = z - factor.child.mu.copy()
+                        z = factor.z[i:i+6].copy()
+                        e[0:6] = z - SE3.Log(factor.child.M.copy())
                         idx=self.pose_idx_map[factor.child.id]
-                        F[idx:idx+3,0:3] = np.eye(3)
+                        F[idx:idx+6,0:6] = np.eye(6)
                         
                     for feature in factor.feature_nodes:
                         i = idx_map[feature.id]
-                        z = factor.z[i:i+4].copy()
-                        z_bar = feature.mu.copy()
+                        z = factor.z[i:i+6].copy()
+                        z_bar = SE3.Log(feature.M.copy())
                         #e[i:i+4] = z - z_bar
                         idx=self.feature_idx_map[feature.id]
-                        F[idx:idx+4,i:i+4] = np.eye(4)
+                        F[idx:idx+6,i:i+6] = np.eye(6)
                     #print(e)
                 H+=F@J.T@omega@J@F.T
                 b+=F@J.T@omega@e
@@ -218,17 +198,13 @@ class Graph_SLAM:
             for node in graph.pose_nodes.values():
                 if not node.pruned:
                     idx=self.pose_idx_map[node.id]
-                    nodex=x[idx:idx+node.n]
-                    nodeCov=cov[idx:idx+node.n,idx:idx+node.n]
-                    node.set_mu(nodex.copy())
-                    node.H=nodeCov.copy()
+                    node.M=node.M@SE3.Exp(x[6*idx:6*idx+6])
+                    node.H=cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
                     
             for node in graph.feature_nodes.values():
                 idx=self.feature_idx_map[node.id]
-                nodex=x[idx:idx+node.n]
-                nodeCov=cov[idx:idx+node.n,idx:idx+node.n]
-                node.set_mu(nodex.copy())
-                node.H=nodeCov.copy()
+                node.M=node.M@SE3.Exp(x[6*idx:6*idx+6])
+                node.H=cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
     
             
         def optimize(self, graph):
@@ -255,16 +231,16 @@ class Graph_SLAM:
     
             return x, H
             
-    def __init__(self, x_init, ekf):
+    def __init__(self, M_init, ekf):
         self.optimized = False
-        self.mu=x_init.copy()
+        self.M=M_init.copy()
         self.ekf=ekf
         self.reset()
 
     def reset(self):
         self.front_end=self.Front_end()
         self.back_end=self.Back_end()
-        self.current_node_id=self.front_end.add_node(self.mu, "pose")
+        self.current_node_id=self.front_end.add_node(self.M, "pose")
         self.omega=np.eye(3)*0.001
         self.global_map={"map":[], "info":[], "tree":None, "anomaly":[]}
         self.feature_tree=None
@@ -274,12 +250,18 @@ class Graph_SLAM:
     def _posterior_to_factor(self, mu, sigma):
        # self.front_end.nodes[self.current_node_id].local_map=self.ekf.cloud
        # self.front_end.nodes[self.current_node_id].cloud_cov=self.ekf.cloud_cov
-        new_node_id=self.front_end.add_node(mu[0:3],"pose")
+        new_node_id=self.front_end.add_node(mu[0],"pose")
 
         idx_map=self.ekf.landmarks.copy()
+        for key, value in idx_map.items():
+            idx_map[key] = value*6
         feature_node_id = idx_map.keys()
-       
-        self.front_end.add_factor(self.current_node_id,new_node_id,feature_node_id, mu.copy(),sigma.copy(), idx_map)
+        z=[SE3.Log(M) for M in mu]
+        J = np.zeros(6*len(mu), 6*len(mu))
+        for i, tau in enumerate(z):
+            J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(tau.copy())
+        sigma = J@sigma@J.T
+        self.front_end.add_factor(self.current_node_id,new_node_id,feature_node_id, np.concatenate(z),sigma, idx_map)
         self.current_node_id=new_node_id      
 
         
@@ -315,15 +297,14 @@ class Graph_SLAM:
         # cv2.destroyAllWindows()
         pass 
     
-    def init_new_features(self, mu, node_to_origin, features):
+    def init_new_features(self, mu, Mr, features):
         for feature_id in features:
             if not feature_id in self.front_end.feature_nodes.keys():
                 idx=features[feature_id]
-                z=mu[idx:idx+4]
-                Z=SE3.Exp([z[0], z[1], z[2], 0, 0, z[3]])
-                x=SE3.Log(node_to_origin@Z)
+                Z=mu[idx]
+                M=Mr@Z
                 
-                self.front_end.add_node(ftag.T@x,"feature", feature_id)
+                self.front_end.add_node(M,"feature", feature_id)
     
     def update(self): 
         if self.optimized:
@@ -333,16 +314,14 @@ class Graph_SLAM:
         mu=self.ekf.mu.copy()
         sigma=self.ekf.sigma.copy()
         features = self.ekf.landmarks.copy()
-        node_to_origin=self.front_end.pose_nodes[self.current_node_id].M.copy()
-        T=SE3.Exp([mu[0], mu[1], 0, 0, 0, mu[2]])
+        Mr=self.front_end.pose_nodes[self.current_node_id].M.copy()
+        U=mu[0]
         
-        pose_global = node_to_origin@T
-        mu_r=SE3.Log(pose_global)
-        self.mu = [mu_r[0],mu_r[1], mu_r[5] ]
-        self.init_new_features(mu, node_to_origin, features)
-        delta=norm(mu[0:3])
+        pose_global = Mr@U
+        self.Mr = pose_global
+        self.init_new_features(mu, Mr, features)
+        delta=norm(SE3.Log(mu[0]))
         if delta>=1.5:
-            print(sigma)
             self._posterior_to_factor(mu, sigma)
             _, H=self.back_end.optimize(self.front_end)
             self.omega=H
@@ -524,16 +503,16 @@ if __name__ == "__main__":
     rospy.init_node('estimator',anonymous=False)
     
     ekf=apriltag_EKF_SE3.EKF(0)
-    graph_slam=Graph_SLAM(np.array([0,0,np.pi]), ekf)
+    M_init = SE3.Exp([0,0,0,0,0,np.pi])
+    graph_slam=Graph_SLAM(M_init, ekf)
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     R=SO3.Exp([0,0,np.pi/2])
     M=np.eye(4)
     M[0:3,0:3]=R
     M[0:3,3]=[-1.714, 0.1067, 0.1188]
-    tau=ftag.T@SE3.Log(M)
-    graph_slam.front_end.add_node(tau,"feature", 12)
-    graph_slam.front_end.add_factor(None, None, [12],tau, np.eye(4)*0.001 ,{12: 0})
+    graph_slam.front_end.add_node(M,"feature", 12)
+    graph_slam.front_end.add_factor(None, None, [12],M, np.eye(6)*0.0001 ,{12: 0})
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
 
     rate = rospy.Rate(30) 
@@ -543,7 +522,7 @@ if __name__ == "__main__":
      
         plot_graph(graph_slam.front_end, factor_graph_marker_pub)
         
-        mu=graph_slam.mu.copy() 
+        mu=graph_slam.M.copy() 
         M = SE2.Exp(mu[0:3])
         br.sendTransform([M[0,2], M[1,2], 0],
                         tf.transformations.quaternion_from_euler(0, 0, mu[2]),
