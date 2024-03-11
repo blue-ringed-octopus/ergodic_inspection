@@ -343,7 +343,7 @@ class EKF:
             Q[6*i:6*i+6, 6*i:6*i+6] =self.Q.copy()
 
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
-        sigma=(np.eye(mu.shape[0])-K@H)@(sigma)
+        sigma=(np.eye(len(mu)*6)-K@H)@(sigma)
         dmu=K@(dtau)
         for i in range(len(mu)):
             self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
