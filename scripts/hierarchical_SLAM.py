@@ -197,7 +197,6 @@ class Graph_SLAM:
                         i = idx_map[feature.id]
                         z = factor.z[i:i+4].copy()
                         z_bar = feature.mu.copy()
-                        print(z - z_bar)
                         #e[i:i+4] = z - z_bar
                         idx=self.feature_idx_map[feature.id]
                         F[idx:idx+4,i:i+4] = np.eye(4)
