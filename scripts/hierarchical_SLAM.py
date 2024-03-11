@@ -246,7 +246,7 @@ class Graph_SLAM:
                 H,b=self.linearize(x,graph.factors)
 
                 dx=self.linear_solve(H,b)
-                x+=0.001*dx
+                x+=dx
                 i+=1
                 self.update_nodes(graph, x,np.zeros(H.shape))
 
