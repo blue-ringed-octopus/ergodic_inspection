@@ -370,10 +370,10 @@ def get_pose_marker(tags, mu):
         p.position.y = M[1,3]
         p.position.z = M[2,3]
         q=tf.transformations.quaternion_from_matrix(M)
-        p.orientation.w = q[0]
-        p.orientation.x = q[1]
-        p.orientation.y = q[2]
-        p.orientation.z = q[3]
+        p.orientation.x = q[0]
+        p.orientation.y = q[1]
+        p.orientation.z = q[2]
+        p.orientation.w = q[3]
 
     
         marker = Marker()
