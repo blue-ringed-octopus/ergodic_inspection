@@ -334,7 +334,7 @@ class EKF:
             h[0:6, 0:6] = Jr
             h[0:6:, 6:12] = Jtag
             
-            F=np.zeros((12,mu.shape[0]))
+            F=np.zeros((12,6*len(mu)))
             F[0:6,0:6]=np.eye(6)
             F[6:12, idx:idx+6]=np.eye(6) 
 
