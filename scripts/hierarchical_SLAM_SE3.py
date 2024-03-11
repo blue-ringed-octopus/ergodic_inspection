@@ -257,7 +257,7 @@ class Graph_SLAM:
             idx_map[key] = value*6
         feature_node_id = idx_map.keys()
         z=[SE3.Log(M) for M in mu]
-        J = np.zeros(6*len(mu), 6*len(mu))
+        J = np.zeros((6*len(mu), 6*len(mu)))
         for i, tau in enumerate(z):
             J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(tau.copy())
         sigma = J@sigma@J.T
@@ -314,12 +314,12 @@ class Graph_SLAM:
         mu=self.ekf.mu.copy()
         sigma=self.ekf.sigma.copy()
         features = self.ekf.landmarks.copy()
-        Mr=self.front_end.pose_nodes[self.current_node_id].M.copy()
+        M=self.front_end.pose_nodes[self.current_node_id].M.copy()
         U=mu[0]
         
-        pose_global = Mr@U
-        self.Mr = pose_global
-        self.init_new_features(mu, Mr, features)
+        pose_global = M@U
+        self.M = pose_global
+        self.init_new_features(mu, M, features)
         delta=norm(SE3.Log(mu[0]))
         if delta>=1.5:
             self._posterior_to_factor(mu, sigma)
