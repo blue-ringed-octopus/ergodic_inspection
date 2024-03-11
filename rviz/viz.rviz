@@ -9,10 +9,8 @@ Panels:
         - /Image1
         - /PointCloud21
         - /MarkerArray1
-        - /MarkerArray1/Status1
         - /MarkerArray1/Namespaces1
         - /Marker1
-        - /Marker1/Status1
       Splitter Ratio: 0.5
     Tree Height: 751
   - Class: rviz/Selection
@@ -60,7 +58,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /camera/rgb/rgb_detected
+      Image Topic: /camera/rgb/image_rect_color
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -170,7 +168,7 @@ Visualization Manager:
       Marker Topic: /factor_graph
       Name: MarkerArray
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -178,7 +176,7 @@ Visualization Manager:
       Marker Topic: /ref
       Name: Marker
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -209,7 +207,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 11.490760803222656
+      Distance: 12.678016662597656
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -217,17 +215,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 1.3661772012710571
-        Y: -0.2997835874557495
-        Z: 0.747313380241394
+        X: -1.9760111570358276
+        Y: 2.652374029159546
+        Z: 0.8856865167617798
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9797970652580261
+      Pitch: 1.5247963666915894
       Target Frame: <Fixed Frame>
-      Yaw: 3.202662467956543
+      Yaw: 6.27266263961792
     Saved: ~
 Window Geometry:
   Displays:
