@@ -158,7 +158,7 @@ class EKF:
         R=tf.transformations.quaternion_matrix([odom.pose.pose.orientation.x,
                                                    odom.pose.pose.orientation.y,
                                                    odom.pose.pose.orientation.z,
-                                                   odom.pose.pose.orientation.w])
+                                                   odom.pose.pose.orientation.w])[0:3,0:3]
         M=np.eye(4)
         M[0:3,0:3] = R
         M[0:3,3]=[odom.pose.pose.position.x,
