@@ -241,7 +241,7 @@ class Graph_SLAM:
             x+=dx 
             i=0
             self.update_nodes(graph, x,np.zeros(H.shape))
-            while np.max(np.abs(dx))>0.00001 and i<10000:
+            while np.max(np.abs(dx))>0.001 and i<5000:
                 print(i)
                 H,b=self.linearize(x,graph.factors)
     
@@ -533,7 +533,7 @@ if __name__ == "__main__":
     M[0:3,3]=[-1.714, 0.1067, 0.1188]
     tau=ftag.T@SE3.Log(M)
     graph_slam.front_end.add_node(tau,"feature", 12)
-    graph_slam.front_end.add_factor(None, None, [12],tau, np.eye(4),{12: 0})
+    graph_slam.front_end.add_factor(None, None, [12],tau, np.eye(4)*0.001 ,{12: 0})
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
 
     rate = rospy.Rate(30) 

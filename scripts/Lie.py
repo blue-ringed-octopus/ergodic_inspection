@@ -142,6 +142,14 @@ class SO3:
         return np.eye(3) - ((1-c)/t**2)*theta_x + (t-s)/t**3* theta_x@theta_x 
     
 class SE3:
+    @staticmethod 
+    def Ad(M):
+        J = np.zeros((6,6))
+        J[0:3,0:3] = M[0:3,0:3]
+        J[3:6,3:6] = M[0:3,0:3]
+        J[0:3,3:6] = SO3.hat(M[0:3,3])@M[0:3,0:3]
+        return J
+        
     @staticmethod
     def V(theta):
         t = norm(theta)

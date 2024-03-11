@@ -172,6 +172,7 @@ class Back_end:
                     idx=self.feature_idx_map[feature.id]
                     F[idx:idx+4,3+i:3+i+4] = np.eye(4)
             else:
+                omega = np.zeros((4,4))
                 J = np.eye(len(factor.z))
                 F = np.zeros((len(x), len(factor.z)))   
                 e = np.zeros(len(factor.z))
@@ -185,11 +186,12 @@ class Back_end:
                     i = idx_map[feature.id]
                     z = factor.z[i:i+4].copy()
                     z_bar = feature.mu.copy()
-                    print(z - z_bar)
-                    #e[i:i+4] = z - z_bar
+                    e[i:i+4] = z - z_bar
                     idx=self.feature_idx_map[feature.id]
                     F[idx:idx+4,i:i+4] = np.eye(4)
                 #print(e)
+            global test
+            test = J.T@omega@J
             H+=F@J.T@omega@J@F.T
             b+=F@J.T@omega@e
 
