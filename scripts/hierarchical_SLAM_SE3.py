@@ -29,25 +29,15 @@ np.set_printoptions(precision=2)
 class Graph_SLAM:
     class Front_end:
         class Node:
-            def __init__(self, node_id, mu, node_type):
+            def __init__(self, node_id, M, node_type):
                 self.type=node_type
-                self.set_mu(mu)
-                self.Cov=np.eye(3)*9999999
+                self.M=M
+                self.H=np.zeros((6,6))
                 self.id=node_id
                 self.local_map=None
                 self.pruned=False 
                 self.depth_img=None
                 self.factor=[]
-                
-            def set_mu(self,mu):
-                self.n=len(mu)
-                if self.type == "pose":
-                    self.M=SE3.Exp([mu[0], mu[1], 0,0,0, mu[2]])
-                    self.mu = fr.T@SE3.Log(self.M)
-                else:
-                    self.M=SE3.Exp([mu[0], mu[1], mu[2],0,0, mu[3]])
-                    self.mu = ftag.T@SE3.Log(self.M)
-
                     
         class Factor:
             def __init__(self, parent_node, child_node, feature_nodes, z, sigma, idx_map):
@@ -56,6 +46,7 @@ class Graph_SLAM:
                 self.feature_nodes=feature_nodes
                 self.z=z
                 self.omega=inv(sigma)
+                self.omega=(self.omega.T+self.omega)/2
                 self.pruned=False
                 self.n = len(feature_nodes)
                 self.idx_map = idx_map
@@ -74,22 +65,22 @@ class Graph_SLAM:
         def prune_graph(self):
             pass
         
-        def add_node(self, x, node_type, feature_id=None, ):
+        def add_node(self, M, node_type, feature_id=None, ):
             i=self.current_pose_id+1
             if node_type=="pose":
-                node=self.Node(i,x, node_type)
+                node=self.Node(i,M, node_type)
                 self.pose_nodes[i]=node
                 self.current_pose_id = i
                 if len(self.pose_nodes)>=self.window:
                     self.prun_graph()
                     
             if node_type=="feature":
-                node=self.Node(feature_id,x, node_type)
+                node=self.Node(feature_id,M, node_type)
                 self.feature_nodes[feature_id]=node
             self.nodes.append(node)                
             return self.current_pose_id
         
-        def add_factor(self, parent_id, child_id, feature_ids, Z, sigma, idx_map):
+        def add_factor(self, parent_id, child_id, feature_ids, z, sigma, idx_map):
             if  parent_id == None:
                 parent = None
             else:
@@ -101,7 +92,7 @@ class Graph_SLAM:
                 child = self.pose_nodes[child_id]
                 
             features=[self.feature_nodes[feature_id] for feature_id in feature_ids]
-            self.factors.append(self.Factor(parent,child,features ,Z,sigma, idx_map))
+            self.factors.append(self.Factor(parent,child,features ,z,sigma, idx_map))
                 
         
         
