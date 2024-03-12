@@ -419,7 +419,7 @@ def get_landmark_markers(nodes):
     
         marker = Marker()
         marker.type = 0
-        marker.id = "f" + str(node.id)
+        marker.id = 200+ node.id
         
         marker.header.frame_id = "map"
         marker.header.stamp = rospy.Time.now()
