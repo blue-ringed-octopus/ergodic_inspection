@@ -172,14 +172,13 @@ class Back_end:
                     z = factor.z[i:i+6].copy()
                     z_bar = SE3.Log(feature.M.copy())
                     J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
-                    e[i:i+6] = z - z_bar
+                    #e[i:i+6] = z - z_bar
                     idx=self.feature_idx_map[feature.id]
                     F[idx:idx+6,i:i+6] = np.eye(6)
                 #print(e)
                 global test
                 test=F@J.T@omega@J@F.T
             H+=F@J.T@omega@J@F.T
-            #H+=F@omega@F.T
             b+=F@J.T@omega@e
 
         return H, b
@@ -211,18 +210,18 @@ class Back_end:
         print("optimizing graph")
         x = self.node_to_vector(graph)
         H,b=self.linearize(x,graph.factors)
-        dx=0.1*self.linear_solve(H,b)
+        dx=self.linear_solve(H,b)
         # x+=dx 
         i=0
-        self.update_nodes(graph, dx.copy(),np.zeros(H.shape))
-        while np.max(np.abs(dx))>0.001 and i<10000:
+        self.update_nodes(graph, 0.05*dx.copy(),np.zeros(H.shape))
+        while np.max(np.abs(dx))>0.0001 and i<10000:
             print(i)
             H,b=self.linearize(x,graph.factors)
             global dx_test
             dx_test=dx
-            dx=0.1*self.linear_solve(H,b)
+            dx=self.linear_solve(H,b)
             # x+= dx
-            self.update_nodes(graph, dx.copy(),np.zeros(H.shape))
+            self.update_nodes(graph, 0.05*dx.copy(),np.zeros(H.shape))
             i+=1
 
 
@@ -234,9 +233,8 @@ class Back_end:
 solver=Back_end()
 with open('graphSE3.pickle', 'rb') as handle:
     graph = pickle.load(handle)
-    
-x, H = solver.optimize(graph)
-#%%
+
+plt.figure(0)
 for node in graph.pose_nodes.values():
     M=node.M
     mu=SE3.Log(M)
@@ -251,6 +249,26 @@ for node in graph.feature_nodes.values():
 
     plt.plot(M[0,3], M[1,3], "x")
     plt.arrow(M[0,3], M[1,3], 0.1*cos(mu[5]), 0.1*sin(mu[5]))
+plt.axis('scaled')
+    
+x, H = solver.optimize(graph)
+#%%
+plt.figure(1)
+for node in graph.pose_nodes.values():
+    M=node.M
+    mu=SE3.Log(M)
+    print(M)
+    plt.plot(M[0,3], M[1,3], "o")
+    plt.arrow(M[0,3], M[1,3], 0.1*cos(mu[5]), 0.1*sin(mu[5]))
+    
+for node in graph.feature_nodes.values():
+    M=node.M
+    mu=SE3.Log(M)
+    print(M)
+
+    plt.plot(M[0,3], M[1,3], "x")
+    plt.arrow(M[0,3], M[1,3], 0.1*cos(mu[5]), 0.1*sin(mu[5]))
+plt.axis('scaled')
 
 #%%
 graph.feature_nodes[12].M@inv(SE3.Exp(graph.factors[1].z[6:12]))

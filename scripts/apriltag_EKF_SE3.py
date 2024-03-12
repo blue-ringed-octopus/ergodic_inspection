@@ -188,8 +188,6 @@ class EKF:
             self.cloud=self.cloud.select_by_index(np.where(indx)[0])
             self.cloud_cov = self.cloud_cov[indx]
             self.cloud.transform(self.T_c_to_r)
-
-
             self.id=node_id
             self.mu=[np.eye(4)]
             self.sigma=np.zeros((6,6))

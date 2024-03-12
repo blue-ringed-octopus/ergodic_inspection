@@ -189,7 +189,6 @@ class Graph_SLAM:
                     global test
                     test=F@J.T@omega@J@F.T
                 H+=F@J.T@omega@J@F.T
-                #H+=F@omega@F.T
                 b+=F@J.T@omega@e
 
             return H, b
@@ -261,12 +260,14 @@ class Graph_SLAM:
         for key, value in idx_map.items():
             idx_map[key] = value*6
         feature_node_id = idx_map.keys()
-        z=[SE3.Log(M) for M in mu]
+        z= np.zeros(6*len(mu))
         J = np.zeros((6*len(mu), 6*len(mu)))
-        for i, tau in enumerate(z):
-            J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(tau.copy())
+        for i, M in enumerate(mu):
+            tau=SE3.Log(M)
+            z[6*i:6*i+6]=tau
+            J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(tau)
         sigma = J@sigma@J.T
-        self.front_end.add_factor(self.current_node_id,new_node_id,feature_node_id, np.concatenate(z),sigma, idx_map)
+        self.front_end.add_factor(self.current_node_id,new_node_id,feature_node_id, z,sigma, idx_map)
         self.current_node_id=new_node_id      
 
         
@@ -303,9 +304,8 @@ class Graph_SLAM:
         pass 
     
     def init_new_features(self, mu, Mr, features):
-        for feature_id in features:
+        for feature_id, idx in features.items():
             if not feature_id in self.front_end.feature_nodes.keys():
-                idx=features[feature_id]
                 Z=mu[idx]
                 M=Mr@Z
                 
