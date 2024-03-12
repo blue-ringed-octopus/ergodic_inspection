@@ -225,7 +225,7 @@ class Back_end:
             i+=1
 
 
-        self.update_nodes(graph, dx,inv(H))
+        self.update_nodes(graph, np.zeros(6*len(x)),inv(H))
         print("optimized")
 
         return x, H
