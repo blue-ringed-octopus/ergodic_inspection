@@ -255,7 +255,7 @@ class Graph_SLAM:
     def _posterior_to_factor(self, mu, sigma):
        # self.front_end.nodes[self.current_node_id].local_map=self.ekf.cloud
        # self.front_end.nodes[self.current_node_id].cloud_cov=self.ekf.cloud_cov
-        new_node_id=self.front_end.add_node(self.M@mu[0],"pose")
+        new_node_id=self.front_end.add_node(self.M.copy(),"pose")
 
         idx_map=self.ekf.landmarks.copy()
         for key, value in idx_map.items():
