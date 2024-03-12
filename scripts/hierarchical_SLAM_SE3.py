@@ -222,11 +222,11 @@ class Graph_SLAM:
             H,b=self.linearize(x,graph.factors)
             dx=self.linear_solve(H,b)
             i=0
-            self.update_nodes(graph, 0.05*dx.copy(),np.zeros(H.shape))
+            self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
             while np.max(np.abs(dx))>0.001 and i<5000:
                 H,b=self.linearize(x,graph.factors)
                 dx=self.linear_solve(H,b)
-                self.update_nodes(graph, 0.05*dx.copy(),np.zeros(H.shape))
+                self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
                 i+=1
 
 
@@ -419,7 +419,7 @@ def get_landmark_markers(nodes):
     
         marker = Marker()
         marker.type = 0
-        marker.id = node.id
+        marker.id = "f" + node.id
         
         marker.header.frame_id = "map"
         marker.header.stamp = rospy.Time.now()
