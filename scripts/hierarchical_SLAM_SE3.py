@@ -222,12 +222,12 @@ class Graph_SLAM:
             H,b=self.linearize(x,graph.factors)
             dx=self.linear_solve(H,b)
             i=0
-            self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
+            self.update_nodes(graph, 0.1*dx.copy(),np.zeros(H.shape))
             while np.max(np.abs(dx))>0.001 and i<5000:
                 print(i)
                 H,b=self.linearize(x,graph.factors)
                 dx=self.linear_solve(H,b)
-                self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
+                self.update_nodes(graph, 0.1*dx.copy(),np.zeros(H.shape))
                 i+=1
 
 
@@ -255,7 +255,7 @@ class Graph_SLAM:
     def _posterior_to_factor(self, mu, sigma):
        # self.front_end.nodes[self.current_node_id].local_map=self.ekf.cloud
        # self.front_end.nodes[self.current_node_id].cloud_cov=self.ekf.cloud_cov
-        new_node_id=self.front_end.add_node(mu[0],"pose")
+        new_node_id=self.front_end.add_node(self.M@mu[0],"pose")
 
         idx_map=self.ekf.landmarks.copy()
         for key, value in idx_map.items():

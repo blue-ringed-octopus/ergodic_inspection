@@ -213,7 +213,7 @@ class Back_end:
         dx=self.linear_solve(H,b)
         # x+=dx 
         i=0
-        self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
+        self.update_nodes(graph, 0.1*dx.copy(),np.zeros(H.shape))
         while np.max(np.abs(dx))>0.0001 and i<10000:
             print(i)
             H,b=self.linearize(x,graph.factors)
@@ -221,7 +221,7 @@ class Back_end:
             dx_test=dx
             dx=self.linear_solve(H,b)
             # x+= dx
-            self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
+            self.update_nodes(graph, 0.1*dx.copy(),np.zeros(H.shape))
             i+=1
 
 
