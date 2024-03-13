@@ -223,7 +223,7 @@ class Graph_SLAM:
             dx=self.linear_solve(H,b)
             i=0
             self.update_nodes(graph, 0.1*dx.copy(),np.zeros(H.shape))
-            while np.max(np.abs(dx))>0.001 and i<5000:
+            while np.max(np.abs(dx))>0.001 and i<1000:
                 print(i)
                 H,b=self.linearize(x,graph.factors)
                 dx=self.linear_solve(H,b)

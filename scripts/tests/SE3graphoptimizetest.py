@@ -120,6 +120,7 @@ class Back_end:
         for factor in factors:
             idx_map = factor.idx_map.copy()
             omega = factor.omega.copy()
+            # omega = 0.1*np.eye(len(factor.omega))
             if not factor.parent == None:
                 F = np.zeros((6*len(x), 12+factor.n*6))          #map from factor vector to graph vector
                 J = np.zeros((6+factor.n*6,12+factor.n*6)) #map from factor vector to observation
@@ -155,7 +156,6 @@ class Back_end:
                     idx=self.feature_idx_map[feature.id]
                     F[idx:idx+6,6+i:6+i+6] = np.eye(6)
             else:
-                omega=np.eye(6)
                 J = np.eye(len(factor.z))
                 F = np.zeros((6*len(x), len(factor.z)))   
                 e = np.zeros(len(factor.z))
@@ -172,7 +172,7 @@ class Back_end:
                     z = factor.z[i:i+6].copy()
                     z_bar = SE3.Log(feature.M.copy())
                     J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
-                    #e[i:i+6] = z - z_bar
+                    e[i:i+6] = z - z_bar
                     idx=self.feature_idx_map[feature.id]
                     F[idx:idx+6,i:i+6] = np.eye(6)
                 #print(e)
@@ -213,15 +213,16 @@ class Back_end:
         dx=self.linear_solve(H,b)
         # x+=dx 
         i=0
-        self.update_nodes(graph, 0.1*dx.copy(),np.zeros(H.shape))
-        while np.max(np.abs(dx))>0.0001 and i<10000:
+        self.update_nodes(graph, 0.01*dx.copy(),np.zeros(H.shape))
+        while np.max(np.abs(dx))>0.01 and i<10000:
             print(i)
             H,b=self.linearize(x,graph.factors)
             global dx_test
             dx_test=dx
+            print(np.max(np.abs(dx)))
             dx=self.linear_solve(H,b)
             # x+= dx
-            self.update_nodes(graph, 0.1*dx.copy(),np.zeros(H.shape))
+            self.update_nodes(graph, 0.01*dx.copy(),np.zeros(H.shape))
             i+=1
 
 
@@ -235,39 +236,70 @@ with open('graphSE3.pickle', 'rb') as handle:
     graph = pickle.load(handle)
 
 plt.figure(0)
+for factor in graph.factors:
+    if not factor.parent == None:
+        M1 = factor.parent.M
+        M2 = factor.child.M
+        centroid = [(M1[0,3]+M2[0,3])/2, (M1[1,3]+M2[1,3])/2]
+        plt.plot((M1[0,3], M2[0,3]), (M1[1,3], M2[1,3]), "--", color=(0.5,0.5,0.5))
+        plt.plot(centroid[0], centroid[1] , "s", color='k')
+        for feature in factor.feature_nodes:
+            M2 = feature.M
+            plt.plot((centroid[0], M2[0,3]), (centroid[1], M2[1,3]), "--", color=(0.5,0.5,0.5))
+            
 for node in graph.pose_nodes.values():
     M=node.M
     mu=SE3.Log(M)
     print(M)
-    plt.plot(M[0,3], M[1,3], "o")
-    plt.arrow(M[0,3], M[1,3], 0.1*cos(mu[5]), 0.1*sin(mu[5]))
+    plt.plot(M[0,3], M[1,3], "o", color="k")
+    plt.arrow(M[0,3], M[1,3], 0.5*cos(mu[5]), 0.5*sin(mu[5]))
     
 for node in graph.feature_nodes.values():
     M=node.M
     mu=SE3.Log(M)
     print(M)
 
-    plt.plot(M[0,3], M[1,3], "x")
-    plt.arrow(M[0,3], M[1,3], 0.1*cos(mu[5]), 0.1*sin(mu[5]))
+    plt.plot(M[0,3], M[1,3], "*", markersize=20)
+    plt.arrow(M[0,3], M[1,3], 0.5*cos(mu[5]), 0.5*sin(mu[5]))
+    
+
+
 plt.axis('scaled')
     
 x, H = solver.optimize(graph)
 #%%
 plt.figure(1)
+for factor in graph.factors:
+    omega=factor.omega
+    print("min",np.min(np.abs(omega)))
+    print(np.min(np.linalg.eig(omega)[0]))
+    if not factor.parent == None:
+        M1 = factor.parent.M
+        M2 = factor.child.M
+        centroid = [(M1[0,3]+M2[0,3])/2, (M1[1,3]+M2[1,3])/2]
+        plt.plot((M1[0,3], M2[0,3]), (M1[1,3], M2[1,3]), "--", color=(0.5,0.5,0.5))
+        plt.plot(centroid[0], centroid[1] , "s", color='k')
+        for feature in factor.feature_nodes:
+            M2 = feature.M
+            plt.plot((centroid[0], M2[0,3]), (centroid[1], M2[1,3]), "--", color=(0.5,0.5,0.5))
+            
 for node in graph.pose_nodes.values():
     M=node.M
     mu=SE3.Log(M)
     print(M)
-    plt.plot(M[0,3], M[1,3], "o")
-    plt.arrow(M[0,3], M[1,3], 0.1*cos(mu[5]), 0.1*sin(mu[5]))
+    plt.plot(M[0,3], M[1,3], "o", color="k")
+    plt.arrow(M[0,3], M[1,3], 0.5*cos(mu[5]), 0.5*sin(mu[5]))
     
 for node in graph.feature_nodes.values():
     M=node.M
     mu=SE3.Log(M)
     print(M)
 
-    plt.plot(M[0,3], M[1,3], "x")
-    plt.arrow(M[0,3], M[1,3], 0.1*cos(mu[5]), 0.1*sin(mu[5]))
+    plt.plot(M[0,3], M[1,3], "*", markersize=20)
+    plt.arrow(M[0,3], M[1,3], 0.5*cos(mu[5]), 0.5*sin(mu[5]))
+    
+
+
 plt.axis('scaled')
 
 #%%
