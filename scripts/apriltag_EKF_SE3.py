@@ -215,6 +215,7 @@ class EKF:
         		print("Service all failed: %s"%e)
 
     def odom_callback(self, data):
+        self.sigma+=np.eye(len(self.sigma))*0.001
         return 
         with self.lock:
 
@@ -250,7 +251,7 @@ class EKF:
             Ju=SE3.Jr(u)
             self.mu = mu
             self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@self.R@(Ju.T)@F
-            self.sigma+=np.eye(len(self.sigma))*0.001
+            # self.sigma+=np.eye(len(self.sigma))*0.001
             self.odom_prev=odom
         
     def detect_apriltag(self,rgb, depth):
