@@ -229,6 +229,7 @@ class EKF:
             
             #get relative transformation
             U = np.linalg.inv(self.odom_prev)@odom
+            u = SE3.Log(U)
             
             #apply transformation
             mu=self.mu.copy()
@@ -244,7 +245,7 @@ class EKF:
             
             Jx = F.T@Jx@F
             Jx[6:,6:]=np.eye(Jx[6:,6:].shape[0])
-            Ju=np.eye(6)
+            Ju=SE3.Jr(u)
             self.mu = mu
             self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@self.R@(Ju.T)@F
             self.sigma+=np.eye(len(self.sigma))*0.001
