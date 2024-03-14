@@ -306,7 +306,7 @@ class EKF:
         
         for i,feature_id in enumerate(features):    
             feature=features[feature_id]
-            idx=6*self.landmarks[feature_id]
+            idx=self.landmarks[feature_id]
             
             #global feature location
             M_tag_bar = mu[idx].copy() 
@@ -328,7 +328,7 @@ class EKF:
             #number local state, number of global state 
             F=np.zeros((12,6*len(mu)))
             F[0:6,0:6]=np.eye(6)
-            F[6:12, idx:idx+6]=np.eye(6) 
+            F[6:12, 6*idx:6*idx+6]=np.eye(6) 
 
             
             H[6*i:6*i+6,:] += h@F
