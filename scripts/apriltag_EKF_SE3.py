@@ -215,6 +215,7 @@ class EKF:
         		print("Service all failed: %s"%e)
 
     def odom_callback(self, data):
+        return 
         with self.lock:
 
             R=tf.transformations.quaternion_matrix([data.pose.pose.orientation.x,
