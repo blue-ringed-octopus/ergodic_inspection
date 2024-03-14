@@ -318,9 +318,9 @@ class EKF:
             Z = feature["M"]
             z = SE3.Log(Z)
             
-            dtau_i = -(z - z_bar) #measurement error 
-            # dtau[6*i:6*i+6] = SE3.Log(SE3.Exp(dtau_i)) 
-            dtau[6*i:6*i+6] = dtau_i
+            dtau_i = z - z_bar #measurement error 
+            dtau[6*i:6*i+6] = SE3.Log(SE3.Exp(dtau_i)) 
+            # dtau[6*i:6*i+6] = dtau_i
             Jr=-SE3.Jl_inv(z_bar) #jacobian of robot pose
             Jtag=SE3.Jr_inv(z_bar)   #jacobian of tag pose
             
