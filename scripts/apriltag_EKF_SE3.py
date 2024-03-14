@@ -128,15 +128,16 @@ class EKF:
         self.t=time.time()
         self.marker_pub = rospy.Publisher("/apriltags", Marker, queue_size = 2)
         self.image_pub = rospy.Publisher("/camera/rgb/rgb_detected", Image, queue_size = 2)
-
+        
+        #motion covariance
         self.R=np.eye(6)
         self.R[0,0]=0.001
         self.R[1,1]=0.001
         self.R[2,2]=0.0001
-        
         self.R[3:5, 3:5] *= 0.001
         self.R[5,5] *= 0.1
 
+        #observation covariance
         self.Q=np.eye(6)
         self.Q[0,0]=1**2 # 
         self.Q[1,1]=1**2 # 
@@ -271,7 +272,7 @@ class EKF:
             M[0:3,0:3] = R
             M[0:3, 3] = np.squeeze(r.pose_t)
             if z<2:
-                features[r.tag_id]= {"xp": xp, "yp": yp, "z":z, "M":M }
+                features[r.tag_id]= {"xp": xp, "yp": yp, "z":z, "M":self.T_c_to_r@M }
         return features
     
         
@@ -279,12 +280,11 @@ class EKF:
     def _initialize_new_landmarks(self, landmarks):
         mu=self.mu.copy()       #current point estimates 
         sigma=self.sigma.copy() #current covariance
-        T=mu[0]@self.T_c_to_r    #coordinate transformation from camera coordinate to world coordinate
         for landmark_id in landmarks:
             if not landmark_id in self.landmarks.keys():
                 landmark=landmarks[landmark_id]
                 
-                M = T@landmark["M"].copy()#feature orientation in world frame 
+                M = mu[0]@landmark["M"].copy() #feature orientation in world frame 
                 
                 self.landmarks[landmark_id]=len(mu)
                 mu.append(M)
@@ -299,9 +299,6 @@ class EKF:
         mu=self.mu.copy()
         sigma=self.sigma.copy()
         
-        T_c_to_w=mu[0]@self.T_c_to_r
-        T_w_to_c=inv(T_c_to_w)
-        
         n = len(features)
         H=np.zeros((6*n,6*len(mu)))
         Q=np.zeros((6*n,6*n))
@@ -309,31 +306,26 @@ class EKF:
         
         for i,feature_id in enumerate(features):    
             feature=features[feature_id]
-            idx=self.landmarks[feature_id]
+            idx=6*self.landmarks[feature_id]
             
             #global feature location
             M_tag_bar = mu[idx].copy() 
-            M_tag_c_bar = T_w_to_c@M_tag_bar  #feature location in camera frame
-            tau_tag_c_bar = SE3.Log(M_tag_c_bar)
+            Z_bar = mu[0]@M_tag_bar  #feature location in camera frame
+            z_bar = SE3.Log(Z_bar)
       
-            M_tag_c=feature["M"]
+            Z = feature["M"]
 
-            dtau_i = SE3.Log(M_tag_c) - tau_tag_c_bar#measurement error 
-            dtau[6*i:6*i+6] = SE3.Log(SE3.Exp(dtau_i))
+            dtau_i = SE3.Log(Z) - z_bar #measurement error 
+            dtau[6*i:6*i+6] = SE3.Log(SE3.Exp(dtau_i))            
+            Jr=-SE3.Jl_inv(z_bar) #jacobian of robot pose
+            Jtag=SE3.Jr_inv(z_bar)   #jacobian of tag pose
             
-            J_cr=np.zeros((6,6))
-            J_cr[0:3,0:3] = self.T_c_to_r[0:3,0:3].T
-            J_cr[3:6,3:6] = self.T_c_to_r[0:3,0:3].T
-            J_cr[0:3,3:6] = -self.T_c_to_r[0:3,0:3].T@SO3.hat(self.T_c_to_r[0:3,3])
-            
-            
-            Jr=-SE3.Jl_inv(tau_tag_c_bar)@J_cr #jacobian of robot pose
-            Jtag=SE3.Jr_inv(tau_tag_c_bar)   #jacobian of tag pose
-            
-            h=np.zeros((6,12)) #number of obervation: 6, number of state:7 
+            #number of obervation: 6, number of local state:12 
+            h=np.zeros((6,12))
             h[0:6, 0:6] = Jr
             h[0:6:, 6:12] = Jtag
             
+            #number local state, number of global state 
             F=np.zeros((12,6*len(mu)))
             F[0:6,0:6]=np.eye(6)
             F[6:12, idx:idx+6]=np.eye(6) 
