@@ -345,8 +345,8 @@ class EKF:
         # for i in range(len(mu)):
         #     self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
         
-        self.mu[0]=mu[0]@SE3.Exp(-dmu[0:6])
-        
+        # self.mu[0]=mu[0]@SE3.Exp(-dmu[0:6])
+        self.mu[0]=SE3.Exp(SE3.Log(mu[0])+ dmu[0:6])
         self.sigma=(sigma+sigma.T)/2
         
     def camera_callback(self, rgb_msg, depth_msg):
