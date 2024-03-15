@@ -304,7 +304,7 @@ class EKF:
         n = len(features)
         H=np.zeros((6*n,6*len(mu)))
         Q=np.zeros((6*n,6*n))
-        dtau = np.zeros(6*n)
+        dz = np.zeros(6*n)
         
         for i,feature_id in enumerate(features):    
             feature=features[feature_id]
@@ -318,7 +318,7 @@ class EKF:
             Z = feature["M"]
             z = SE3.Log(Z)
             
-            dtau[6*i:6*i+6] = SE3.Log(SE3.Exp(z - z_bar)) #measurement error 
+            dz[6*i:6*i+6] = SE3.Log(SE3.Exp(z - z_bar)) #measurement error 
 
             Jr=-SE3.Jl_inv(z_bar) #jacobian of robot pose
             Jtag=SE3.Jr_inv(z_bar)   #jacobian of tag pose
@@ -341,9 +341,12 @@ class EKF:
             
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
         sigma=(np.eye(len(mu)*6)-K@H)@(sigma)
-        dmu=K@(dtau)
-        for i in range(len(mu)):
-            self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
+        dmu=K@(dz)
+        # for i in range(len(mu)):
+        #     self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
+        
+        self.mu[0]=mu[0]@SE3.Exp(dmu[0:6])
+        
         self.sigma=(sigma+sigma.T)/2
         
     def camera_callback(self, rgb_msg, depth_msg):
