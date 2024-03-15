@@ -90,7 +90,7 @@ class SE2:
 class SO3:
     @staticmethod
     def vee(W):
-        return np.array([W[2,1], W[0,2], W[1,0]])
+        return np.array([W[2,1], W[0,2], W[1,0]]).copy()
     @staticmethod
     def hat(w):
         return np.array([[0, -w[2], w[1]],
@@ -102,7 +102,7 @@ class SO3:
         if theta == 0:
             return np.zeros(3)
         u=theta*SO3.vee((R-R.T))/(2*sin(theta))
-        return u
+        return u.copy()
     
     @staticmethod
     def Exp(u):
@@ -110,8 +110,17 @@ class SO3:
         if theta==0: 
             return np.eye(3)
         u=u/theta
-        R=np.eye(3)+sin(theta)*SO3.hat(u)+(1-cos(theta))*matrix_power(SO3.hat(u),2)
-        return R
+        R=np.eye(3)+sin(theta)*SO3.hat(u)+(1-cos(theta))*SO3.hat(u)@SO3.hat(u)
+        return R.copy()
+    
+    @staticmethod
+    def Jl(w):
+        t=norm(w)
+        if t==0:
+            return np.eye(3)
+        w_x=SO3.hat(w)
+        J=np.eye(3)+(1-cos(t))/t**2*w_x + (t-sin(t))/t**3*w_x @w_x 
+        return J.copy()
     
     @staticmethod
     def Jl_inv(w):
@@ -120,16 +129,8 @@ class SO3:
             return np.eye(3)
         w_x=SO3.hat(w)
         J=np.eye(3)-1/2*w_x+(1/t**2-(1+cos(t))/(2*t*sin(t)))*w_x@w_x
-        return J
+        return J.copy()
     
-    @staticmethod
-    def Jr_inv(w):
-        t=norm(w)
-        if t==0:
-            return np.eye(3)
-        w_x = SO3.hat(w)
-        J=np.eye(3) + 1/2*w_x + (1/t**2-(1+cos(t))/(2*t*sin(t))) * (w_x@w_x)
-        return J
     
     @staticmethod
     def Jr(theta):
@@ -139,7 +140,17 @@ class SO3:
         c = cos(t)
         s = sin(t)
         theta_x = SO3.hat(theta)
-        return np.eye(3) - ((1-c)/t**2)*theta_x + (t-s)/t**3* theta_x@theta_x 
+        J = np.eye(3) - ((1-c)/t**2)*theta_x + (t-s)/t**3* theta_x@theta_x 
+        return J.copy()
+    
+    @staticmethod
+    def Jr_inv(w):
+        t=norm(w)
+        if t==0:
+            return np.eye(3)
+        w_x = SO3.hat(w)
+        J=np.eye(3) + 1/2*w_x + (1/t**2-(1+cos(t))/(2*t*sin(t))) * (w_x@w_x)
+        return J.copy()
     
 class SE3:
     @staticmethod 
@@ -148,7 +159,7 @@ class SE3:
         J[0:3,0:3] = M[0:3,0:3]
         J[3:6,3:6] = M[0:3,0:3]
         J[0:3,3:6] = SO3.hat(M[0:3,3])@M[0:3,0:3]
-        return J
+        return J.copy()
         
     @staticmethod
     def V(theta):
@@ -158,7 +169,7 @@ class SE3:
             return np.eye(3)
         else:
             v= np.eye(3) + (1-cos(t))/t**2 * theta_cross + (t-sin(t))/t**3 * theta_cross@theta_cross       
-        return v
+        return v.copy()
     
     @staticmethod
     def Log(M):
@@ -174,7 +185,7 @@ class SE3:
         M = np.eye(4)
         M[0:3,0:3] = R
         M[0:3, 3] = t
-        return M
+        return M.copy()
             
     @staticmethod
     def Jl_inv(tau):
@@ -185,7 +196,7 @@ class SE3:
         J[0:3, 0:3] = jl_inv
         J[3:6,3:6] = jl_inv
         J[0:3,3:6] = -jl_inv@Q@jl_inv
-        return J
+        return J.copy()
         
     @staticmethod
     def Jr_inv(tau):
@@ -206,7 +217,7 @@ class SE3:
             - (1-(t**2)/2-c)/t**4 * (theta_x_sq@rho_x + rho_x@theta_x_sq - 3*trt) \
                 -1/2*((1-(t**2)/2-c)/t**4 - 3*(t-s-(t**3)/6)/t**5) \
                     * (trt@theta_x + theta_x @trt)
-        return Q
+        return Q.copy()
     
     @staticmethod
     def Jr(tau):
@@ -217,4 +228,49 @@ class SE3:
         Jr[0:3,0:3] = J
         Jr[3:6, 3:6] = J
         Jr[0:3,3:6] = q
-        return Jr
+        return Jr.copy()
+    
+if __name__ == "__main__":
+    import manifpy
+    M1 = manifpy.SE3.Random()
+    M1np = np.eye(4)
+    M1np[0:3,0:3] = M1.rotation()
+    M1np[0:3,3] = M1.translation()
+    tau1np = SE3.Log(M1np)
+    tau1 = M1.log().coeffs()
+    e = np.max(tau1 - tau1np)
+    assert e<0.00000001
+    print("SE3 log passed")
+    
+    assert np.max(SE3.Exp(tau1np) -M1np)<0.00000001
+    print("SE3 exp passed")
+    
+    assert np.max(M1.adj() - SE3.Ad(M1np))<0.00000001
+    print("SE3 adj passed")
+    
+    M2 = manifpy.SE3.Random()
+    M2np = np.eye(4)
+    M2np[0:3,0:3] = M2.rotation()
+    M2np[0:3,3] = M2.translation()
+    tau2 = M2.log()
+    tau2np = tau2.coeffs()
+    J1 = np.zeros((6,6))
+    J2 = np.zeros((6,6))
+    
+    M1.plus(tau2, J1, J2)
+    J1np = SE3.Ad(inv(M2np))
+    assert np.max(J1np - J1)<0.00000001
+    J2np = SE3.Jr(tau2np)
+    assert np.max(J2np - J2)<0.00000001
+    print("SE3 O-plus Jacobian passed")
+    
+    J1 = np.zeros((6,6))
+    J2 = np.zeros((6,6))
+    tau = M2.minus(M1, J2,J1).coeffs()
+    taunp = SE3.Log(inv(M1np)@(M2np))
+    
+    J1np = -SE3.Jl_inv(tau)
+    J2np = SE3.Jr_inv(tau)
+    assert np.max(J1np - J1)<0.00000001
+    assert np.max(J2np - J2)<0.00000001
+    print("SE3 O-minus Jacobian passed")

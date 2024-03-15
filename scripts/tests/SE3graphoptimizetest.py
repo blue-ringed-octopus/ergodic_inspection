@@ -126,7 +126,7 @@ class Back_end:
                 z_bar = SE3.Log(M_r1_inv@M_r2)
                 J[0:6,0:6] = -SE3.Jl_inv(z_bar)
                 J[0:6, 6:12] = SE3.Jr_inv(z_bar)
-                e[0:6] = z - z_bar
+                e[0:6] = SE3.Log(SE3.Exp(z - z_bar))
                 
                 idx=self.pose_idx_map[factor.child.id]
                 F[idx:idx+6,6:12] = np.eye(6)
@@ -138,8 +138,8 @@ class Back_end:
 
                     J[i:i+6, 0:6] = -SE3.Jl_inv(z_bar)
                     J[i:i+6, 6+i:6+i+6] = SE3.Jr_inv(z_bar)
-                    if not feature.id == 12:
-                        e[i:i+6] = z - z_bar
+                    
+                    e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
                     idx=self.feature_idx_map[feature.id]
                     F[idx:idx+6,6+i:6+i+6] = np.eye(6)
             else:
@@ -164,7 +164,6 @@ class Back_end:
                     F[idx:idx+6,i:i+6] = np.eye(6)
             global test
             test=F@(J.T@omega@J)@F.T
-            print(e)
 
             H+=F@(J.T@omega@J)@F.T
             b+=F@J.T@omega@e
@@ -200,15 +199,15 @@ class Back_end:
         # dx_test=dx
         i=0
         self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
-        while np.max(np.abs(dx))>0.01 and i<1000:
-            print(i)
-            H,b=self.linearize(n,graph.factors)
-            global dx_test
-            dx_test=dx
-            print(np.max(np.abs(dx)))
-            dx=self.linear_solve(H,b)
-            self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
-            i+=1
+        # while np.max(np.abs(dx))>0.01 and i<1000:
+        #     print(i)
+        #     H,b=self.linearize(n,graph.factors)
+        #     global dx_test
+        #     dx_test=dx
+        #     print(np.max(np.abs(dx)))
+        #     dx=self.linear_solve(H,b)
+        #     self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
+        #     i+=1
 
 
         self.update_nodes(graph, np.zeros(len(dx)),inv(H))
