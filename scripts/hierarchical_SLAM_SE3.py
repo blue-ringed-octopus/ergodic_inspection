@@ -96,44 +96,36 @@ class Graph_SLAM:
                 
         
         
-    class Back_end:
-        # def get_pose_jacobian(self, tau_1, tau_2, z_bar):
-        #     J1=-SE3.Jl_inv(z_bar)
-        #     J2=SE3.Jr_inv(z_bar)
-        #     return J1, J2
-        
-      
-        # def get_feature_jacobian(self, tau_1, tau_2, z_bar):
-        #     J1=-SE3.Jl_inv(z_bar)@SE3.Jr(tau_1)
-        #     J2=SE3.Jr_inv(z_bar)@SE3.Jr(tau_2)
-        #     return J1, J2
-        
+    class Back_end:    
         def __init__(self):
             pass
         
         def node_to_vector(self, graph):
             self.pose_idx_map={}
             self.feature_idx_map={}
-            mu=[]
+            n = 0 
             for node_id, node in graph.pose_nodes.items():
                 if not node.pruned:
-                    self.pose_idx_map[node_id]=len(mu)*6
-                    mu.append(node.M)
+                    self.pose_idx_map[node_id]=n*6
+                    n+=1
+                    
             for node_id,node in graph.feature_nodes.items():
-                self.feature_idx_map[node_id]=len(mu)*6
-                mu.append(node.M)
-            return mu
+                self.feature_idx_map[node_id]=n*6
+                n+=1
+    
+            return n
         
-        def linearize(self,x, factors):
-            H = np.zeros((6*len(x), 6*len(x)))
-            b = np.zeros(6*len(x))
+        def linearize(self,n, factors):
+            H = np.zeros((6*n, 6*n))
+            b = np.zeros(6*n)
             for factor in factors:
                 idx_map = factor.idx_map.copy()
                 omega = factor.omega.copy()
+                # omega = np.eye(len(factor.omega))
                 if not factor.parent == None:
-                    F = np.zeros((6*len(x), 12+factor.n*6))          #map from factor vector to graph vector
+                    F = np.zeros((6*n, 12+factor.n*6))          #map from factor vector to graph vector
                     J = np.zeros((6+factor.n*6,12+factor.n*6)) #map from factor vector to observation
-                    e = np.zeros((6+factor.n*6)) #difference between observation and expected observation
+                    e = np.zeros(len(factor.z)) #difference between observation and expected observation
                      
                     idx=self.pose_idx_map[factor.parent.id]
                     F[idx:idx+6,0:6] = np.eye(6)
@@ -142,37 +134,32 @@ class Graph_SLAM:
                     M_r1_inv = inv(M_r1)
                     M_r2 = factor.child.M.copy()
                     z_bar = SE3.Log(M_r1_inv@M_r2)
-                    J1=-SE3.Jl_inv(z_bar)
-                    J2=SE3.Jr_inv(z_bar)
-                    J[0:6,0:6] = J1
-                    J[0:6, 6:12] = J2
-                    e[0:6] = z - z_bar
+                    J[0:6,0:6] = -SE3.Jl_inv(z_bar)
+                    J[0:6, 6:12] = SE3.Jr_inv(z_bar)
+                    e[0:6] = SE3.Log(SE3.Exp(z - z_bar))
                     
                     idx=self.pose_idx_map[factor.child.id]
                     F[idx:idx+6,6:12] = np.eye(6)
-
+    
                     for feature in factor.feature_nodes:
                         i = idx_map[feature.id]
                         z = factor.z[i:i+6].copy()
                         z_bar = SE3.Log(M_r1_inv@feature.M.copy())
-
-                        J1=-SE3.Jl_inv(z_bar)
-                        J2=SE3.Jr_inv(z_bar)
-                        J[i:i+6, 0:6] = J1
-                        J[i:i+6, 6+i:6+i+6] = J2
-                        e[i:i+6] = z - z_bar
+    
+                        J[i:i+6, 0:6] = -SE3.Jl_inv(z_bar)
+                        J[i:i+6, 6+i:6+i+6] = SE3.Jr_inv(z_bar)
                         
+                        e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
                         idx=self.feature_idx_map[feature.id]
                         F[idx:idx+6,6+i:6+i+6] = np.eye(6)
                 else:
-                    omega=np.eye(6)
                     J = np.eye(len(factor.z))
-                    F = np.zeros((6*len(x), len(factor.z)))   
+                    F = np.zeros((6*n, len(factor.z)))   
                     e = np.zeros(len(factor.z))
                     if not factor.child == None:
                         z = factor.z[i:i+6].copy()
                         z_bar = SE3.Log(factor.child.M.copy())
-                        e[0:6] = z - z_bar
+                        e[0:6] = SE3.Log(SE3.Exp(z - z_bar))
                         J[0:6, 0:6] = SE3.Jr_inv(z_bar)
                         idx=self.pose_idx_map[factor.child.id]
                         F[idx:idx+6,0:6] = np.eye(6)
@@ -182,59 +169,57 @@ class Graph_SLAM:
                         z = factor.z[i:i+6].copy()
                         z_bar = SE3.Log(feature.M.copy())
                         J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
-                        e[i:i+6] = z - z_bar
+                        e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
                         idx=self.feature_idx_map[feature.id]
                         F[idx:idx+6,i:i+6] = np.eye(6)
-                    #print(e)
-                    global test
-                    test=F@J.T@omega@J@F.T
-                H+=F@J.T@omega@J@F.T
+              
+                H+=F@(J.T@omega@J)@F.T
                 b+=F@J.T@omega@e
-
+    
             return H, b
         
         def linear_solve(self, A,b):
-            A=(A+A.T)/2
+            # A=(A+A.T)/2
             # L=np.linalg.cholesky(A)
             # y=solve_triangular(L,b, lower=True)
             
-            #return solve_triangular(L.T, y)
+            # return solve_triangular(L.T, y)
             return lstsq(A,b)[0]
         
         def update_nodes(self, graph,dx, cov):
-            for node in graph.pose_nodes.values():
-                if not node.pruned:
-                    idx=self.pose_idx_map[node.id]
-                    node.M=node.M@SE3.Exp(dx[idx:idx+6])
-                    node.H=cov[idx:idx+6,idx:idx+6].copy()
-                    
-            for node in graph.feature_nodes.values():
-                idx=self.feature_idx_map[node.id]
-                node.M=node.M@SE3.Exp(dx[idx:idx+6])
-                node.H=cov[idx:idx+6,idx:idx+6].copy()
-
+            for node_id, idx in self.pose_idx_map.items():
+                graph.pose_nodes[node_id].M = graph.pose_nodes[node_id].M@SE3.Exp(dx[idx:idx+6])
+                graph.pose_nodes[node_id].H = cov[idx:idx+6,idx:idx+6].copy()
+      
+            for node_id, idx in self.feature_idx_map.items():
+                graph.feature_nodes[node_id].M = graph.feature_nodes[node_id].M@SE3.Exp(dx[idx:idx+6])
+                graph.feature_nodes[node_id].H = cov[idx:idx+6,idx:idx+6].copy()
+    
             
         def optimize(self, graph):
             with open('graph.pickle', 'wb') as handle:
                 pickle.dump(graph, handle)
             print("optimizing graph")
-            x = self.node_to_vector(graph)
-            H,b=self.linearize(x,graph.factors)
+            n = self.node_to_vector(graph)
+            H,b=self.linearize(n,graph.factors.copy())
             dx=self.linear_solve(H,b)
+            # global dx_test
+            # dx_test=dx
             i=0
-            self.update_nodes(graph, 0.1*dx.copy(),np.zeros(H.shape))
-            while np.max(np.abs(dx))>0.001 and i<1000:
-                print(i)
-                H,b=self.linearize(x,graph.factors)
+            self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
+            while np.max(np.abs(dx))>0.01 and i<50:
+                H,b=self.linearize(n,graph.factors)
+                global dx_test
+                dx_test=dx
                 dx=self.linear_solve(H,b)
-                self.update_nodes(graph, 0.1*dx.copy(),np.zeros(H.shape))
+                self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
                 i+=1
-
-
-            self.update_nodes(graph,np.zeros(6*len(x)),inv(H))
+    
+    
+            self.update_nodes(graph, np.zeros(len(dx)),inv(H))
             print("optimized")
-
-            return x, H
+    
+            return H
             
     def __init__(self, M_init, ekf):
         self.optimized = False
