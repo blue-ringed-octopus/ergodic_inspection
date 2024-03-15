@@ -195,8 +195,6 @@ class Back_end:
         n = self.node_to_vector(graph)
         H,b=self.linearize(n,graph.factors.copy())
         dx=self.linear_solve(H,b)
-        # global dx_test
-        # dx_test=dx
         i=0
         self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
         while np.max(np.abs(dx))>0.01 and i<50:

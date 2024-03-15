@@ -238,7 +238,7 @@ class Graph_SLAM:
         # self.costmap=self.anomaly_detector.costmap
     
     def _posterior_to_factor(self, mu, sigma):
-       # self.front_end.nodes[self.current_node_id].local_map=self.ekf.cloud
+        self.front_end.nodes[self.current_node_id].local_map=self.ekf.cloud
        # self.front_end.nodes[self.current_node_id].cloud_cov=self.ekf.cloud_cov
         new_node_id=self.front_end.add_node(self.M.copy(),"pose")
 
@@ -521,7 +521,7 @@ if __name__ == "__main__":
                         "base_footprint",
                         "map")
     
-        # if optimized:
-        #     pc_msg=pc_to_msg(graph_slam.global_map)
-        #     pc_pub.publish(pc_msg)
+        if optimized:
+            pc_msg=pc_to_msg(graph_slam.global_map)
+            pc_pub.publish(pc_msg)
         rate.sleep()
