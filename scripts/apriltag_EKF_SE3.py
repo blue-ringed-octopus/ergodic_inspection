@@ -312,7 +312,7 @@ class EKF:
             
             #global feature location
             M_tag_bar = mu[idx].copy() 
-            Z_bar = mu[0]@M_tag_bar  #feature location in camera frame
+            Z_bar = inv(mu[0])@M_tag_bar  #feature location in camera frame
             z_bar = SE3.Log(Z_bar)
       
             Z = feature["M"]
