@@ -336,8 +336,8 @@ class EKF:
             
             H[6*i:6*i+6,:] += h@F
             J_z = SE3.Jr_inv(z)
-            # Q[6*i:6*i+6, 6*i:6*i+6] =J_z@self.Q.copy()@J_z.T
-            Q[6*i:6*i+6, 6*i:6*i+6] =self.Q.copy()
+            Q[6*i:6*i+6, 6*i:6*i+6] =J_z@self.Q.copy()@J_z.T
+            # Q[6*i:6*i+6, 6*i:6*i+6] =self.Q.copy()
             
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
         sigma=(np.eye(len(mu)*6)-K@H)@(sigma)
