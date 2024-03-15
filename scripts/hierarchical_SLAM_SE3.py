@@ -313,7 +313,7 @@ class Graph_SLAM:
         delta=norm(SE3.Log(mu[0]))
         if delta>=1.5:
             self._posterior_to_factor(mu, sigma)
-            _, H=self.back_end.optimize(self.front_end)
+            H=self.back_end.optimize(self.front_end)
             self.omega=H
             self._global_map_assemble()
             self.optimized=True
