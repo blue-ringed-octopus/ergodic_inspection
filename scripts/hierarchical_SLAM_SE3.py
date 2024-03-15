@@ -260,7 +260,6 @@ class Graph_SLAM:
         return 
     
     def _global_map_assemble(self):
-        return 
         points=[]
         colors=[]
         for node in self.front_end.pose_nodes.values():
