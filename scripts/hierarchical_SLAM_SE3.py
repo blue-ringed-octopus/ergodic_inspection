@@ -230,7 +230,7 @@ class Graph_SLAM:
         self.back_end=self.Back_end()
         self.current_node_id=self.front_end.add_node(self.M, "pose")
         self.omega=np.eye(3)*0.001
-        self.global_map={"map":[], "info":[], "tree":None, "anomaly":[]}
+        # self.global_map={"map":[], "info":[], "tree":None, "anomaly":[]}
         self.feature_tree=None
         
         # self.costmap=self.anomaly_detector.costmap
