@@ -197,8 +197,8 @@ class Graph_SLAM:
     
             
         def optimize(self, graph):
-            with open('graph.pickle', 'wb') as handle:
-                pickle.dump(graph, handle)
+            # with open('graph.pickle', 'wb') as handle:
+            #     pickle.dump(graph, handle)
             print("optimizing graph")
             n = self.node_to_vector(graph)
             H,b=self.linearize(n,graph.factors.copy())
