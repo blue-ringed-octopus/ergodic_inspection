@@ -91,6 +91,11 @@ def msg2pc(msg):
     points[:,1]=pc['y'].reshape(-1)
     points[:,2]=pc['z'].reshape(-1)
     pc=ros_numpy.point_cloud2.split_rgb_field(pc)
+    img = np.zeros((m,n,3))
+    img[:,:,0] = pc['r']
+    img[:,:,1] = pc['g']
+    img[:,:,2] = pc['b']
+
     rgb=np.zeros((len(x),3))
     rgb[:,0]=pc['r'].reshape(-1)
     rgb[:,1]=pc['g'].reshape(-1)
@@ -99,7 +104,7 @@ def msg2pc(msg):
     p.points=o3d.utility.Vector3dVector(points)
     p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
     
-    return p, depth   
+    return p, depth, img    
 
 def draw_frame(img, tag, K):
     img=cv2.circle(img, (int(tag["xp"]), int(tag["yp"])), 5, (0, 0, 255), -1)
@@ -182,7 +187,7 @@ class EKF:
         print("reseting EKF")
         with self.lock:
             pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
-            self.cloud, depth = msg2pc(pc_msg)
+            self.cloud, depth, self.pc_img = msg2pc(pc_msg)
             T =  np.ascontiguousarray(self.K_inv.copy()@self.T_c_to_r[0:3,0:3].copy())
             self.cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q), T)
             indx=~np.isnan(depth.reshape(-1))
