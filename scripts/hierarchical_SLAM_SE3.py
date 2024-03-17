@@ -273,7 +273,7 @@ class Graph_SLAM:
         colors=np.concatenate(colors)  
 
         self.global_map = np2pc(points, colors)
-     
+        self.global_map = self.global_map.voxel_down_sample(0.01)
     def update_costmap(self):
         # image = cv2.flip(cv2.imread("map_actual.png"),0)
         # w=int(image.shape[1]*10)
