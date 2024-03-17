@@ -115,7 +115,7 @@ def msg2pc(msg):
     
     print("img ", img.shape)
     print("r ", pc['r'].shape)
-    return p, depth, img.astype('float32')    
+    return p, depth, img.astype('uint8')    
 
 def draw_frame(img, tag, K):
     img=cv2.circle(img, (int(tag["xp"]), int(tag["yp"])), 5, (0, 0, 255), -1)
