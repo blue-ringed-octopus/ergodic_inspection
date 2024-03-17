@@ -19,8 +19,8 @@ from numpy import sin, cos, arctan2
 from numpy.linalg import inv, norm, lstsq
 from copy import deepcopy
 import ros_numpy
-from Lie import SE3, SE2, SO3, SO2
-import pickle 
+from Lie import SE3, SO3
+from extened_pointcloud import Extended_Pointcloud
 
 np.float = np.float64 
 
@@ -236,8 +236,7 @@ class Graph_SLAM:
         # self.costmap=self.anomaly_detector.costmap
     
     def _posterior_to_factor(self, mu, sigma):
-        self.front_end.nodes[self.current_node_id].local_map=self.ekf.cloud
-       # self.front_end.nodes[self.current_node_id].cloud_cov=self.ekf.cloud_cov
+        self.front_end.pose_nodes[self.current_node_id].local_map=self.ekf.cloud
         new_node_id=self.front_end.add_node(self.M.copy(),"pose")
 
         idx_map=self.ekf.landmarks.copy()
@@ -264,7 +263,10 @@ class Graph_SLAM:
         colors=[]
         for node in self.front_end.pose_nodes.values():
             if not node.local_map == None and not node.pruned:
-                cloud=deepcopy(node.local_map).transform(node.M)
+                # dT = np.zeros(6)
+                # for feature_id, feature in node.local_map.features:
+                #     dT  += SE3.Log(self.front_end.feature_nodes[feature_id].M.copy()@inv(feature['M']))
+                cloud=deepcopy(node.local_map.pc).transform(node.M)
                 points.append(np.array(cloud.points))
                 colors.append(np.array(cloud.colors))
         points=np.concatenate(points)  

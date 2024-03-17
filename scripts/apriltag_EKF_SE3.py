@@ -13,8 +13,7 @@ from cv_bridge import CvBridge
 import cv2
 from pupil_apriltags import Detector
 import numpy as np
-from numpy import sin, cos
-from numpy.linalg import norm, inv
+from numpy.linalg import inv
 import message_filters
 import tf
 import time
@@ -25,7 +24,9 @@ import ros_numpy
 import threading
 import open3d as o3d 
 from numba import cuda
-from Lie import SO3, SE3, SE2, SO2
+from Lie import SE3
+from extened_pointcloud import Extended_Pointcloud
+
 TPB=32
 @cuda.jit()
 def cloud_cov_kernel(d_out, d_depth, d_Q, d_T):
@@ -186,13 +187,9 @@ class EKF:
     def reset(self, node_id):
         print("reseting EKF")
         with self.lock:
-            pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
-            self.cloud, depth, self.pc_img = msg2pc(pc_msg)
-            T =  np.ascontiguousarray(self.K_inv.copy()@self.T_c_to_r[0:3,0:3].copy())
-            self.cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q), T)
-            indx=~np.isnan(depth.reshape(-1))
-            self.cloud=self.cloud.select_by_index(np.where(indx)[0])
-            self.cloud_cov = self.cloud_cov[indx]
+            self.get_point_cloud()
+
+
             self.cloud.transform(self.T_c_to_r)
             self.id=node_id
             self.mu=[np.eye(4)]
@@ -202,6 +199,17 @@ class EKF:
         print("EKF initialized")
         
     
+    def get_point_cloud(self):
+        pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
+        cloud, depth, pc_img = msg2pc(pc_msg)
+        T =  np.ascontiguousarray(self.K_inv.copy()@self.T_c_to_r[0:3,0:3].copy())
+        cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q), T)
+        indx=~np.isnan(depth.reshape(-1))
+        cloud=cloud.select_by_index(np.where(indx)[0])
+        cloud_cov = cloud_cov[indx]
+        features = self.detect_apriltag(pc_img, depth)
+        self.cloud = Extended_Pointcloud(cloud, cloud_cov, depth, pc_img, features)
+        
     # def get_cloud_covariance(self, depth):
     #     n, m = depth.shape
     #     T=self.T_c_to_r[0:3,0:3].copy()@inv(self.K.copy())
