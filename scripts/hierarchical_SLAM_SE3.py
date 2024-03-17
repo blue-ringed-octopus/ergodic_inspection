@@ -236,7 +236,7 @@ class Graph_SLAM:
         # self.costmap=self.anomaly_detector.costmap
     
     def _posterior_to_factor(self, mu, sigma):
-        self.front_end.pose_nodes[self.current_node_id].local_map=self.ekf.cloud
+        self.front_end.pose_nodes[self.current_node_id].local_map=self.ekf.cloud.copy()
         new_node_id=self.front_end.add_node(self.M.copy(),"pose")
 
         idx_map=self.ekf.landmarks.copy()
@@ -264,6 +264,7 @@ class Graph_SLAM:
         for node in self.front_end.pose_nodes.values():
             if not node.local_map == None and not node.pruned:
                 dm = np.zeros(6)
+                print(node.local_map.features)
                 for feature_id, feature in node.local_map.features:
                     dm  += SE3.Log(self.front_end.feature_nodes[feature_id].M.copy()@inv(feature['M']))
                 dm /= len(node.local_map.features)
