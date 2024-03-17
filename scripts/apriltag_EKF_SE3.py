@@ -103,6 +103,8 @@ def msg2pc(msg):
     img[:,:,0] = pc['r']
     img[:,:,1] = pc['g']
     img[:,:,2] = pc['b']
+    print("img ", img)
+    print("r ", pc['r'])
 
     rgb=np.zeros((len(x),3))
     rgb[:,0]=pc['r'].reshape(-1)
