@@ -103,8 +103,7 @@ def msg2pc(msg):
     img[:,:,0] = pc['r']
     img[:,:,1] = pc['g']
     img[:,:,2] = pc['b']
-    print("img ", img.shape)
-    print("r ", pc['r'].shape)
+
 
     rgb=np.zeros((len(x),3))
     rgb[:,0]=pc['r'].reshape(-1)
@@ -114,7 +113,9 @@ def msg2pc(msg):
     p.points=o3d.utility.Vector3dVector(points)
     p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
     
-    return p, depth, img    
+    print("img ", img.shape)
+    print("r ", pc['r'].shape)
+    return p, depth, img.astype('float32')    
 
 def draw_frame(img, tag, K):
     img=cv2.circle(img, (int(tag["xp"]), int(tag["yp"])), 5, (0, 0, 255), -1)
