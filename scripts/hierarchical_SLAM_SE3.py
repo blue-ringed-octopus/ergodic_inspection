@@ -185,16 +185,19 @@ class Graph_SLAM:
             # return solve_triangular(L.T, y)
             return lstsq(A,b)[0]
         
-        def update_nodes(self, graph,dx, cov):
+        def update_nodes_pose(self, graph,dx):
             for node_id, idx in self.pose_idx_map.items():
                 graph.pose_nodes[node_id].M = graph.pose_nodes[node_id].M@SE3.Exp(dx[idx:idx+6])
-                graph.pose_nodes[node_id].H = cov[idx:idx+6,idx:idx+6].copy()
       
             for node_id, idx in self.feature_idx_map.items():
                 graph.feature_nodes[node_id].M = graph.feature_nodes[node_id].M@SE3.Exp(dx[idx:idx+6])
-                graph.feature_nodes[node_id].H = cov[idx:idx+6,idx:idx+6].copy()
     
-            
+        def update_nodes_cov(self, graph,cov):
+            for node_id, idx in self.pose_idx_map.items():
+                graph.pose_nodes[node_id].cov = cov[idx:idx+6,idx:idx+6].copy()
+            for node_id, idx in self.feature_idx_map.items():    
+                graph.feature_nodes[node_id].cov = cov[idx:idx+6,idx:idx+6].copy()
+
         def optimize(self, graph):
             # with open('graph.pickle', 'wb') as handle:
             #     pickle.dump(graph, handle)
@@ -203,17 +206,15 @@ class Graph_SLAM:
             H,b=self.linearize(n,graph.factors.copy())
             dx=self.linear_solve(H,b)
             i=0
-            self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
+            self.update_nodes_pose(graph, 1*dx.copy())
             while np.max(np.abs(dx))>0.01 and i<10:
                 print(i)
                 H,b=self.linearize(n,graph.factors)
-
                 dx=self.linear_solve(H,b)
-                self.update_nodes(graph, 1*dx.copy(),np.zeros(H.shape))
+                self.update_nodes_pose(graph, 1*dx.copy())
                 i+=1
     
-    
-            self.update_nodes(graph, np.zeros(len(dx)),inv(H))
+            self.update_nodes_cov(graph, inv(H))
             print("optimized")
     
             return H
@@ -262,17 +263,20 @@ class Graph_SLAM:
         colors=[]
         for node in self.front_end.pose_nodes.values():
             if not node.local_map == None and not node.pruned:
-                # dT = np.zeros(6)
-                # for feature_id, feature in node.local_map.features:
-                #     dT  += SE3.Log(self.front_end.feature_nodes[feature_id].M.copy()@inv(feature['M']))
-                cloud=deepcopy(node.local_map.pc).transform(node.M)
+                dm = np.zeros(6)
+                for feature_id, feature in node.local_map.features:
+                    dm  += SE3.Log(self.front_end.feature_nodes[feature_id].M.copy()@inv(feature['M']))
+                dm /= len(node.local_map.features)
+                dM = SE3.Exp(dm)
+                cloud=deepcopy(node.local_map.pc).transform(dM)
                 points.append(np.array(cloud.points))
                 colors.append(np.array(cloud.colors))
         points=np.concatenate(points)  
         colors=np.concatenate(colors)  
 
         self.global_map = np2pc(points, colors)
-        self.global_map = self.global_map.voxel_down_sample(0.01)
+        self.global_map = self.global_map.voxel_down_sample(0.1)
+        
     def update_costmap(self):
         # image = cv2.flip(cv2.imread("map_actual.png"),0)
         # w=int(image.shape[1]*10)

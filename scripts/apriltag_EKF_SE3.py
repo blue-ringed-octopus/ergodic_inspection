@@ -112,9 +112,7 @@ def msg2pc(msg):
     p=o3d.geometry.PointCloud()
     p.points=o3d.utility.Vector3dVector(points)
     p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
-    
-    print("img ", img.shape)
-    print("r ", pc['r'].shape)
+
     return p, depth, img.astype('uint8')    
 
 def draw_frame(img, tag, K):
