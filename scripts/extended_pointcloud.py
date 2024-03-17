@@ -14,4 +14,4 @@ class Extended_Pointcloud:
         self.features = features
         
 if __name__ == "__main__":
-    pass
+    test  = Extended_Pointcloud(0,0,0,0,0)

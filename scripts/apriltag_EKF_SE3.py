@@ -25,8 +25,15 @@ import threading
 import open3d as o3d 
 from numba import cuda
 from Lie import SE3
-from extened_pointcloud import Extended_Pointcloud
+# from extened_pointcloud import Extended_Pointcloud
 
+class Extended_Pointcloud:
+    def __init__(self, pc, cov, depth, rgb, features):
+        self.pc = pc
+        self.cov = cov
+        self.depth = depth
+        self.rgb = rgb
+        self.features = features
 TPB=32
 @cuda.jit()
 def cloud_cov_kernel(d_out, d_depth, d_Q, d_T):
