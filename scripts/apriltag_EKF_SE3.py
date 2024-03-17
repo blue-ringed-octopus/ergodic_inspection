@@ -198,9 +198,7 @@ class EKF:
         print("reseting EKF")
         with self.lock:
             self.get_point_cloud()
-
-
-            self.cloud.transform(self.T_c_to_r)
+            self.cloud.pc.transform(self.T_c_to_r)
             self.id=node_id
             self.mu=[np.eye(4)]
             self.sigma=np.zeros((6,6))
