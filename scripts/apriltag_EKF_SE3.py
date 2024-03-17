@@ -104,7 +104,7 @@ def msg2pc(msg):
     img[:,:,1] = pc['g']
     img[:,:,2] = pc['b']
     print("img ", img)
-    print("r ", pc['r'])
+    print("r ", pc['r'].shape)
 
     rgb=np.zeros((len(x),3))
     rgb[:,0]=pc['r'].reshape(-1)
