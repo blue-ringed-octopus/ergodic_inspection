@@ -12,3 +12,6 @@ class Extended_Pointcloud:
         self.depth = depth
         self.rgb = rgb
         self.features = features
+        
+if __name__ == "__main__":
+    pass

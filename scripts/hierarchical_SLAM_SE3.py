@@ -20,7 +20,6 @@ from numpy.linalg import inv, norm, lstsq
 from copy import deepcopy
 import ros_numpy
 from Lie import SE3, SO3
-from extened_pointcloud import Extended_Pointcloud
 
 np.float = np.float64 
 
