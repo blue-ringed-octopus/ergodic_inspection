@@ -265,7 +265,7 @@ class Graph_SLAM:
             if not node.local_map == None and not node.pruned:
                 dm = np.zeros(6)
                 print(node.local_map["features"])
-                for feature_id, feature in node.local_map["features"]:
+                for feature_id, feature in node.local_map["features"].items():
                     dm  += SE3.Log(self.front_end.feature_nodes[feature_id].M.copy()@inv(feature['M']))
                 dm /= len(node.local_map["features"])
                 dM = SE3.Exp(dm)
