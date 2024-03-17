@@ -27,13 +27,6 @@ from numba import cuda
 from Lie import SE3
 # from extened_pointcloud import Extended_Pointcloud
 
-class Extended_Pointcloud:
-    def __init__(self, pc, cov, depth, rgb, features):
-        self.pc = pc
-        self.cov = cov
-        self.depth = depth
-        self.rgb = rgb
-        self.features = features
 TPB=32
 @cuda.jit()
 def cloud_cov_kernel(d_out, d_depth, d_Q, d_T):
@@ -196,7 +189,7 @@ class EKF:
         print("reseting EKF")
         with self.lock:
             self.get_point_cloud()
-            self.cloud.pc.transform(self.T_c_to_r)
+            self.cloud["pc"].transform(self.T_c_to_r)
             self.id=node_id
             self.mu=[np.eye(4)]
             self.sigma=np.zeros((6,6))
@@ -214,7 +207,7 @@ class EKF:
         cloud=cloud.select_by_index(np.where(indx)[0])
         cloud_cov = cloud_cov[indx]
         features = self.detect_apriltag(pc_img, depth)
-        self.cloud = Extended_Pointcloud(cloud, cloud_cov, depth, pc_img, features)
+        self.cloud = {"pc": cloud,"cov": cloud_cov, "depth": depth, "rgb": pc_img, "features": features}
         
     # def get_cloud_covariance(self, depth):
     #     n, m = depth.shape
