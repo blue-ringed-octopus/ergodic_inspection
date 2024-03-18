@@ -18,14 +18,13 @@ import message_filters
 import tf
 import time
 from visualization_msgs.msg import Marker, MarkerArray
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseWithCovarianceStamped 
 np.float = np.float64 
 import ros_numpy
 import threading
 import open3d as o3d 
 from numba import cuda
 from Lie import SE3
-# from extened_pointcloud import Extended_Pointcloud
 
 TPB=32
 @cuda.jit()
@@ -160,7 +159,7 @@ class EKF:
                     decode_sharpening=0.25,
                     debug=0
                     )
-        odom=rospy.wait_for_message("/robot_pose_ekf/odom_combined",Odometry)
+        odom=rospy.wait_for_message("/robot_pose_ekf/odom_combined",PoseWithCovarianceStamped)
 
         R=tf.transformations.quaternion_matrix([odom.pose.pose.orientation.x,
                                                    odom.pose.pose.orientation.y,
@@ -176,7 +175,7 @@ class EKF:
         self.reset(node_id)
 
 
-        rospy.Subscriber("/robot_pose_ekf/odom_combined", Odometry, self.odom_callback)
+        rospy.Subscriber("/robot_pose_ekf/odom_combined", PoseWithCovarianceStamped, self.odom_callback)
         
         rgbsub=message_filters.Subscriber("/camera/rgb/image_rect_color", Image)
         depthsub=message_filters.Subscriber("/camera/depth_registered/image_raw", Image)
