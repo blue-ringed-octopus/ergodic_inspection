@@ -176,7 +176,7 @@ class EKF:
         self.reset(node_id)
 
 
-        rospy.Subscriber("/odom", Odometry, self.odom_callback)
+        rospy.Subscriber("/robot_pose_ekf/odom_combined", Odometry, self.odom_callback)
         
         rgbsub=message_filters.Subscriber("/camera/rgb/image_rect_color", Image)
         depthsub=message_filters.Subscriber("/camera/depth_registered/image_raw", Image)

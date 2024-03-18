@@ -232,7 +232,6 @@ class Graph_SLAM:
         self.back_end=self.Back_end()
         self.current_node_id=self.front_end.add_node(self.M, "pose")
         self.omega=np.eye(3)*0.001
-        # self.global_map={"map":[], "info":[], "tree":None, "anomaly":[]}
         self.feature_tree=None
         
         # self.costmap=self.anomaly_detector.costmap
@@ -265,12 +264,14 @@ class Graph_SLAM:
         colors=[]
         for node in self.front_end.pose_nodes.values():
             if not node.local_map == None and not node.pruned:
-                dm = np.zeros(6)
-                print(node.local_map["features"])
-                for feature_id, feature in node.local_map["features"].items():
-                    dm  += SE3.Log(self.front_end.feature_nodes[feature_id].M.copy()@inv(feature['M']))
-                dm /= len(node.local_map["features"])
-                dM = SE3.Exp(dm)
+                if( len(node.local_map["features"])) == 0:
+                   dM = node.M.copy() 
+                else:
+                    dm = np.zeros(6)
+                    for feature_id, feature in node.local_map["features"].items():
+                        dm  += SE3.Log(self.front_end.feature_nodes[feature_id].M.copy()@inv(feature['M']))
+                    dm /= len(node.local_map["features"])
+                    dM = SE3.Exp(dm)
                 cloud=deepcopy(node.local_map['pc']).transform(dM)
                 points.append(np.array(cloud.points))
                 colors.append(np.array(cloud.colors))
