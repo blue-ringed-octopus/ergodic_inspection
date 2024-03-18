@@ -14,7 +14,7 @@ from numpy.linalg import inv, norm, lstsq
 from Lie import SE3, SE2, SO3, SO2
 import pickle 
 import matplotlib.pyplot as plt 
-
+import time 
 np.set_printoptions(precision=2)
 
 class Graph_SLAM:
@@ -259,7 +259,9 @@ plt.xlim([-6, 1])
 plt.ylim([-1, 5])
 plt.title("init")
 #%%
+t=time.time()
 H = solver.optimize(graph)
+print("T", time.time()-t)
 #%%
 plt.figure(1)
 for factor in graph.factors:

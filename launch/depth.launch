@@ -1,11 +1,21 @@
 <launch>
   <node pkg="nodelet" type="nodelet" name="nodelet_manager" args="manager" />
-
   <node pkg="nodelet" type="nodelet" name="nodelet1"
         args="load depth_image_proc/point_cloud_xyzrgb nodelet_manager">
     <remap from="rgb/camera_info" to="/camera/rgb/camera_info"/>
     <remap from="depth_registered/image_rect" to="/camera/depth_registered/image_raw"/>
     <remap from="rgb/image_rect_color" to="/camera/rgb/image_rect_color"/>
+  </node>
 
+ <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
+    <param name="output_frame" value="none"/>
+    <param name="base_footprint_frame" value="none"/>
+    <param name="freq" value="30.0"/>
+    <param name="sensor_timeout" value="1.0"/>
+    <param name="odom_used" value="true"/>
+    <param name="imu_used" value="true"/>
+    <param name="vo_used" value="false"/>
+    <param name="debug" value="false"/>
+    <param name="self_diagnose" value="false"/>
   </node>
 </launch>

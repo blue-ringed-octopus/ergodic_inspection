@@ -36,10 +36,10 @@ class Graph_SLAM:
                 self.local_map=None
                 self.pruned=False 
                 self.depth_img=None
-                self.factor=[]
+                self.factor={}
                     
         class Factor:
-            def __init__(self, parent_node, child_node, feature_nodes, z, sigma, idx_map):
+            def __init__(self, id_, parent_node, child_node, feature_nodes, z, sigma, idx_map):
                 self.parent=parent_node
                 self.child=child_node
                 self.feature_nodes=feature_nodes
@@ -49,17 +49,19 @@ class Graph_SLAM:
                 self.pruned=False
                 self.n = len(feature_nodes)
                 self.idx_map = idx_map
-            
+                self.id = id_
+                
             def Jacobian(self):
                 pass 
             
         def __init__(self):
             self.nodes=[]
             self.pose_nodes={}
-            self.factors=[]
+            self.factors={}
             self.feature_nodes={}
             self.window = 20
             self.current_pose_id = -1
+            self.current_factor_id = 0
             
         def prune_graph(self):
             pass
@@ -91,8 +93,8 @@ class Graph_SLAM:
                 child = self.pose_nodes[child_id]
                 
             features=[self.feature_nodes[feature_id] for feature_id in feature_ids]
-            self.factors.append(self.Factor(parent,child,features ,z,sigma, idx_map))
-                
+            self.factors[self.current_factor_id] = self.Factor(self.current_factor_id, parent,child,features ,z,sigma, idx_map)
+            self.current_factor_id += 1    
         
         
     class Back_end:    
@@ -117,7 +119,7 @@ class Graph_SLAM:
         def linearize(self,n, factors):
             H = np.zeros((6*n, 6*n))
             b = np.zeros(6*n)
-            for factor in factors:
+            for factor in factors.values():
                 idx_map = factor.idx_map.copy()
                 omega = factor.omega.copy()
                 # omega = np.eye(len(factor.omega))
