@@ -160,7 +160,7 @@ class EKF:
                     decode_sharpening=0.25,
                     debug=0
                     )
-        odom=rospy.wait_for_message("/odom",Odometry)
+        odom=rospy.wait_for_message("/robot_pose_ekf/odom_combined",Odometry)
 
         R=tf.transformations.quaternion_matrix([odom.pose.pose.orientation.x,
                                                    odom.pose.pose.orientation.y,
