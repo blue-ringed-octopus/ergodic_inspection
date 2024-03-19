@@ -141,7 +141,7 @@ class EKF:
         self.R[1,1]=0.01 #y
         self.R[2,2]=0.0001 #z
         self.R[3:5, 3:5] *= 0.0001
-        self.R[5,5] *= 0.1
+        self.R[5,5] *= (np.pi/4)**2
 
         #observation covariance
         self.Q=np.eye(6)
@@ -159,8 +159,8 @@ class EKF:
                     decode_sharpening=0.25,
                     debug=0
                     )
-        odom=rospy.wait_for_message("/robot_pose_ekf/odom_combined",PoseWithCovarianceStamped)
-
+     #   odom=rospy.wait_for_message("/robot_pose_ekf/odom_combined",PoseWithCovarianceStamped)
+        odom=rospy.wait_for_message("/odom",Odometry)
         R=tf.transformations.quaternion_matrix([odom.pose.pose.orientation.x,
                                                    odom.pose.pose.orientation.y,
                                                    odom.pose.pose.orientation.z,
@@ -175,8 +175,8 @@ class EKF:
         self.reset(node_id)
 
 
-        rospy.Subscriber("/robot_pose_ekf/odom_combined", PoseWithCovarianceStamped, self.odom_callback)
-        
+       # rospy.Subscriber("/robot_pose_ekf/odom_combined", PoseWithCovarianceStamped, self.odom_callback)
+        rospy.Subscriber("/odom", Odometry, self.odom_callback)
         rgbsub=message_filters.Subscriber("/camera/rgb/image_rect_color", Image)
         depthsub=message_filters.Subscriber("/camera/depth_registered/image_raw", Image)
 
@@ -239,6 +239,14 @@ class EKF:
                               data.pose.pose.position.y,
                               data.pose.pose.position.z]
             
+            Rv = np.eye(6)
+            Rv[0,0] = data.twist.twist.linear.x**2
+            Rv[1,1] = data.twist.twist.linear.y**2
+            Rv[2,2] =  data.twist.twist.linear.z**2 
+            Rv[3,3] =  data.twist.twist.angular.x**2 
+            Rv[4,4] =  data.twist.twist.angular.y**2
+            Rv[5,5] =  data.twist.twist.angular.z**2
+            
             #get relative transformation
             U = np.linalg.inv(self.odom_prev)@odom
             u = SE3.Log(U)
@@ -259,7 +267,7 @@ class EKF:
             Jx[6:,6:]=np.eye(Jx[6:,6:].shape[0])
             Ju=SE3.Jr(u)
             self.mu = mu
-            self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@self.R@(Ju.T)@F
+            self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@((Ju)@self.R@(Ju.T)+Rv)@F
             self.odom_prev=odom
         
     def detect_apriltag(self,rgb, depth):

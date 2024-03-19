@@ -218,7 +218,8 @@ class Graph_SLAM:
     
             self.update_nodes_cov(graph, inv(H))
             print("optimized")
-    
+            self.optimized=True
+
             return H
             
     def __init__(self, M_init, ekf):
@@ -322,7 +323,6 @@ class Graph_SLAM:
             H=self.back_end.optimize(self.front_end)
             self.omega=H
             self._global_map_assemble()
-            self.optimized=True
 
         if np.isnan(self.M).any():
             rospy.signal_shutdown("nan")

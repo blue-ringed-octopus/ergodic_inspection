@@ -7,7 +7,7 @@
     <remap from="rgb/image_rect_color" to="/camera/rgb/image_rect_color"/>
   </node>
 
- <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
+ <!--<node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
     <param name="output_frame" value="none"/>
     <param name="base_footprint_frame" value="none2"/>
     <param name="freq" value="30.0"/>
@@ -17,5 +17,5 @@
     <param name="vo_used" value="false"/>
     <param name="debug" value="false"/>
     <param name="self_diagnose" value="false"/>
-  </node>
+  </node> -->
 </launch>
