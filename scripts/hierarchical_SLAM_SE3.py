@@ -57,7 +57,7 @@ class Graph_SLAM:
                 pass 
             
         def __init__(self):
-            self.prior_factor
+            self.prior_factor = None
             self.pose_nodes={}
             self.factors={}
             self.feature_nodes={}
