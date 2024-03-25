@@ -243,13 +243,13 @@ class Graph_SLAM:
             #     pickle.dump(graph, handle)
             print("optimizing graph")
             n = self.node_to_vector(graph)
-            H,b=self.linearize(n, graph.prior_factor.copy() , graph.factors.copy())
+            H,b=self.linearize(n, graph.prior_factor , graph.factors)
             dx=self.linear_solve(H,b)
             i=0
             self.update_nodes_pose(graph, 1*dx.copy())
             while np.max(np.abs(dx))>0.01 and i<10:
                 print(i)
-                H,b=self.linearize(n, graph.prior_factor.copy() , graph.factors.copy())
+                H,b=self.linearize(n, graph.prior_factor , graph.factors)
                 dx=self.linear_solve(H,b)
                 self.update_nodes_pose(graph, 1*dx.copy())
                 i+=1
