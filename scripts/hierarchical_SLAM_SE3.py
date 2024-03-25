@@ -160,7 +160,7 @@ class Graph_SLAM:
             J = np.eye(len(prior.z))
             F = np.zeros((6*n, len(prior.z)))   
             e = np.zeros(len(prior.z))
-            idx_map = prior.idx_map.copy()
+            idx_map = prior.idx_map["feature"].copy()
             for child in prior.children:
                 z = prior.z[0:6].copy()
                 z_bar = SE3.Log(prior.child.M.copy())
