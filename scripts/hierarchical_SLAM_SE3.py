@@ -190,13 +190,13 @@ class Graph_SLAM:
                 z = factor.z[0:6].copy()
                 M_r1 = factor.parent.M.copy()
                 M_r1_inv = inv(M_r1)
-                M_r2 = factor.child.M.copy()
+                M_r2 = factor.children[0].M.copy()
                 z_bar = SE3.Log(M_r1_inv@M_r2)
                 J[0:6,0:6] = -SE3.Jl_inv(z_bar)
                 J[0:6, 6:12] = SE3.Jr_inv(z_bar)
                 e[0:6] = SE3.Log(SE3.Exp(z - z_bar))
                 
-                idx=self.pose_idx_map[factor.child.id]
+                idx=self.pose_idx_map[factor.children[0].id]
                 F[idx:idx+6,6:12] = np.eye(6)
 
                 for feature in factor.feature_nodes:
