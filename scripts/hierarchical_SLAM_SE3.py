@@ -160,7 +160,7 @@ class Graph_SLAM:
             J = np.eye(len(prior.z))
             F = np.zeros((6*n, len(prior.z)))   
             e = np.zeros(len(prior.z))
-            idx_map = prior.idx_map["feature"].copy()
+            idx_map = prior.idx_map["features"].copy()
             for child in prior.children:
                 z = prior.z[0:6].copy()
                 z_bar = SE3.Log(prior.child.M.copy())
@@ -179,7 +179,7 @@ class Graph_SLAM:
                 F[idx:idx+6,i:i+6] = np.eye(6)
                 
             for factor in factors.values():
-                idx_map = factor.idx_map["feature"].copy()
+                idx_map = factor.idx_map["features"].copy()
                 omega = factor.omega.copy()
                 F = np.zeros((6*n, 12+factor.n*6))          #map from factor vector to graph vector
                 J = np.zeros((6+factor.n*6,12+factor.n*6)) #map from factor vector to observation
