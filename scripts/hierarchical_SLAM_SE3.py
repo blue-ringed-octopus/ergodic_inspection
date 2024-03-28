@@ -68,11 +68,15 @@ class Graph_SLAM:
             prior = self.prior_factor
             pose_idx_map=prior.idx_map["pose"].copy()
             feature_idx_map=prior.idx_map["features"].copy()
-            n = 6 * (len(pose_idx_map) + len(feature_idx_map))
-  
+            n = len(pose_idx_map) + len(feature_idx_map)
+                            
             for factor in node.factor.values():
+                if not factor.parent.id in factor.idx_map["pose"].keys():
+                    pose_idx_map[factor.parent.id] = n*6
+                    n += 1      
+                    
                 for id_  in factor.idx_map["pose"].keys():
-                    print(id_)
+                    print("factor id: ", id_)
                     if not id_ in pose_idx_map.keys():
                         pose_idx_map[id_] = n*6
                         n += 1
