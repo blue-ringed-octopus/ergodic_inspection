@@ -66,8 +66,8 @@ class Graph_SLAM:
         
         def marginalize(self, node):
             prior = self.prior_factor
-            pose_idx_map=prior.idx_map["pose"]
-            feature_idx_map=prior.idx_map["features"]
+            pose_idx_map=prior.idx_map["pose"].copy()
+            feature_idx_map=prior.idx_map["features"].copy()
             n = 6 * (len(pose_idx_map) + len(feature_idx_map))
             
             for factor in node.factor.values():
@@ -142,7 +142,7 @@ class Graph_SLAM:
                     
             prior.z = np.delete(z,idx_range, 0)
             prior.omega = inv(cov)
-                
+            prior.idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
             
         def prune_graph(self):
             for node in list(self.pose_nodes.values())[:-self.window]:
