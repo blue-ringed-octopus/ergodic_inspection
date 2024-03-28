@@ -66,23 +66,20 @@ class Graph_SLAM:
         
         def marginalize(self, node):
             prior = self.prior_factor
-            print("prior: ", prior.idx_map)
             pose_idx_map=prior.idx_map["pose"].copy()
             feature_idx_map=prior.idx_map["features"].copy()
             n = 6 * (len(pose_idx_map) + len(feature_idx_map))
-            print(pose_idx_map)
-            print(feature_idx_map)
+  
             for factor in node.factor.values():
                 for id_  in factor.idx_map["pose"].keys():
+                    print(id_)
                     if not id_ in pose_idx_map.keys():
                         pose_idx_map[id_] = n*6
                         n += 1
-                           
-            for factor in node.factor.values():
-               for id_ in factor.idx_map["features"].keys():
-                   if not id_ in feature_idx_map.keys():
-                       feature_idx_map[id_] = n*6
-                       n += 1
+                for id_ in factor.idx_map["features"].keys():
+                    if not id_ in feature_idx_map.keys():
+                        feature_idx_map[id_] = n*6
+                        n += 1
                     
             H=np.zeros((6*n,6*n)) 
             b = np.zeros(6*n)
