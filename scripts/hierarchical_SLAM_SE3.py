@@ -37,7 +37,7 @@ class Graph_SLAM:
                 self.pruned=False 
                 self.depth_img=None
                 self.factor={}
-                self.prior_factor = None
+               # self.prior_factor = None
                     
         class Factor:
             def __init__(self, id_, parent_node, children_nodes, feature_nodes, z, sigma, idx_map ):
@@ -65,7 +65,7 @@ class Graph_SLAM:
             self.current_factor_id = 0
         
         def marginalize(self, node):
-            prior = node.prior_factor
+            prior = self.prior_factor
             pose_idx_map=prior.idx_map["pose"]
             feature_idx_map=prior.idx_map["features"]
             n = 6 * (len(pose_idx_map) + len(feature_idx_map))
@@ -163,7 +163,6 @@ class Graph_SLAM:
             if node_type=="feature":
                 node=self.Node(feature_id,M, node_type)
                 self.feature_nodes[feature_id]=node
-            # self.nodes.append(node)                
             return self.current_pose_id
         
         def add_prior_factor(self, children_ids, features_ids, z, sigma, pose_idx_map ,feature_idx_map):
