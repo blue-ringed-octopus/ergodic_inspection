@@ -81,7 +81,7 @@ class Region:
 
 # params     
 num_trial = 1000
-cutoff=0.1
+cutoff=0.5
 regions=[]
 n=10
 num_regions=7
@@ -125,7 +125,7 @@ print(truth)
 steps_range=np.arange(1,10)
 #%% random
 error_random=[]
-steps=20
+steps=100
 for _ in range(num_trial):
 
     P_anomaly=np.ones(num_regions)*0.5
@@ -181,7 +181,6 @@ for _ in range(num_trial):
 #%% ergodic
 error_ergodic=[]
 for _ in range(num_trial):
-
     P_anomaly=np.ones(num_regions)*0.5
     P_normal=np.ones(num_regions)*0.5
     h=np.ones(num_regions)*bernoulli.entropy(0.5)
