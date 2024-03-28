@@ -88,7 +88,7 @@ class Graph_SLAM:
             H[0:len(prior.omega),0:len(prior.omega)] = prior.omega
             b[0:len(prior.omega)] = prior.omega@prior.z
             
-            
+            print(pose_idx_map)
             for id_, factor in node.factor.items():
                 J = np.zeros((12+factor.n, 12+factor.n))
                 idx_map = factor.idx_map["features"].copy()
