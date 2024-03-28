@@ -66,10 +66,12 @@ class Graph_SLAM:
         
         def marginalize(self, node):
             prior = self.prior_factor
+            print("prior: ", prior.idx_map)
             pose_idx_map=prior.idx_map["pose"].copy()
             feature_idx_map=prior.idx_map["features"].copy()
             n = 6 * (len(pose_idx_map) + len(feature_idx_map))
-            
+            print(pose_idx_map)
+            print(feature_idx_map)
             for factor in node.factor.values():
                 for id_  in factor.idx_map["pose"].keys():
                     if not id_ in pose_idx_map.keys():
@@ -172,12 +174,7 @@ class Graph_SLAM:
             children = [self.pose_nodes[id_] for id_ in children_ids]
             features = [self.feature_nodes[id_] for id_ in features_ids]
                       
-            factor = self.Factor(self.current_factor_id, None,children,features ,z,sigma, idx_map)
-            for child in children:
-                child.prior_factor = factor
-                
-            for feature in features:
-                feature.prior_factor = factor    
+            factor = self.Factor(self.current_factor_id, None,children,features ,z,sigma, idx_map)  
                 
             self.prior_factor = factor
                         
