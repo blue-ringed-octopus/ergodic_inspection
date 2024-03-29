@@ -55,6 +55,13 @@ class Graph_SLAM:
             def get_jacobian(self):
                 pass 
             
+            def prune(self):
+                self.parent.factor.pop(self.id)
+                for node in self.children:
+                    node.factor.pop(self.id)
+                for node in self.feature_nodes:
+                    node.factor.pop(self.id)
+                    
         def __init__(self):
             self.prior_factor = None
             self.pose_nodes={}
@@ -150,7 +157,8 @@ class Graph_SLAM:
         def prune_graph(self):
             for node in list(self.pose_nodes.values())[:-self.window]:
                 self.marginalize(node)
-                for id_ in node.factor.keys():
+                for id_, factor in node.factor.items():
+                    factor.prune()
                     self.factors.pop(id_)
                 self.pose_nodes.pop(node.id)
 
@@ -160,8 +168,7 @@ class Graph_SLAM:
                 node=self.Node(i,M, node_type)
                 self.pose_nodes[i]=node
                 self.current_pose_id = i
-                if len(self.pose_nodes)>=self.window:
-                    self.prune_graph()
+                self.prune_graph()
                     
             if node_type=="feature":
                 node=self.Node(feature_id,M, node_type)
@@ -224,14 +231,16 @@ class Graph_SLAM:
             
             #prior
             idx_map = prior.idx_map["features"].copy()
+            pose_idx_map = prior.idx_map["pose"].copy()
             omega = prior.omega.copy()
             for child in prior.children:
-                z = prior.z[0:6].copy()
+                i = pose_idx_map[child.id]
+                z = prior.z[i:i+6].copy()
                 z_bar = SE3.Log(child.M.copy())
-                e[0:6] = SE3.Log(SE3.Exp(z - z_bar))
-                J[0:6, 0:6] = SE3.Jr_inv(z_bar)
+                e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
+                J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
                 idx=self.pose_idx_map[child.id]
-                F[idx:idx+6,0:6] = np.eye(6)
+                F[idx:idx+6,i:i+6] = np.eye(6)
                 
             for feature in prior.feature_nodes:
                 i = idx_map[feature.id]
