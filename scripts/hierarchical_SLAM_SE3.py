@@ -91,9 +91,6 @@ class Graph_SLAM:
             H[0:len(prior.omega),0:len(prior.omega)] = prior.omega
             b[0:len(prior.omega)] = prior.omega@prior.z
             
-            print(pose_idx_map)
-            print(feature_idx_map)
-
             for id_, factor in node.factor.items():
                 J = np.zeros((12+factor.n, 12+factor.n))
                 idx_map = factor.idx_map["features"].copy()
@@ -132,9 +129,7 @@ class Graph_SLAM:
             
             node_idx = pose_idx_map[node.id]
             idx_range = np.arange(node_idx,node_idx+6)
-            cov = np.delete(H,idx_range, 0 )
-            cov = np.delete(cov,idx_range, 1 )
-            
+           
             pose_idx_map.pop(node.id)
             
             for key, idx in pose_idx_map.items():
@@ -146,6 +141,9 @@ class Graph_SLAM:
                     feature_idx_map[key] -=6
                     
             prior.z = np.delete(z,idx_range, 0)
+            cov = np.delete(H,idx_range, 0 )
+            cov = np.delete(cov,idx_range, 1 )
+        
             prior.omega = inv(cov)
             prior.idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
             
