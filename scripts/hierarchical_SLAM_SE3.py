@@ -55,10 +55,13 @@ class Graph_SLAM:
             def get_jacobian(self):
                 pass 
             
-            def prune(self):
-                self.parent.factor.pop(self.id)
+            def prune(self, node_id):
+                if not self.parent.id == node_id:
+                    self.parent.factor.pop(self.id)
                 for node in self.children:
-                    node.factor.pop(self.id)
+                    if not node.id == node_id:
+                        node.factor.pop(self.id)
+                        
                 for node in self.feature_nodes:
                     node.factor.pop(self.id)
                     
@@ -67,7 +70,7 @@ class Graph_SLAM:
             self.pose_nodes={}
             self.factors={}
             self.feature_nodes={}
-            self.window = 2
+            self.window = 1
             self.current_pose_id = -1
             self.current_factor_id = 0
         
@@ -152,13 +155,15 @@ class Graph_SLAM:
             cov = np.delete(cov,idx_range, 1 )
         
             prior.omega = inv(cov)
+            prior.omega = (prior.omega + prior.omega.T)/2
             prior.idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
+            self.prior_factor = prior
             
         def prune_graph(self):
             for node in list(self.pose_nodes.values())[:-self.window]:
                 self.marginalize(node)
                 for id_, factor in node.factor.items():
-                    factor.prune()
+                    factor.prune(node.id)
                     self.factors.pop(id_)
                 self.pose_nodes.pop(node.id)
 
@@ -168,7 +173,6 @@ class Graph_SLAM:
                 node=self.Node(i,M, node_type)
                 self.pose_nodes[i]=node
                 self.current_pose_id = i
-                self.prune_graph()
                     
             if node_type=="feature":
                 node=self.Node(feature_id,M, node_type)
@@ -232,6 +236,9 @@ class Graph_SLAM:
             #prior
             idx_map = prior.idx_map["features"].copy()
             pose_idx_map = prior.idx_map["pose"].copy()
+            print("prior features", idx_map)
+            print("prior pose", pose_idx_map)
+
             omega = prior.omega.copy()
             for child in prior.children:
                 i = pose_idx_map[child.id]
@@ -439,6 +446,7 @@ class Graph_SLAM:
             self.omega=H
             self._global_map_assemble()
             self.optimized=True
+            self.front_end.prune_graph()
 
         if np.isnan(self.M).any():
             rospy.signal_shutdown("nan")
