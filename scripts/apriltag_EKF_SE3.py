@@ -188,7 +188,7 @@ class EKF:
         print("reseting EKF")
         with self.lock:
             self.get_point_cloud()
-            self.cloud["pc"].transform(self.T_c_to_r)
+           # self.cloud["pc"].transform()
             self.id=node_id
             self.mu=[np.eye(4)]
             self.sigma=np.zeros((6,6))
@@ -204,7 +204,7 @@ class EKF:
         cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q), T)
         indx=~np.isnan(depth.reshape(-1))
         
-        cloud["points"]=cloud["points"][indx]
+        cloud["points"]=self.T_c_to_r@cloud["points"][indx]
         cloud["colors"]=cloud["colors"][indx]
 
         cloud_cov = cloud_cov[indx]
