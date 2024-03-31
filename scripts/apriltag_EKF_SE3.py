@@ -203,7 +203,10 @@ class EKF:
         T =  np.ascontiguousarray(self.K_inv.copy()@self.T_c_to_r[0:3,0:3].copy())
         cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q), T)
         indx=~np.isnan(depth.reshape(-1))
-        cloud=cloud.select_by_index(np.where(indx)[0])
+        
+        cloud["points"]=cloud["points"][indx]
+        cloud["colors"]=cloud["colors"][indx]
+
         cloud_cov = cloud_cov[indx]
         features = self.detect_apriltag(pc_img, depth)
         self.cloud = {"pc": cloud,"cov": cloud_cov, "depth": depth, "rgb": pc_img, "features": features}
