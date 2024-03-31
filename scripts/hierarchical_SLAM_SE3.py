@@ -135,7 +135,6 @@ class Graph_SLAM:
               
                 H += F@(J.T@factor.omega@J)@F.T
                 b += F@J.T@factor.omega@factor.z
-        
             cov = inv(H)
             z = cov@b
             
@@ -160,6 +159,8 @@ class Graph_SLAM:
             prior.omega = (prior.omega + prior.omega.T)/2
             prior.idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
             prior.children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
+            prior.feature_nodes = [self.feature_nodes[id_] for id_ in feature_idx_map.keys()]
+
             self.prior_factor = prior
             
         def prune(self):
