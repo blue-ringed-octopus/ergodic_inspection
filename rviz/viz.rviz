@@ -9,6 +9,7 @@ Panels:
         - /Image1
         - /PointCloud21
         - /MarkerArray1
+        - /MarkerArray1/Status1
         - /MarkerArray1/Namespaces1
         - /Marker1
       Splitter Ratio: 0.5
@@ -156,7 +157,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.009999999776482582
+      Size (m): 0.05000000074505806
       Style: Flat Squares
       Topic: /pc_rgb
       Unreliable: false
@@ -176,7 +177,7 @@ Visualization Manager:
       Marker Topic: /ref
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -207,7 +208,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 12.678016662597656
+      Distance: 9.602166175842285
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -215,17 +216,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -1.9760111570358276
-        Y: 2.652374029159546
-        Z: 0.8856865167617798
+        X: -0.8133636713027954
+        Y: 1.9685033559799194
+        Z: 2.2029590606689453
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5247963666915894
+      Pitch: 1.2947962284088135
       Target Frame: <Fixed Frame>
-      Yaw: 6.27266263961792
+      Yaw: 6.2681193351745605
     Saved: ~
 Window Geometry:
   Displays:
