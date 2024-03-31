@@ -20,6 +20,8 @@ from numpy.linalg import inv, norm, lstsq
 from copy import deepcopy
 import ros_numpy
 from Lie import SE3, SO3
+from copy import deepcopy
+import pickle
 
 np.float = np.float64 
 
@@ -55,12 +57,22 @@ class Graph_SLAM:
             def get_jacobian(self):
                 pass 
             
+            def prune(self, node_id):
+                if not self.parent.id == node_id:
+                    self.parent.factor.pop(self.id)
+                for node in self.children:
+                    if not node.id == node_id:
+                        node.factor.pop(self.id)
+                        
+                for node in self.feature_nodes:
+                    node.factor.pop(self.id)
+                    
         def __init__(self):
             self.prior_factor = None
             self.pose_nodes={}
             self.factors={}
             self.feature_nodes={}
-            self.window = 2
+            self.window = 1
             self.current_pose_id = -1
             self.current_factor_id = 0
         
@@ -91,9 +103,6 @@ class Graph_SLAM:
             H[0:len(prior.omega),0:len(prior.omega)] = prior.omega
             b[0:len(prior.omega)] = prior.omega@prior.z
             
-            print(pose_idx_map)
-            print(feature_idx_map)
-
             for id_, factor in node.factor.items():
                 J = np.zeros((12+factor.n, 12+factor.n))
                 idx_map = factor.idx_map["features"].copy()
@@ -132,9 +141,7 @@ class Graph_SLAM:
             
             node_idx = pose_idx_map[node.id]
             idx_range = np.arange(node_idx,node_idx+6)
-            cov = np.delete(H,idx_range, 0 )
-            cov = np.delete(cov,idx_range, 1 )
-            
+           
             pose_idx_map.pop(node.id)
             
             for key, idx in pose_idx_map.items():
@@ -146,13 +153,19 @@ class Graph_SLAM:
                     feature_idx_map[key] -=6
                     
             prior.z = np.delete(z,idx_range, 0)
+            cov = np.delete(H,idx_range, 0 )
+            cov = np.delete(cov,idx_range, 1 )
+        
             prior.omega = inv(cov)
+            prior.omega = (prior.omega + prior.omega.T)/2
             prior.idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
+            self.prior_factor = prior
             
         def prune_graph(self):
             for node in list(self.pose_nodes.values())[:-self.window]:
                 self.marginalize(node)
-                for id_ in node.factor.keys():
+                for id_, factor in node.factor.items():
+                    factor.prune(node.id)
                     self.factors.pop(id_)
                 self.pose_nodes.pop(node.id)
 
@@ -162,8 +175,6 @@ class Graph_SLAM:
                 node=self.Node(i,M, node_type)
                 self.pose_nodes[i]=node
                 self.current_pose_id = i
-                if len(self.pose_nodes)>=self.window:
-                    self.prune_graph()
                     
             if node_type=="feature":
                 node=self.Node(feature_id,M, node_type)
@@ -226,14 +237,19 @@ class Graph_SLAM:
             
             #prior
             idx_map = prior.idx_map["features"].copy()
+            pose_idx_map = prior.idx_map["pose"].copy()
+            print("prior features", idx_map)
+            print("prior pose", pose_idx_map)
+
             omega = prior.omega.copy()
             for child in prior.children:
-                z = prior.z[0:6].copy()
+                i = pose_idx_map[child.id]
+                z = prior.z[i:i+6].copy()
                 z_bar = SE3.Log(child.M.copy())
-                e[0:6] = SE3.Log(SE3.Exp(z - z_bar))
-                J[0:6, 0:6] = SE3.Jr_inv(z_bar)
+                e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
+                J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
                 idx=self.pose_idx_map[child.id]
-                F[idx:idx+6,0:6] = np.eye(6)
+                F[idx:idx+6,i:i+6] = np.eye(6)
                 
             for feature in prior.feature_nodes:
                 i = idx_map[feature.id]
@@ -326,7 +342,11 @@ class Graph_SLAM:
             self.update_nodes_cov(graph, inv(H))
             print("optimized")
             
-
+            with open('graph.pickle', 'wb') as handle:
+                graph_test = deepcopy(graph)
+                for node in graph_test.pose_nodes.values():
+                    node.local_map = None
+                pickle.dump(graph_test, handle)
             return H
             
     def __init__(self, M_init, ekf):
@@ -432,6 +452,7 @@ class Graph_SLAM:
             self.omega=H
             self._global_map_assemble()
             self.optimized=True
+            self.front_end.prune_graph()
 
         if np.isnan(self.M).any():
             rospy.signal_shutdown("nan")
