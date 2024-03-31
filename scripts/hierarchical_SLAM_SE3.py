@@ -208,8 +208,7 @@ class Graph_SLAM:
                 feature.factor[self.current_factor_id] = factor
                 
             self.current_factor_id += 1    
-        
-        
+            
     class Back_end:    
         def __init__(self):
             pass
@@ -264,7 +263,6 @@ class Graph_SLAM:
                 
             H+=F@(J.T@omega@J)@F.T
             b+=F@J.T@omega@e    
-            
             for factor in factors.values():
                 idx_map = factor.idx_map["features"].copy()
                 omega = factor.omega.copy()
@@ -301,7 +299,6 @@ class Graph_SLAM:
               
                 H+=F@(J.T@omega@J)@F.T
                 b+=F@J.T@omega@e
-    
             return H, b
         
         def linear_solve(self, A,b):
