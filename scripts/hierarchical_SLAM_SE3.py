@@ -20,6 +20,8 @@ from numpy.linalg import inv, norm, lstsq
 from copy import deepcopy
 import ros_numpy
 from Lie import SE3, SO3
+from copy import deepcopy
+import pickle
 
 np.float = np.float64 
 
@@ -340,7 +342,11 @@ class Graph_SLAM:
             self.update_nodes_cov(graph, inv(H))
             print("optimized")
             
-
+            with open('graph.pickle', 'wb') as handle:
+                graph_test = deepcopy(graph)
+                for node in graph_test.pose_nodes.values():
+                    node.local_map = None
+                pickle.dump(graph_test, handle)
             return H
             
     def __init__(self, M_init, ekf):
