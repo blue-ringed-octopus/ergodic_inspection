@@ -120,12 +120,12 @@ class Graph_SLAM:
                 
                 idx=pose_idx_map[factor.children[0].id]
                 F[idx:idx+6,6:12] = np.eye(6)
-
+    
                 for feature in factor.feature_nodes:
                     i = idx_map[feature.id]
                     M_f = feature.M.copy()
                     z_bar = SE3.Log(M_r1_inv@M_f)
-
+    
                     J[i:i+6, 0:6] = -SE3.Jl_inv(z_bar)@SE3.Jr(SE3.Log(M_r1))
                     J[i:i+6, 6+i:6+i+6] = SE3.Jr_inv(z_bar)@SE3.Jr(SE3.Log(M_f))
                     
@@ -159,16 +159,17 @@ class Graph_SLAM:
             prior.omega = inv(cov)
             prior.omega = (prior.omega + prior.omega.T)/2
             prior.idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
+            prior.children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
             self.prior_factor = prior
             
-        def prune_graph(self):
+        def prune(self):
             for node in list(self.pose_nodes.values())[:-self.window]:
                 self.marginalize(node)
                 for id_, factor in node.factor.items():
                     factor.prune(node.id)
                     self.factors.pop(id_)
                 self.pose_nodes.pop(node.id)
-
+    
         def add_node(self, M, node_type, feature_id=None, ):
             i=self.current_pose_id+1
             if node_type=="pose":
@@ -452,7 +453,7 @@ class Graph_SLAM:
             self.omega=H
             self._global_map_assemble()
             self.optimized=True
-            self.front_end.prune_graph()
+            self.front_end.prune()
 
         if np.isnan(self.M).any():
             rospy.signal_shutdown("nan")

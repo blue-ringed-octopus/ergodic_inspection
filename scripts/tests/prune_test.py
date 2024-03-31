@@ -5,17 +5,18 @@ Created on Sat Mar 30 18:14:24 2024
 @author: hibad
 """
 
-import sys
-sys.path.append('../')
+# import sys
+# sys.path.append('../')
 
 import numpy as np
 from scipy.linalg import solve_triangular
 from numpy import sin, cos
 from numpy.linalg import inv, norm, lstsq
-# from Lie import SE3, SE2, SO3, SO2
+from Lie import SE3, SE2, SO3, SO2
 import pickle 
 import matplotlib.pyplot as plt 
 import time 
+from copy import deepcopy
 np.set_printoptions(precision=2)
 
 class Graph_SLAM:
@@ -150,9 +151,10 @@ class Graph_SLAM:
             prior.omega = inv(cov)
             prior.omega = (prior.omega + prior.omega.T)/2
             prior.idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
+            prior.children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
             self.prior_factor = prior
             
-        def prune_graph(self):
+        def prune(self):
             for node in list(self.pose_nodes.values())[:-self.window]:
                 self.marginalize(node)
                 for id_, factor in node.factor.items():
@@ -200,3 +202,7 @@ class Graph_SLAM:
         
 with open('graph.pickle', 'rb') as handle:
     graph = pickle.load(handle)
+
+graph_prune = deepcopy(graph)
+graph_prune.prune()
+prior = graph_prune.prior_factor
