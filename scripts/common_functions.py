@@ -8,7 +8,6 @@ Created on Tue Nov 21 16:17:49 2023
 from numpy import cos,sin, arctan2
 import numpy as np
 import open3d as o3d
-import ros_numpy
 np.float = np.float64 
 
 def angle_wrapping(theta):

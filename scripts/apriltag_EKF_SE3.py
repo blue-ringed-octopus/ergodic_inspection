@@ -22,7 +22,7 @@ from geometry_msgs.msg import Pose, PoseWithCovarianceStamped
 np.float = np.float64 
 import ros_numpy
 import threading
-import open3d as o3d 
+# import open3d as o3d 
 from numba import cuda
 from Lie import SE3
 
@@ -101,10 +101,10 @@ def msg2pc(msg):
     rgb[:,0]=pc['r'].reshape(-1)
     rgb[:,1]=pc['g'].reshape(-1)
     rgb[:,2]=pc['b'].reshape(-1)
-    p=o3d.geometry.PointCloud()
-    p.points=o3d.utility.Vector3dVector(points)
-    p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
-
+    # p=o3d.geometry.PointCloud()
+    # p.points=o3d.utility.Vector3dVector(points)
+    # p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
+    p = {"points": points, "colors": np.asarray(rgb/255)}
     return p, depth, img.astype('uint8')    
 
 def draw_frame(img, tag, K):
