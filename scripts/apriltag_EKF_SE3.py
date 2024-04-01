@@ -22,7 +22,7 @@ from geometry_msgs.msg import Pose, PoseWithCovarianceStamped
 np.float = np.float64 
 import ros_numpy
 import threading
-# import open3d as o3d 
+import open3d as o3d 
 from numba import cuda
 from Lie import SE3
 
@@ -188,7 +188,6 @@ class EKF:
         print("reseting EKF")
         with self.lock:
             self.get_point_cloud()
-           # self.cloud["pc"].transform()
             self.id=node_id
             self.mu=[np.eye(4)]
             self.sigma=np.zeros((6,6))
@@ -204,9 +203,14 @@ class EKF:
         cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q), T)
         indx=~np.isnan(depth.reshape(-1))
         
-        cloud["points"]=self.T_c_to_r@cloud["points"][indx]
+        cloud["points"]=cloud["points"][indx]
         cloud["colors"]=cloud["colors"][indx]
 
+        p=o3d.geometry.PointCloud()
+        p.points=o3d.utility.Vector3dVector(cloud["points"])
+        p.transform(self.T_c_to_r)
+        cloud["points"]=np.asarray(p.points)
+        
         cloud_cov = cloud_cov[indx]
         features = self.detect_apriltag(pc_img, depth)
         self.cloud = {"pc": cloud,"cov": cloud_cov, "depth": depth, "rgb": pc_img, "features": features}
