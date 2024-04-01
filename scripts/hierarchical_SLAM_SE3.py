@@ -65,7 +65,7 @@ class Graph_SLAM:
             self.pose_nodes={}
             self.factors={}
             self.feature_nodes={}
-            self.window = 1
+            self.window = 10
             self.current_pose_id = -1
             self.current_factor_id = 0
         
@@ -336,8 +336,6 @@ class Graph_SLAM:
             
             with open('graph.pickle', 'wb') as handle:
                 graph_test = deepcopy(graph)
-                for node in graph_test.pose_nodes.values():
-                    node.local_map = None
                 pickle.dump(graph_test, handle)
             return H
             
