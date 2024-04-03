@@ -274,7 +274,7 @@ class EKF:
             Jx[6:,6:]=np.eye(Jx[6:,6:].shape[0])
             Ju=SE3.Jr(u)
             self.mu = mu
-            self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@(self.R+self.R@Rv)@(Ju.T)@F
+            self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@(self.R/2+self.R@Rv)@(Ju.T)@F
             self.odom_prev=odom
         
     def detect_apriltag(self,rgb, depth):
