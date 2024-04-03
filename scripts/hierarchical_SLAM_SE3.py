@@ -181,7 +181,7 @@ class Graph_SLAM:
             M = [m@SE3.Exp(z[6*i:6*i+6]) for i, m in enumerate(M)]
             z = np.concatenate([SE3.Log(m) for  m in M])
             # z = np.delete(z,idx_range, 0)
-            cov = np.delete(H,idx_range, 0 )
+            cov = np.delete(cov,idx_range, 0 )
             cov = np.delete(cov,idx_range, 1 )
             
             J = np.zeros(((len(z)), len(z)))
