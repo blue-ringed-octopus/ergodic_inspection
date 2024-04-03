@@ -76,41 +76,70 @@ class Graph_SLAM:
             n = len(pose_idx_map) + len(feature_idx_map)
                             
             for factor in node.factor.values():
-                if not factor.parent.id in factor.idx_map["pose"].keys():
+                if not factor.parent.id in prior.idx_map["pose"].keys():
                     pose_idx_map[factor.parent.id] = n*6
                     n += 1      
                     
                 for id_  in factor.idx_map["pose"].keys():
-                    print("factor id: ", id_)
                     if not id_ in pose_idx_map.keys():
                         pose_idx_map[id_] = n*6
                         n += 1
+                        
                 for id_ in factor.idx_map["features"].keys():
                     if not id_ in feature_idx_map.keys():
                         feature_idx_map[id_] = n*6
                         n += 1
-                    
+                        
+            M = np.zeros((n, 4,4))   
+            for id_ , i in pose_idx_map.items():
+                M[int(i/6)] = self.pose_nodes[id_].M.copy()
+                
+            for id_ , i in feature_idx_map.items():
+                M[int(i/6)] = self.feature_nodes[id_].M.copy()
+                
             H=np.zeros((6*n,6*n)) 
             b = np.zeros(6*n)
             
-            H[0:len(prior.omega),0:len(prior.omega)] = prior.omega
-            b[0:len(prior.omega)] = prior.omega@prior.z
-            
+            e = np.zeros(len(prior.z))
+            J = np.zeros((len(e), len(e)))
+            for child in prior.children:
+                
+                i = pose_idx_map[child.id]
+                z = prior.z[i:i+6].copy()
+                z_bar = SE3.Log(child.M.copy())
+                e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
+                J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
+                
+            for feature in prior.feature_nodes:
+                i = feature_idx_map[feature.id]
+                z = prior.z[i:i+6].copy()
+                z_bar = SE3.Log(feature.M.copy())
+                J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
+                e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
+                
+            H[0:len(e), 0:len(e)]+=(J.T@prior.omega@J)
+            b[0:len(e)]+=J.T@prior.omega@e 
+            # H[0:len(prior.omega),0:len(prior.omega)] = prior.omega
+            # b[0:len(prior.omega)] = prior.omega@prior.z
+
             for id_, factor in node.factor.items():
                 J = np.zeros((12+factor.n, 12+factor.n))
                 idx_map = factor.idx_map["features"].copy()
                 F = np.zeros((6*n, 12+factor.n*6))          #map from factor vector to graph vector
                 J = np.zeros((6+factor.n*6,12+factor.n*6)) #map from factor vector to observation
-                 
+                e = np.zeros(6+factor.n*6)
+
                 idx=pose_idx_map[factor.parent.id]
                 F[idx:idx+6,0:6] = np.eye(6)
                 M_r1 = factor.parent.M.copy()
                 M_r1_inv = inv(M_r1)
                 M_r2 = factor.children[0].M.copy()
                 z_bar = SE3.Log(M_r1_inv@M_r2)
-                J[0:6,0:6] = -SE3.Jl_inv(z_bar)@SE3.Jr(SE3.Log(M_r1))
-                J[0:6, 6:12] = SE3.Jr_inv(z_bar)@SE3.Jr(SE3.Log(M_r2))
-                
+                J[0:6,0:6] = -SE3.Jl_inv(z_bar)#@SE3.Jr(SE3.Log(M_r1))
+                J[0:6, 6:12] = SE3.Jr_inv(z_bar)#@SE3.Jr(SE3.Log(M_r2))
+                e[0:6] = factor.z[0:6] - z_bar
+                # J[0:6,0:6] = -SE3.Jl_inv(np.zeros(6))
+                # J[0:6, 6:12] = SE3.Jr_inv(np.zeros(6))
                 idx=pose_idx_map[factor.children[0].id]
                 F[idx:idx+6,6:12] = np.eye(6)
     
@@ -119,15 +148,19 @@ class Graph_SLAM:
                     M_f = feature.M.copy()
                     z_bar = SE3.Log(M_r1_inv@M_f)
     
-                    J[i:i+6, 0:6] = -SE3.Jl_inv(z_bar)@SE3.Jr(SE3.Log(M_r1))
-                    J[i:i+6, 6+i:6+i+6] = SE3.Jr_inv(z_bar)@SE3.Jr(SE3.Log(M_f))
-                    
+                    J[i:i+6, 0:6] = -SE3.Jl_inv(z_bar)#@SE3.Jr(SE3.Log(M_r1))
+                    J[i:i+6, 6+i:6+i+6] = SE3.Jr_inv(z_bar)#@SE3.Jr(SE3.Log(M_f))
+                    e[i:i+6] = factor.z[i:i+6] - z_bar
+
+                    # J[i:i+6, 0:6] = -SE3.Jl_inv(np.zeros(6))
+                    # J[i:i+6, 6+i:6+i+6] = SE3.Jr_inv(np.zeros(6))
                     idx = feature_idx_map[feature.id]
                     F[idx:idx+6,6+i:6+i+6] = np.eye(6)
             
               
                 H += F@(J.T@factor.omega@J)@F.T
-                b += F@J.T@factor.omega@factor.z
+                # b += F@J.T@factor.omega@factor.z
+                b += F@J.T@factor.omega@e
             cov = inv(H)
             z = cov@b
             
@@ -143,11 +176,21 @@ class Graph_SLAM:
             for key, idx in feature_idx_map.items():
                 if idx > node_idx:
                     feature_idx_map[key] -=6
-                    
-            prior.z = np.delete(z,idx_range, 0)
+            
+            M = np.delete(M,int(node_idx/6),0) 
+            M = [m@SE3.Exp(z[6*i:6*i+6]) for i, m in enumerate(M)]
+            z = np.concatenate([SE3.Log(m) for  m in M])
+            # z = np.delete(z,idx_range, 0)
             cov = np.delete(H,idx_range, 0 )
             cov = np.delete(cov,idx_range, 1 )
-        
+            
+            J = np.zeros(((len(z)), len(z)))
+            
+            for i, m in enumerate(M):
+                J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(z[6*i:6*i+6])
+                
+            cov = J@cov@J.T
+            prior.z = z
             prior.omega = inv(cov)
             prior.omega = (prior.omega + prior.omega.T)/2
             prior.idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
@@ -156,8 +199,8 @@ class Graph_SLAM:
 
             self.prior_factor = prior
             
-        def prune(self):
-            for node in list(self.pose_nodes.values())[:-self.window]:
+        def prune(self, window):
+            for node in list(self.pose_nodes.values())[:-window]:
                 self.marginalize(node)
                 for id_, factor in node.factor.items():
                     factor.prune(node.id)
@@ -232,8 +275,6 @@ class Graph_SLAM:
             #prior
             idx_map = prior.idx_map["features"].copy()
             pose_idx_map = prior.idx_map["pose"].copy()
-            print("prior features", idx_map)
-            print("prior pose", pose_idx_map)
 
             omega = prior.omega.copy()
             for child in prior.children:
@@ -334,9 +375,9 @@ class Graph_SLAM:
             self.update_nodes_cov(graph, inv(H))
             print("optimized")
             
-            with open('graph.pickle', 'wb') as handle:
-                graph_test = deepcopy(graph)
-                pickle.dump(graph_test, handle)
+            # with open('graph.pickle', 'wb') as handle:
+            #     graph_test = deepcopy(graph)
+            #     pickle.dump(graph_test, handle)
             return H
             
     def __init__(self, M_init, ekf):
@@ -448,7 +489,7 @@ class Graph_SLAM:
             self.omega=H
             self._global_map_assemble()
             self.optimized=True
-            self.front_end.prune()
+            self.front_end.prune(2)
 
         return self.optimized
 
