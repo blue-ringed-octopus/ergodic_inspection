@@ -489,7 +489,7 @@ class Graph_SLAM:
             self.omega=H
             self._global_map_assemble()
             self.optimized=True
-            self.front_end.prune(10)
+            self.front_end.prune(2)
 
         return self.optimized
 
