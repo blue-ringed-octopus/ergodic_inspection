@@ -101,7 +101,7 @@ class Graph_SLAM:
                 
             H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map})   
             dx=Graph_SLAM.Back_end.linear_solve(H,b)
-            while np.max(np.abs(dx))>0.00001 and i<100:
+            while np.max(np.abs(dx))>0.0001 and i<20:
                 print("step: ", i)
                 H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map})   
                 dx=Graph_SLAM.Back_end.linear_solve(H,b)
