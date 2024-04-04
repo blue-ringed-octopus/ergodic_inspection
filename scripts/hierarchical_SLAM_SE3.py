@@ -70,6 +70,7 @@ class Graph_SLAM:
             self.current_factor_id = 0
         
         def marginalize(self, node):
+            print("marginalize node", node.id)
             prior = self.prior_factor
             pose_idx_map=prior.idx_map["pose"].copy()
             feature_idx_map=prior.idx_map["features"].copy()
@@ -77,110 +78,52 @@ class Graph_SLAM:
                             
             for factor in node.factor.values():
                 if not factor.parent.id in prior.idx_map["pose"].keys():
-                    pose_idx_map[factor.parent.id] = n*6
+                    pose_idx_map[factor.parent.id] = n
                     n += 1      
                     
                 for id_  in factor.idx_map["pose"].keys():
                     if not id_ in pose_idx_map.keys():
-                        pose_idx_map[id_] = n*6
+                        pose_idx_map[id_] = n
                         n += 1
                         
                 for id_ in factor.idx_map["features"].keys():
                     if not id_ in feature_idx_map.keys():
-                        feature_idx_map[id_] = n*6
+                        feature_idx_map[id_] = n
                         n += 1
                         
             M = np.zeros((n, 4,4))   
             for id_ , i in pose_idx_map.items():
-                M[int(i/6)] = self.pose_nodes[id_].M.copy()
+                M[i] = self.pose_nodes[id_].M.copy()
                 
             for id_ , i in feature_idx_map.items():
-                M[int(i/6)] = self.feature_nodes[id_].M.copy()
+                M[i] = self.feature_nodes[id_].M.copy()
                 
-            H=np.zeros((6*n,6*n)) 
-            b = np.zeros(6*n)
-            
-            e = np.zeros(len(prior.z))
-            J = np.zeros((len(e), len(e)))
-            for child in prior.children:
                 
-                i = pose_idx_map[child.id]
-                z = prior.z[i:i+6].copy()
-                z_bar = SE3.Log(child.M.copy())
-                e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
-                J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
+            H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map})   
+            dx=Graph_SLAM.Back_end.linear_solve(H,b)
+            while np.max(np.abs(dx))>0.00001 and i<100:
+                print("step: ", i)
+                H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map})   
+                dx=Graph_SLAM.Back_end.linear_solve(H,b)
+                M = [m@SE3.Exp(dx[6*i:6*i+6]) for i, m in enumerate(M)]
+                i+=1
                 
-            for feature in prior.feature_nodes:
-                i = feature_idx_map[feature.id]
-                z = prior.z[i:i+6].copy()
-                z_bar = SE3.Log(feature.M.copy())
-                J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
-                e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
-                
-            H[0:len(e), 0:len(e)]+=(J.T@prior.omega@J)
-            b[0:len(e)]+=J.T@prior.omega@e 
-            # H[0:len(prior.omega),0:len(prior.omega)] = prior.omega
-            # b[0:len(prior.omega)] = prior.omega@prior.z
-
-            for id_, factor in node.factor.items():
-                J = np.zeros((12+factor.n, 12+factor.n))
-                idx_map = factor.idx_map["features"].copy()
-                F = np.zeros((6*n, 12+factor.n*6))          #map from factor vector to graph vector
-                J = np.zeros((6+factor.n*6,12+factor.n*6)) #map from factor vector to observation
-                e = np.zeros(6+factor.n*6)
-
-                idx=pose_idx_map[factor.parent.id]
-                F[idx:idx+6,0:6] = np.eye(6)
-                M_r1 = factor.parent.M.copy()
-                M_r1_inv = inv(M_r1)
-                M_r2 = factor.children[0].M.copy()
-                z_bar = SE3.Log(M_r1_inv@M_r2)
-                J[0:6,0:6] = -SE3.Jl_inv(z_bar)#@SE3.Jr(SE3.Log(M_r1))
-                J[0:6, 6:12] = SE3.Jr_inv(z_bar)#@SE3.Jr(SE3.Log(M_r2))
-                e[0:6] = factor.z[0:6] - z_bar
-                # J[0:6,0:6] = -SE3.Jl_inv(np.zeros(6))
-                # J[0:6, 6:12] = SE3.Jr_inv(np.zeros(6))
-                idx=pose_idx_map[factor.children[0].id]
-                F[idx:idx+6,6:12] = np.eye(6)
-    
-                for feature in factor.feature_nodes:
-                    i = idx_map[feature.id]
-                    M_f = feature.M.copy()
-                    z_bar = SE3.Log(M_r1_inv@M_f)
-    
-                    J[i:i+6, 0:6] = -SE3.Jl_inv(z_bar)#@SE3.Jr(SE3.Log(M_r1))
-                    J[i:i+6, 6+i:6+i+6] = SE3.Jr_inv(z_bar)#@SE3.Jr(SE3.Log(M_f))
-                    e[i:i+6] = factor.z[i:i+6] - z_bar
-
-                    # J[i:i+6, 0:6] = -SE3.Jl_inv(np.zeros(6))
-                    # J[i:i+6, 6+i:6+i+6] = SE3.Jr_inv(np.zeros(6))
-                    idx = feature_idx_map[feature.id]
-                    F[idx:idx+6,6+i:6+i+6] = np.eye(6)
-            
-              
-                H += F@(J.T@factor.omega@J)@F.T
-                # b += F@J.T@factor.omega@factor.z
-                b += F@J.T@factor.omega@e
             cov = inv(H)
-            z = cov@b
-            
-            node_idx = pose_idx_map[node.id]
-            idx_range = np.arange(node_idx,node_idx+6)
            
+            node_idx = pose_idx_map[node.id]
+            idx_range = np.arange(6*node_idx,6*node_idx+6)
             pose_idx_map.pop(node.id)
             
             for key, idx in pose_idx_map.items():
                 if idx > node_idx:
-                    pose_idx_map[key] -=6
-                    
+                    pose_idx_map[key] -=1
+                
             for key, idx in feature_idx_map.items():
                 if idx > node_idx:
-                    feature_idx_map[key] -=6
-            
-            M = np.delete(M,int(node_idx/6),0) 
-            M = [m@SE3.Exp(z[6*i:6*i+6]) for i, m in enumerate(M)]
+                    feature_idx_map[key] -=1
+
+            M = np.delete(M,node_idx,0) 
             z = np.concatenate([SE3.Log(m) for  m in M])
-            # z = np.delete(z,idx_range, 0)
             cov = np.delete(cov,idx_range, 0 )
             cov = np.delete(cov,idx_range, 1 )
             
@@ -188,7 +131,7 @@ class Graph_SLAM:
             
             for i, m in enumerate(M):
                 J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(z[6*i:6*i+6])
-                
+            
             cov = J@cov@J.T
             prior.z = z
             prior.omega = inv(cov)
@@ -249,93 +192,103 @@ class Graph_SLAM:
         def __init__(self):
             pass
         
-        def node_to_vector(self, graph):
-            self.pose_idx_map={}
-            self.feature_idx_map={}
+        @staticmethod
+        def node_to_vector(graph):
+            pose_idx_map={}
+            feature_idx_map={}
             n = 0 
+            M = []
             for node_id, node in graph.pose_nodes.items():
                 if not node.pruned:
-                    self.pose_idx_map[node_id]=n*6
+                    M.append(node.M.copy())
+                    pose_idx_map[node_id]=n
                     n+=1
                     
             for node_id,node in graph.feature_nodes.items():
-                self.feature_idx_map[node_id]=n*6
+                M.append(node.M.copy())
+                feature_idx_map[node_id]=n
                 n+=1
     
-            return n
+            return M, {"pose":pose_idx_map, "features": feature_idx_map }
         
-        def linearize(self,n, prior, factors):
+        @staticmethod
+        def linearize(M, prior, factors, global_idx_map):
+            n = len(M)
             H = np.zeros((6*n, 6*n))
             b = np.zeros(6*n)
             
+            #prior
             J = np.eye(len(prior.z))
             F = np.zeros((6*n, len(prior.z)))   
             e = np.zeros(len(prior.z))
-            
-            #prior
-            idx_map = prior.idx_map["features"].copy()
-            pose_idx_map = prior.idx_map["pose"].copy()
+            prior_idx_map = prior.idx_map.copy()
 
             omega = prior.omega.copy()
             for child in prior.children:
-                i = pose_idx_map[child.id]
+                i = 6*prior_idx_map["pose"][child.id]
+                idx = global_idx_map["pose"][child.id]
                 z = prior.z[i:i+6].copy()
-                z_bar = SE3.Log(child.M.copy())
+                z_bar = SE3.Log(M[idx])
                 e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
                 J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
-                idx=self.pose_idx_map[child.id]
-                F[idx:idx+6,i:i+6] = np.eye(6)
+                F[6*idx:6*idx+6,i:i+6] = np.eye(6)
                 
             for feature in prior.feature_nodes:
-                i = idx_map[feature.id]
+                idx = global_idx_map["features"][feature.id]
+                i = 6*prior_idx_map["features"][feature.id]
+                F[6*idx:6*idx+6,i:i+6] = np.eye(6)
+
                 z = prior.z[i:i+6].copy()
-                z_bar = SE3.Log(feature.M.copy())
+                z_bar = SE3.Log(M[idx])
                 J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
                 e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
-                idx=self.feature_idx_map[feature.id]
-                F[idx:idx+6,i:i+6] = np.eye(6)
                 
             H+=F@(J.T@omega@J)@F.T
             b+=F@J.T@omega@e    
             for factor in factors.values():
-                idx_map = factor.idx_map["features"].copy()
+                factor_idx_map = factor.idx_map["features"].copy()
                 omega = factor.omega.copy()
                 F = np.zeros((6*n, 12+factor.n*6))          #map from factor vector to graph vector
                 J = np.zeros((6+factor.n*6,12+factor.n*6)) #map from factor vector to observation
                 e = np.zeros(len(factor.z)) #difference between observation and expected observation
                  
-                idx=self.pose_idx_map[factor.parent.id]
-                F[idx:idx+6,0:6] = np.eye(6)
+                idx = global_idx_map['pose'][factor.parent.id]
+                F[6*idx:6*idx+6,0:6] = np.eye(6)
                 z = factor.z[0:6].copy()
-                M_r1 = factor.parent.M.copy()
+                M_r1 = M[idx]
                 M_r1_inv = inv(M_r1)
-                M_r2 = factor.children[0].M.copy()
+                
+                idx = global_idx_map['pose'][factor.children[0].id]
+                F[6*idx:6*idx+6,6:12] = np.eye(6)
+                M_r2 = M[idx]
+                
                 z_bar = SE3.Log(M_r1_inv@M_r2)
                 J[0:6,0:6] = -SE3.Jl_inv(z_bar)
                 J[0:6, 6:12] = SE3.Jr_inv(z_bar)
                 e[0:6] = SE3.Log(SE3.Exp(z - z_bar))
                 
-                idx=self.pose_idx_map[factor.children[0].id]
-                F[idx:idx+6,6:12] = np.eye(6)
-
+                
                 for feature in factor.feature_nodes:
-                    i = idx_map[feature.id]
+                    idx = global_idx_map['features'][feature.id]
+                    i = factor_idx_map[feature.id]
+                    F[6*idx:6*idx+6,6+i:6+i+6] = np.eye(6)
+
                     z = factor.z[i:i+6].copy()
-                    z_bar = SE3.Log(M_r1_inv@feature.M.copy())
+                    z_bar = SE3.Log(M_r1_inv@M[idx])
 
                     J[i:i+6, 0:6] = -SE3.Jl_inv(z_bar)
                     J[i:i+6, 6+i:6+i+6] = SE3.Jr_inv(z_bar)
                     
                     e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
-                    idx=self.feature_idx_map[feature.id]
-                    F[idx:idx+6,6+i:6+i+6] = np.eye(6)
+                    
             
               
                 H+=F@(J.T@omega@J)@F.T
                 b+=F@J.T@omega@e
             return H, b
         
-        def linear_solve(self, A,b):
+        @staticmethod
+        def linear_solve( A,b):
             # A=(A+A.T)/2
             # L=np.linalg.cholesky(A)
             # y=solve_triangular(L,b, lower=True)
@@ -343,36 +296,41 @@ class Graph_SLAM:
             # return solve_triangular(L.T, y)
             return lstsq(A,b)[0]
         
-        def update_nodes_pose(self, graph,dx):
-            for node_id, idx in self.pose_idx_map.items():
-                graph.pose_nodes[node_id].M = graph.pose_nodes[node_id].M@SE3.Exp(dx[idx:idx+6])
+        # def update_nodes_pose(self, graph,dx):
+        #     for node_id, idx in self.pose_idx_map.items():
+        #         graph.pose_nodes[node_id].M = graph.pose_nodes[node_id].M@SE3.Exp(dx[idx:idx+6])
       
-            for node_id, idx in self.feature_idx_map.items():
-                graph.feature_nodes[node_id].M = graph.feature_nodes[node_id].M@SE3.Exp(dx[idx:idx+6])
+        #     for node_id, idx in self.feature_idx_map.items():
+        #         graph.feature_nodes[node_id].M = graph.feature_nodes[node_id].M@SE3.Exp(dx[idx:idx+6])
     
-        def update_nodes_cov(self, graph,cov):
-            for node_id, idx in self.pose_idx_map.items():
-                graph.pose_nodes[node_id].cov = cov[idx:idx+6,idx:idx+6].copy()
-            for node_id, idx in self.feature_idx_map.items():    
-                graph.feature_nodes[node_id].cov = cov[idx:idx+6,idx:idx+6].copy()
+        def update_nodes(self, graph, M,cov, idx_map):
+            for node_id, idx in idx_map["pose"].items():
+                graph.pose_nodes[node_id].M = M[idx]
+                graph.pose_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
+            for node_id, idx in idx_map["features"].items():  
+                graph.feature_nodes[node_id].M = M[idx]
+                graph.feature_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
 
         def optimize(self, graph):
             # with open('graph.pickle', 'wb') as handle:
             #     pickle.dump(graph, handle)
             print("optimizing graph")
-            n = self.node_to_vector(graph)
-            H,b=self.linearize(n, graph.prior_factor , graph.factors)
+            M, idx_map = self.node_to_vector(graph)
+            H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map)
             dx=self.linear_solve(H,b)
             i=0
-            self.update_nodes_pose(graph, 1*dx.copy())
-            while np.max(np.abs(dx))>0.01 and i<10:
-                print(i)
-                H,b=self.linearize(n, graph.prior_factor , graph.factors)
+            M = [m@SE3.Exp(dx[6*i:6*i+6]) for i, m in enumerate(M)]
+
+            # self.update_nodes_pose(graph, 1*dx.copy())
+            while np.max(np.abs(dx))>0.001 and i<10:
+                print("step: ", i)
+                H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map)
                 dx=self.linear_solve(H,b)
-                self.update_nodes_pose(graph, 1*dx.copy())
+                # self.update_nodes_pose(graph, 1*dx.copy())
+                M = [m@SE3.Exp(dx[6*i:6*i+6]) for i, m in enumerate(M)]
                 i+=1
     
-            self.update_nodes_cov(graph, inv(H))
+            self.update_nodes(graph, M, inv(H), idx_map)
             print("optimized")
             
             # with open('graph.pickle', 'wb') as handle:

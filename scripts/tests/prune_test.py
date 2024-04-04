@@ -27,7 +27,7 @@ graph_prune = deepcopy(graph)
 
 optimizer = Graph_SLAM.Back_end()
 optimizer.optimize(graph_prune)
-graph_prune.prune(1)
+graph_prune.prune(2)
 optimizer.optimize(graph_prune)
 
 #%%
@@ -37,13 +37,13 @@ plt.plot(0, 0, "s", color=(0.5,0.5,0.5, 0.5), markersize = 20)
 
 for child in prior.children:
     i = prior.idx_map["pose"][child.id]
-    M2 = SE3.Exp(prior.z[i:i+6])
+    M2 = SE3.Exp(prior.z[6*i:6*i+6])
     plt.plot(M2[0,3], M2[1,3], "o", color=(0.5,0.5,0.5, 0.5), markersize = 20)
     plt.plot((0, M2[0,3]), (0, M2[1,3]), "--", color=(0.5,0.5,0.5))
 
 for feature in prior.feature_nodes:
     i = prior.idx_map["features"][feature.id]
-    M2 = SE3.Exp(prior.z[i:i+6])
+    M2 = SE3.Exp(prior.z[6*i:6*i+6])
     plt.plot(M2[0,3], M2[1,3], "o", color=(0.5,0.5,0.5, 0.5), markersize = 20)
     plt.plot((0, M2[0,3]), (0, M2[1,3]), "--", color=(0.5,0.5,0.5))
  
