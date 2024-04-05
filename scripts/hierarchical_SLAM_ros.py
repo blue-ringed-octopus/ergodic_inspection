@@ -43,42 +43,48 @@ def pc_to_msg(pc):
     return pc_msg
     
 def get_pose_markers(nodes):
-      P=[]
+      markers=[]
       for node in nodes.values():
-          
+          marker=Marker()
           M=node.M
-          p=Point()
-          p.x=M[0,3]
-          p.y=M[1,3]
-          p.z=0
+          p=Pose()
+          p.position.x = M[0,3]
+          p.position.y = M[1,3]
+          p.position.z = M[2,3]
           
-          P.append(p)
+          q=tf.transformations.quaternion_from_matrix(M)
+          p.orientation.x = q[0]
+          p.orientation.y = q[1]
+          p.orientation.z = q[2]
+          p.orientation.w = q[3]
+          
 
-      marker = Marker()
-      marker.type = 7
-      marker.id = 0
-
-      marker.header.frame_id = "map"
-      marker.header.stamp = rospy.Time.now()
-      
-      marker.pose.orientation.x=0
-      marker.pose.orientation.y=0
-      marker.pose.orientation.z=0
-      marker.pose.orientation.w=1
-
-      
-      marker.scale.x = 0.1
-      marker.scale.y = 0.1
-      marker.scale.z = 0.1
-      
-      # Set the color
-      marker.color.r = 1.0
-      marker.color.g = 0.0
-      marker.color.b = 0.0
-      marker.color.a = 1.0
-      
-      marker.points = P
-      return marker
+          marker = Marker()
+          marker.type = 0
+          marker.id = 200 + node.id
+          
+          marker.header.frame_id = "map"
+          marker.header.stamp = rospy.Time.now()
+          
+          marker.pose.orientation.x=0
+          marker.pose.orientation.y=0
+          marker.pose.orientation.z=0
+          marker.pose.orientation.w=1
+          
+          
+          marker.scale.x = 0.25
+          marker.scale.y = 0.05
+          marker.scale.z = 0.05
+          
+          # Set the color
+          marker.color.r = 0.0
+          marker.color.g = 1.0
+          marker.color.b = 1.0
+          marker.color.a = 1.0
+          marker.pose = p
+          markers.append(marker)
+          
+      return markers
   
 def get_landmark_markers(nodes):
     markers=[]
@@ -100,7 +106,7 @@ def get_landmark_markers(nodes):
     
         marker = Marker()
         marker.type = 0
-        marker.id = 200+ node.id
+        marker.id = node.id
         
         marker.header.frame_id = "map"
         marker.header.stamp = rospy.Time.now()
@@ -116,9 +122,9 @@ def get_landmark_markers(nodes):
         marker.scale.z = 0.05
         
         # Set the color
-        marker.color.r = 1.0
+        marker.color.r = 0.0
         marker.color.g = 0.0
-        marker.color.b = 0.0
+        marker.color.b = 1.0
         marker.color.a = 1.0
         
         marker.pose = p
@@ -177,10 +183,10 @@ def plot_graph(graph, pub):
     feature_markers = get_landmark_markers(graph.feature_nodes)
   #  factor_marker= get_factor_markers(graph)
     
-    feature_markers.append(pose_marker)
+    markers = feature_markers+pose_marker
  #   feature_markers.append(factor_marker)
 
-    markerArray.markers=feature_markers
+    markerArray.markers=markers
     pub.publish(markerArray)
     
     

@@ -105,7 +105,7 @@ class Graph_SLAM:
                 print("step: ", i)
                 H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map})   
                 dx=Graph_SLAM.Back_end.linear_solve(H,b)
-                M = [m@SE3.Exp(dx[6*i:6*i+6]) for i, m in enumerate(M)]
+                M = [m@SE3.Exp(dx[6*j:6*j+6]) for j, m in enumerate(M)]
                 i+=1
                 
             cov = inv(H)
@@ -270,7 +270,7 @@ class Graph_SLAM:
                 
                 for feature in factor.feature_nodes:
                     idx = global_idx_map['features'][feature.id]
-                    i = factor_idx_map[feature.id]
+                    i = 6*factor_idx_map[feature.id]
                     F[6*idx:6*idx+6,6+i:6+i+6] = np.eye(6)
 
                     z = factor.z[i:i+6].copy()
@@ -327,7 +327,7 @@ class Graph_SLAM:
                 H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map)
                 dx=self.linear_solve(H,b)
                 # self.update_nodes_pose(graph, 1*dx.copy())
-                M = [m@SE3.Exp(dx[6*i:6*i+6]) for i, m in enumerate(M)]
+                M = [m@SE3.Exp(dx[6*j:6*j+6]) for j, m in enumerate(M)]
                 i+=1
     
             self.update_nodes(graph, M, inv(H), idx_map)
@@ -359,8 +359,8 @@ class Graph_SLAM:
 
         
         idx_map=self.ekf.landmarks.copy()
-        for key, value in idx_map.items():
-            idx_map[key] = value*6
+        # for key, value in idx_map.items():
+        #     idx_map[key] = value*6
         feature_node_id = idx_map.keys()
         z= np.zeros(6*len(mu))
         J = np.zeros((6*len(mu), 6*len(mu)))
@@ -383,27 +383,28 @@ class Graph_SLAM:
         for node in self.front_end.pose_nodes.values():
             if not node.local_map == None and not node.pruned:
                 if( len(node.local_map["features"])) == 0:
-                   dM = node.M.copy() 
+                   M = node.M.copy() 
                 else:
                     dm = np.zeros(6)
                     for feature_id, feature in node.local_map["features"].items():
                         dm  += SE3.Log(self.front_end.feature_nodes[feature_id].M.copy()@inv(feature['M']))
                     dm /= len(node.local_map["features"])
-                    dM = SE3.Exp(dm)
+                    M = SE3.Exp(dm)
                     
-                cloud = node.local_map['pc'].copy()
-                p = o3d.geometry.PointCloud()
-                p.points=o3d.utility.Vector3dVector(cloud["points"])
-             #   p.colors=o3d.utility.Vector3dVector(cloud["colors"])
-                p=p.transform(dM)
-                points.append(np.array(p.points))
-             #   colors.append(np.array(p.colors))
-                colors.append(cloud["colors"])
-        points=np.concatenate(points)  
-        colors=np.concatenate(colors)  
-
-        self.global_map = np2pc(points, colors)
-        self.global_map = self.global_map.voxel_down_sample(0.05)
+                    cloud = node.local_map['pc'].copy()
+                    p = o3d.geometry.PointCloud()
+                    p.points=o3d.utility.Vector3dVector(cloud["points"])
+                 #   p.colors=o3d.utility.Vector3dVector(cloud["colors"])
+                    p=p.transform(M)
+                    points.append(np.array(p.points))
+                 #   colors.append(np.array(p.colors))
+                    colors.append(cloud["colors"])
+        if len(points)>0: 
+            points=np.concatenate(points)  
+            colors=np.concatenate(colors)  
+    
+            self.global_map = np2pc(points, colors)
+            self.global_map = self.global_map.voxel_down_sample(0.05)
         
     def update_costmap(self):
         # image = cv2.flip(cv2.imread("map_actual.png"),0)
@@ -447,7 +448,7 @@ class Graph_SLAM:
             self.omega=H
             self._global_map_assemble()
             self.optimized=True
-            self.front_end.prune(5)
+            self.front_end.prune(10)
 
         return self.optimized
 
