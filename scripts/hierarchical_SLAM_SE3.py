@@ -101,6 +101,8 @@ class Graph_SLAM:
                 
             H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map})   
             dx=Graph_SLAM.Back_end.linear_solve(H,b)
+            M = [m@SE3.Exp(dx[6*j:6*j+6]) for j, m in enumerate(M)]
+            i = 0
             while np.max(np.abs(dx))>0.0001 and i<20:
                 print("step: ", i)
                 H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map})   
@@ -319,7 +321,7 @@ class Graph_SLAM:
             H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map)
             dx=self.linear_solve(H,b)
             i=0
-            M = [m@SE3.Exp(dx[6*i:6*i+6]) for i, m in enumerate(M)]
+            M = [m@SE3.Exp(dx[6*j:6*j+6]) for j, m in enumerate(M)]
 
             # self.update_nodes_pose(graph, 1*dx.copy())
             while np.max(np.abs(dx))>0.001 and i<10:
@@ -339,6 +341,7 @@ class Graph_SLAM:
             return H
             
     def __init__(self, M_init, ekf):
+        self.global_map=None
         self.optimized = False
         self.M=M_init.copy()
         self.ekf=ekf

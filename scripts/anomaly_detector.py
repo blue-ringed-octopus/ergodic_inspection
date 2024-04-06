@@ -13,7 +13,6 @@ import rospy
 import open3d as o3d
 from copy import deepcopy
 import rospkg
-from scipy.linalg import sqrtm
 from visualization_msgs.msg import Marker, MarkerArray
 import ros_numpy
 from sensor_msgs.msg import PointCloud2
@@ -21,15 +20,16 @@ from numpy.linalg import inv
 from scipy.spatial import KDTree
 import time 
 from numpy import sin, cos
-from hierarchical_SLAM import *
+from hierarchical_SLAM_SE3 import Graph_SLAM
+from hierarchical_SLAM_ros import plot_graph, pc_to_msg
 import tf
-import apriltag_EKF
+import apriltag_EKF_SE3
 from numba import cuda
 from scipy.stats import chi2 
 import pickle
 import threading
 import cv2
-
+from Lie import SE3, SO3
 TPB=32
 
 @cuda.jit()
@@ -165,29 +165,6 @@ def get_mesh_marker(mesh_resource):
     marker.scale.z = 1
     return marker
 
-def pc_to_msg(pc):
-    points=np.asarray(pc.points)
-    colors=np.asarray(pc.colors)
-    pc_array = np.zeros(len(points), dtype=[
-    ('x', np.float32),
-    ('y', np.float32),
-    ('z', np.float32),
-    ('r', np.uint32),
-    ('g', np.uint32),
-    ('b', np.uint32),
-    ])
-
-    pc_array['x'] = points[:,0]
-    pc_array['y'] = points[:, 1]
-    pc_array['z'] = points[:, 2]
-    pc_array['r'] = (colors[:,0]*255).astype(np.uint32)
-    pc_array['g'] = (colors[:, 1]*255).astype(np.uint32)
-    pc_array['b'] = (colors[:, 2]*255).astype(np.uint32)
-    pc_array= ros_numpy.point_cloud2.merge_rgb_fields(pc_array)
-    pc_msg = ros_numpy.msgify(PointCloud2, pc_array, stamp=rospy.Time.now(), frame_id="map")
-    
-    return pc_msg
-
 def get_ref_pc(points, chi2):
     chi=chi2[:,1]/(chi2[:,1]+chi2[:,2])
     colors = (chi*255).astype(np.uint8)
@@ -226,8 +203,16 @@ if __name__ == "__main__":
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
-    ekf=apriltag_EKF.EKF(0)
-    graph_slam=Graph_SLAM(np.zeros(3), ekf)
+    ekf=apriltag_EKF_SE3.EKF(0)
+    M_init = SE3.Exp([0,0,0,0,0,np.pi])
+    graph_slam=Graph_SLAM(M_init, ekf)
+    R=SO3.Exp([0,0,np.pi/2])
+    M=np.eye(4)
+    M[0:3,0:3]=R
+    M[0:3,3]=[-1.714, 0.1067, 0.1188]
+    z=SE3.Log(M)
+    graph_slam.front_end.add_node(M,"feature", 12)
+    graph_slam.front_end.add_prior_factor([], [12],z, np.eye(6)*0.001 , {} ,{12: 0})
     detector=Anomaly_Detector(mesh)
     marker = get_mesh_marker(mesh_resource)
 
@@ -245,18 +230,19 @@ if __name__ == "__main__":
      
         plot_graph(graph_slam.front_end, factor_graph_marker_pub)
         
-        mu=graph_slam.mu.copy()        
-        br.sendTransform([mu[0], mu[1], 0],
-                        tf.transformations.quaternion_from_euler(0, 0, mu[2]),
+        M=graph_slam.M.copy() 
+        br.sendTransform([M[0,3], M[1,3], M[2,3]],
+                        tf.transformations.quaternion_from_matrix(M),
                         rospy.Time.now(),
                         "base_footprint",
                         "map")
+    
 
         if optimized:
-            detector.detect(graph_slam.front_end.pose_nodes[0])
+            # detector.detect(graph_slam.front_end.pose_nodes[0])
             pc_msg=pc_to_msg(graph_slam.global_map)
             pc_pub.publish(pc_msg)
             
-            ref_pc = get_ref_pc(detector.ref_points, detector.p_anomaly)
+            # ref_pc = get_ref_pc(detector.ref_points, detector.p_anomaly)
         rate.sleep()
 
