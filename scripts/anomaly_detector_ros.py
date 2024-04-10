@@ -94,6 +94,11 @@ if __name__ == "__main__":
     z=SE3.Log(M)
     graph_slam.front_end.add_node(M,"feature", 12)
     graph_slam.front_end.add_prior_factor([], [12],z, np.eye(6)*0.001 , {} ,{12: 0})
+    box = mesh.get_axis_aligned_bounding_box()
+    bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
+    box.max_bound = bound
+
+    detector = Anomaly_Detector(mesh, box,0.5)
     detector=Anomaly_Detector(mesh)
     marker = get_mesh_marker(mesh_resource)
 
