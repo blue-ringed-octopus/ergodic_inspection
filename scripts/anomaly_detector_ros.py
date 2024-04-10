@@ -99,7 +99,6 @@ if __name__ == "__main__":
     box.max_bound = bound
 
     detector = Anomaly_Detector(mesh, box,0.5)
-    detector=Anomaly_Detector(mesh)
     marker = get_mesh_marker(mesh_resource)
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
