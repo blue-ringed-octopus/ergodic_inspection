@@ -150,6 +150,10 @@ class EKF:
         self.Q[2,2]=1**2 #
         self.Q[3:6, 3:6] *= (np.pi/2)**2 #axis angle
         
+        self.Q_img = np.eye(3)
+        self.Q_img[0,0]=10**2 
+        self.Q_img[1,1]=10**2 
+        self.Q_img[2,2]=0.05**2 
         
         self.at_detector = Detector(
                     families="tag36h11",
@@ -200,7 +204,7 @@ class EKF:
         pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
         cloud, depth, pc_img = msg2pc(pc_msg)
         T =  np.ascontiguousarray(self.K_inv.copy()@self.T_c_to_r[0:3,0:3].copy())
-        cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q), T)
+        cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q_img), T)
         indx=~np.isnan(depth.reshape(-1))
         
         cloud["points"]=cloud["points"][indx]

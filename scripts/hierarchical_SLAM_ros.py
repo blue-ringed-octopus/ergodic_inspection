@@ -223,6 +223,7 @@ if __name__ == "__main__":
                         "map")
     
         if optimized:
+            graph_slam.global_map_assemble()
             pc_msg=pc_to_msg(graph_slam.global_map)
             pc_pub.publish(pc_msg)
         rate.sleep()

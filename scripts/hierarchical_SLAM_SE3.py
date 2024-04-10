@@ -26,9 +26,9 @@ class Graph_SLAM:
             def __init__(self, node_id, M, node_type):
                 self.type=node_type
                 self.M=M
-                self.H=np.zeros((6,6))
+                self.cov=np.zeros((6,6))
                 self.id=node_id
-                self.local_map=None
+                self.local_map={}
                 self.pruned=False 
                 self.depth_img=None
                 self.factor={}
@@ -101,13 +101,15 @@ class Graph_SLAM:
                 
             H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map})   
             dx=Graph_SLAM.Back_end.linear_solve(H,b)
-            M = [m@SE3.Exp(dx[6*j:6*j+6]) for j, m in enumerate(M)]
+            M =  Graph_SLAM.Back_end.update_pose(M, 0.5*dx)
             i = 0
-            while np.max(np.abs(dx))>0.0001 and i<20:
+            while np.max(np.abs(dx))>0.0001 and i<100:
                 print("step: ", i)
                 H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map})   
                 dx=Graph_SLAM.Back_end.linear_solve(H,b)
-                M = [m@SE3.Exp(dx[6*j:6*j+6]) for j, m in enumerate(M)]
+                # k = pose_idx_map[2]
+
+                M =  Graph_SLAM.Back_end.update_pose(M, 0.5*dx)
                 i+=1
                 
             cov = inv(H)
@@ -232,6 +234,7 @@ class Graph_SLAM:
                 z = prior.z[i:i+6].copy()
                 z_bar = SE3.Log(M[idx])
                 e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
+                # e[i:i+6] = z - z_bar
                 J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
                 F[6*idx:6*idx+6,i:i+6] = np.eye(6)
                 
@@ -309,10 +312,16 @@ class Graph_SLAM:
             for node_id, idx in idx_map["pose"].items():
                 graph.pose_nodes[node_id].M = M[idx]
                 graph.pose_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
+                
             for node_id, idx in idx_map["features"].items():  
                 graph.feature_nodes[node_id].M = M[idx]
                 graph.feature_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
 
+        @staticmethod
+        def update_pose(M, dx):
+            M = [m@SE3.Exp(dx[6*i:6*i+6]) for i, m in enumerate(M)]
+            return M
+        
         def optimize(self, graph):
             # with open('graph.pickle', 'wb') as handle:
             #     pickle.dump(graph, handle)
@@ -321,15 +330,14 @@ class Graph_SLAM:
             H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map)
             dx=self.linear_solve(H,b)
             i=0
-            M = [m@SE3.Exp(dx[6*j:6*j+6]) for j, m in enumerate(M)]
+            M = self.update_pose(M, 0.01*dx)
 
-            # self.update_nodes_pose(graph, 1*dx.copy())
-            while np.max(np.abs(dx))>0.001 and i<10:
+            while np.max(np.abs(dx))>0.001 and i<50:
                 print("step: ", i)
                 H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map)
                 dx=self.linear_solve(H,b)
-                # self.update_nodes_pose(graph, 1*dx.copy())
-                M = [m@SE3.Exp(dx[6*j:6*j+6]) for j, m in enumerate(M)]
+
+                M = self.update_pose(M, 0.01*dx)
                 i+=1
     
             self.update_nodes(graph, M, inv(H), idx_map)
@@ -362,8 +370,6 @@ class Graph_SLAM:
 
         
         idx_map=self.ekf.landmarks.copy()
-        # for key, value in idx_map.items():
-        #     idx_map[key] = value*6
         feature_node_id = idx_map.keys()
         z= np.zeros(6*len(mu))
         J = np.zeros((6*len(mu), 6*len(mu)))
@@ -380,7 +386,7 @@ class Graph_SLAM:
     def occupancy_map(self, pointcloud):
         return 
     
-    def _global_map_assemble(self):
+    def global_map_assemble(self):
         points=[]
         colors=[]
         for node in self.front_end.pose_nodes.values():
@@ -449,7 +455,7 @@ class Graph_SLAM:
             self.ekf.reset(self.current_node_id)
             H=self.back_end.optimize(self.front_end)
             self.omega=H
-            self._global_map_assemble()
+            # self._global_map_assemble()
             self.optimized=True
             self.front_end.prune(10)
 

@@ -27,13 +27,13 @@ graph_prune = deepcopy(graph)
 
 optimizer = Graph_SLAM.Back_end()
 optimizer.optimize(graph_prune)
-graph_prune.prune(2)
+graph_prune.prune(1)
 optimizer.optimize(graph_prune)
 
 #%%
 plt.figure(1)
 prior = graph_prune.prior_factor
-plt.plot(0, 0, "s", color=(0.5,0.5,0.5, 0.5), markersize = 20)
+plt.plot(0, 0, "s", color=(0,0,0), markersize = 10)
 
 for child in prior.children:
     i = prior.idx_map["pose"][child.id]
@@ -44,7 +44,7 @@ for child in prior.children:
 for feature in prior.feature_nodes:
     i = prior.idx_map["features"][feature.id]
     M2 = SE3.Exp(prior.z[6*i:6*i+6])
-    plt.plot(M2[0,3], M2[1,3], "o", color=(0.5,0.5,0.5, 0.5), markersize = 20)
+    plt.plot(M2[0,3], M2[1,3], "*", color=(0.5,0.5,0.5, 0.5), markersize = 30)
     plt.plot((0, M2[0,3]), (0, M2[1,3]), "--", color=(0.5,0.5,0.5))
  
     
@@ -58,9 +58,9 @@ for factor in graph_prune.factors.values():
       plt.plot(M2[0,3], M2[1,3], "o", color=(0.5,0.5,0.5, 0.5), markersize = 20)
 
       for feature in factor.feature_nodes:
-          i=factor.idx_map["features"][feature.id]
+          i=6*factor.idx_map["features"][feature.id]
           M2 = M1@SE3.Exp(factor.z[i:i+6])
-          plt.plot(M2[0,3], M2[1,3], "o", color=(0.5,0.5,0.5, 0.5), markersize = 20)
+          plt.plot(M2[0,3], M2[1,3], "*", color=(0.5,0.5,0.5, 0.5), markersize = 30)
           plt.plot((M1[0,3], M2[0,3]), (M1[1,3], M2[1,3]), "--", color=(0.5,0.5,0.5))
 
           M2 = feature.M
@@ -78,7 +78,7 @@ for node in graph_prune.feature_nodes.values():
     mu=SE3.Log(M)
     # print(M)
     plt.text(M[0,3], M[1,3], node.id)
-    plt.plot(M[0,3], M[1,3], "*", markersize=20)
+    plt.plot(M[0,3], M[1,3], "*", markersize=15)
     plt.arrow(M[0,3], M[1,3], 0.5*cos(mu[5]), 0.5*sin(mu[5]))
     
 
