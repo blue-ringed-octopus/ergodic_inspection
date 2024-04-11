@@ -28,9 +28,8 @@ class Graph_SLAM:
                 self.M=M
                 self.cov=np.zeros((6,6))
                 self.id=node_id
-                self.local_map={}
+                self.local_map={"pc": None,"cov": None, "depth": None, "rgb": None, "features": None}
                 self.pruned=False 
-                self.depth_img=None
                 self.factor={}
                # self.prior_factor = None
                     
@@ -390,7 +389,7 @@ class Graph_SLAM:
         points=[]
         colors=[]
         for node in self.front_end.pose_nodes.values():
-            if not node.local_map == None and not node.pruned:
+            if not node.local_map == None:
                 if( len(node.local_map["features"])) == 0:
                    M = node.M.copy() 
                 else:
