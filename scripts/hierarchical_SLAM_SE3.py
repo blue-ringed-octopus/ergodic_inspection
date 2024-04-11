@@ -457,7 +457,7 @@ class Graph_SLAM:
             with open('graph.pickle', 'wb') as handle:
                 pickle.dump(self.front_end, handle)
             self.omega=H
-            self.global_map_assemble()
+            # self.global_map_assemble()
             self.optimized=True
             self.front_end.prune(10)
 
