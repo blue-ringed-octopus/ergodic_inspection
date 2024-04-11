@@ -364,7 +364,7 @@ class Graph_SLAM:
         # self.costmap=self.anomaly_detector.costmap
     
     def _posterior_to_factor(self, mu, sigma):
-        self.front_end.pose_nodes[self.current_node_id].local_map=self.ekf.cloud.copy()
+        self.front_end.pose_nodes[self.current_node_id].local_map=deepcopy(self.ekf.cloud)
         new_node_id=self.front_end.add_node(self.M.copy(),"pose")
 
         
