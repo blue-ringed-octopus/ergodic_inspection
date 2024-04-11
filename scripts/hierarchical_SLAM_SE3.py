@@ -454,6 +454,8 @@ class Graph_SLAM:
             self._posterior_to_factor(mu, sigma)
             self.ekf.reset(self.current_node_id)
             H=self.back_end.optimize(self.front_end)
+            with open('graph.pickle', 'wb') as handle:
+                pickle.dump(self.front_end, handle)
             self.omega=H
             # self._global_map_assemble()
             self.optimized=True
