@@ -195,7 +195,7 @@ class Anomaly_Detector:
         pass
 
     def sum_md(self, mds, corr):
-        t = time.time()
+        # t = time.time()
         # count = Counter(corr)
         # sum_md = np.zeros((self.num_points,2))
         # n_sample = np.zeros(self.num_points)
@@ -216,8 +216,15 @@ class Anomaly_Detector:
             # self.md_ref[n_idx,:] += mds[i,:]
             # self.md_ref[idx,:] += mds[i,:]
         # print("sum", np.max(np.abs(self.n_sample - n_sample)))
-        print("sum md time", time.time()-t)
+        # print("sum md time", time.time()-t)
 
+    def ICP(self, pc):
+        result_icp = o3d.pipelines.registration.registration_icp(
+            pc, self.reference , 10, np.eye(4),
+            o3d.pipelines.registration.TransformationEstimationPointToPlane())
+        pc = pc.transform(result_icp.transformation)
+        return pc
+    
     def detect(self, node):
         print("estimating anomaly")
 
@@ -226,36 +233,29 @@ class Anomaly_Detector:
         p = o3d.geometry.PointCloud()
         p.points = o3d.utility.Vector3dVector(cloud["points"])
         p = p.transform(node_pose)
+        p = self.ICP(p)
         point_cov = node.local_map['cov'].copy()
         sigma_node = np.zeros((3,3))#node.cov
         points = np.asarray(p.points)
 
-        t = time.time()
         # cov=get_global_cov(point_cov, node_pose, sigma_node) + np.eye(3)*0.01
         self.cov=get_global_cov(point_cov, node_pose, sigma_node)
         cov=self.cov/np.max(self.cov)
         # cov = [np.eye(3)*0.01 for _ in range(len(points))]
-        print("cov time", time.time()-t)
 
-        t = time.time()
         _, corr = self.ref_tree.query(points, k=1)
-        print("nn time", time.time()-t)
 
         normals = self.ref_normal[corr]
         mus = self.ref_points[corr]
-        t = time.time()
         mds = get_md_par(points, mus, self.thres, cov, normals)
-        print("md time", time.time()-t)
         p = self.paint_pc(p, mds)
 
         self.sum_md(mds, corr)
 
-        t = time.time()
         chi2_nominal = np.nan_to_num(
             chi2.sf(self.md_ref[:, 0], self.n_sample), nan=0.5)
         chi2_anomaly = np.nan_to_num(
             chi2.sf(self.md_ref[:, 1], self.n_sample), nan=0.5)
-        print("chi2 time", time.time()-t)
 
         p_nominal = (chi2_nominal + 0.000000001) * (1-self.p_anomaly)
         p_anomaly = (chi2_anomaly + 0.000000001) * self.p_anomaly

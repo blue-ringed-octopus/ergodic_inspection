@@ -28,7 +28,7 @@ class Graph_SLAM:
                 self.M=M
                 self.cov=np.zeros((6,6))
                 self.id=node_id
-                self.local_map={"pc": None,"cov": None, "depth": None, "rgb": None, "features": None}
+                self.local_map=None
                 self.pruned=False 
                 self.factor={}
                # self.prior_factor = None
