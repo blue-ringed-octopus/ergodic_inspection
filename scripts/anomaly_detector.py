@@ -203,7 +203,7 @@ class Anomaly_Detector:
         # self.n_sample = n_sample
         # n_sample = n_sample[self.self_neighbor]
         # self.n_sample = np.sum(n_sample, 1)
-        one = np.ones(len(mds))
+        one = np.ones(len(mds))*3
         for i in range(self.neighbor_count):
             np.add.at(self.md_ref, self.self_neighbor[corr, :][:, i], mds)
             np.add.at(self.n_sample , self.self_neighbor[corr,:][:,i], one)
@@ -253,8 +253,8 @@ class Anomaly_Detector:
 
         self.sum_md(mds, corr)
 
-        chi2_nominal = np.nan_to_num(chi2.sf(self.md_ref[:, 0], 3*self.n_sample), nan=0)
-        chi2_anomaly = np.nan_to_num(chi2.sf(self.md_ref[:, 1], 3*self.n_sample), nan=0)
+        chi2_nominal = np.nan_to_num(chi2.sf(self.md_ref[:, 0], self.n_sample), nan=0)
+        chi2_anomaly = np.nan_to_num(chi2.sf(self.md_ref[:, 1], self.n_sample), nan=0)
 
         p_nominal = (chi2_nominal + 0.000000001) * (1-self.p_anomaly)
         p_anomaly = (chi2_anomaly + 0.000000001) * self.p_anomaly
