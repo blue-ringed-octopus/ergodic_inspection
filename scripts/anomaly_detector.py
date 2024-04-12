@@ -147,7 +147,7 @@ def get_global_cov(point_cov, T_global, T_cov):
 class Anomaly_Detector:
     def __init__(self, mesh, bounding_box, thres=1):
         self.mesh = mesh
-        num_points = 20000
+        num_points = 50000
         self.num_points = num_points
         pc = mesh.sample_points_uniformly(
             number_of_points=num_points, use_triangle_normal=True)
