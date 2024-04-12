@@ -147,7 +147,7 @@ def get_global_cov(point_cov, T_global, T_cov):
 class Anomaly_Detector:
     def __init__(self, mesh, bounding_box, thres=1):
         self.mesh = mesh
-        num_points = 40000
+        num_points = 20000
         self.num_points = num_points
         pc = mesh.sample_points_uniformly(
             number_of_points=num_points, use_triangle_normal=True)
@@ -222,8 +222,9 @@ class Anomaly_Detector:
         result_icp = o3d.pipelines.registration.registration_icp(
             pc, self.reference , 10, np.eye(4),
             o3d.pipelines.registration.TransformationEstimationPointToPlane())
-        pc = pc.transform(result_icp.transformation)
-        return pc
+        T = result_icp.transformation
+        
+        return pc.transform(T), T
     
     def detect(self, node):
         print("estimating anomaly")
@@ -233,15 +234,15 @@ class Anomaly_Detector:
         p = o3d.geometry.PointCloud()
         p.points = o3d.utility.Vector3dVector(cloud["points"])
         p = p.transform(node_pose)
-        p = self.ICP(p)
+        p, T = self.ICP(p)
         point_cov = node.local_map['cov'].copy()
         sigma_node = np.zeros((3,3))#node.cov
         points = np.asarray(p.points)
 
         # cov=get_global_cov(point_cov, node_pose, sigma_node) + np.eye(3)*0.01
-        self.cov=get_global_cov(point_cov, node_pose, sigma_node)
-        cov=self.cov/np.max(self.cov)
-        # cov = [np.eye(3)*0.01 for _ in range(len(points))]
+        # self.cov=get_global_cov(point_cov, T@node_pose, sigma_node)
+        # cov=self.cov/100
+        cov = [np.eye(3)*0.001 for _ in range(len(points))]
 
         _, corr = self.ref_tree.query(points, k=1)
 
@@ -252,10 +253,8 @@ class Anomaly_Detector:
 
         self.sum_md(mds, corr)
 
-        chi2_nominal = np.nan_to_num(
-            chi2.sf(self.md_ref[:, 0], self.n_sample), nan=0.5)
-        chi2_anomaly = np.nan_to_num(
-            chi2.sf(self.md_ref[:, 1], self.n_sample), nan=0.5)
+        chi2_nominal = np.nan_to_num(chi2.sf(self.md_ref[:, 0], 3*self.n_sample), nan=0)
+        chi2_anomaly = np.nan_to_num(chi2.sf(self.md_ref[:, 1], 3*self.n_sample), nan=0)
 
         p_nominal = (chi2_nominal + 0.000000001) * (1-self.p_anomaly)
         p_anomaly = (chi2_anomaly + 0.000000001) * self.p_anomaly
@@ -265,7 +264,7 @@ class Anomaly_Detector:
         # self.chi2[:,1] = chi2.sf(self.md_ref[:,1], self.n_sample)
         # self.chi2 = np.nan_to_num(self.chi2,nan=0.5)
         ref = self.paint_ref(p_anomaly)
-        # self.md_ref = np.zeros((self.num_points,2))
-        # self.n_sample = np.zeros(self.num_points)
+        self.md_ref = np.zeros((self.num_points,2))
+        self.n_sample = np.zeros(self.num_points)
         # self.chi2= np.zeros((self.num_points,2))
         return p.crop(self.bounding_box), ref.crop(self.bounding_box)
