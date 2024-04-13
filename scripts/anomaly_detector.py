@@ -251,14 +251,14 @@ class Anomaly_Detector:
         p = self.paint_pc(p, mds)
 
         self.sum_md(mds, corr)
-
-        chi2_nominal = np.nan_to_num(chi2.sf(self.md_ref[:, 0], self.n_sample), nan=0.5)
-        chi2_anomaly = np.nan_to_num(chi2.sf(self.md_ref[:, 1], self.n_sample), nan=0.5)
+        idx = self.n_sample>1
+        chi2_nominal = np.nan_to_num(chi2.sf(self.md_ref[idx, 0], self.n_sample[idx]), nan=0.5)
+        chi2_anomaly = np.nan_to_num(chi2.sf(self.md_ref[idx, 1], self.n_sample[idx]), nan=0.5)
 
         p_nominal = (chi2_nominal + 0.000000001) * (1-self.p_anomaly)
         p_anomaly = (chi2_anomaly + 0.000000001) * self.p_anomaly
         p_anomaly = p_anomaly/(p_nominal + p_anomaly)
-        self.p_anomaly = p_anomaly
+        self.p_anomaly[idx] = p_anomaly
         # self.chi2[:,0] = chi2.sf(self.md_ref[:,0], self.n_sample)
         # self.chi2[:,1] = chi2.sf(self.md_ref[:,1], self.n_sample)
         # self.chi2 = np.nan_to_num(self.chi2,nan=0.5)
