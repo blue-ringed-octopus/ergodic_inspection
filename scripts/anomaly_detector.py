@@ -257,7 +257,7 @@ class Anomaly_Detector:
 
         p_nominal = (chi2_nominal + 0.000000001) * (1-self.p_anomaly[idx])
         p_anomaly = (chi2_anomaly + 0.000000001) * self.p_anomaly[idx]
-        p_anomaly = p_anomaly/(p_nominal + p_anomaly)
+        p_anomaly = 0*p_anomaly/(p_nominal + p_anomaly)
         self.p_anomaly[idx] = p_anomaly
 
         ref = self.paint_ref(self.p_anomaly)
