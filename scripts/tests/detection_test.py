@@ -29,12 +29,12 @@ box.max_bound = bound
 
 detector = Anomaly_Detector(mesh, box,0.05)
 p=[]
-# for node in graph.pose_nodes.values():
-#     if not node.local_map == None:
-#         pc, ref = detector.detect(node)
-#         p.append(pc)
-pc, ref = detector.detect(graph.pose_nodes[0])
-p.append(pc)
+for node in graph.pose_nodes.values():
+    if not node.local_map == None:
+        pc, ref = detector.detect(node)
+        p.append(pc)
+# pc, ref = detector.detect(graph.pose_nodes[0])
+# p.append(pc)
 
 o3d.visualization.draw_geometries(p+[ref])
 # o3d.visualization.draw_geometries([ref])
