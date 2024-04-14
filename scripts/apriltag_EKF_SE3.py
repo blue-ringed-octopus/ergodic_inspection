@@ -151,9 +151,9 @@ class EKF:
         self.Q[3:6, 3:6] *= (np.pi/2)**2 #axis angle
         
         self.Q_img = np.eye(3)
-        self.Q_img[0,0]=10**2 
-        self.Q_img[1,1]=10**2 
-        self.Q_img[2,2]=0.05**2 
+        self.Q_img[0,0]=1**2 
+        self.Q_img[1,1]=1**2 
+        self.Q_img[2,2]=0.001**2 
         
         self.at_detector = Detector(
                     families="tag36h11",

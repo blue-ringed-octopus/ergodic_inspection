@@ -6,7 +6,7 @@ Created on Mon Jan 15 14:26:02 2024
 @author: hibad
 """
 
-from scipy.stats import chi2
+from scipy.stats import chi2, norm
 import time
 from collections import Counter
 from Lie import SE3, SO3
@@ -226,7 +226,7 @@ class Anomaly_Detector:
         return pc.transform(T), T
     
     def detect(self, node):
-        print("estimating anomaly")
+        print("estimating anomaly: node " + str(node.id))
 
         node_pose = node.M.copy()
         cloud = node.local_map['pc'].copy()
@@ -234,14 +234,15 @@ class Anomaly_Detector:
         p.points = o3d.utility.Vector3dVector(cloud["points"])
         p = p.transform(node_pose)
         p, T = self.ICP(p)
+        p = p.uniform_down_sample(1000)
         point_cov = node.local_map['cov'].copy()
         sigma_node = np.zeros((3,3))#node.cov
         points = np.asarray(p.points)
 
-        # cov=get_global_cov(point_cov, node_pose, sigma_node) + np.eye(3)*0.01
+        cov=get_global_cov(point_cov, node_pose, sigma_node)/1000000
         # self.cov=get_global_cov(point_cov, T@node_pose, sigma_node)
         # cov=self.cov/100
-        cov = [np.eye(3)*0.001 for _ in range(len(points))]
+        # cov = [np.eye(3)*0.001 for _ in range(len(points))]
 
         _, corr = self.ref_tree.query(points, k=1)
 
@@ -251,15 +252,22 @@ class Anomaly_Detector:
         p = self.paint_pc(p, mds)
 
         self.sum_md(mds, corr)
-        idx = self.n_sample>1
+        idx = self.n_sample>0
+        # z_nominal = (self.md_ref[idx, 0] - self.n_sample[idx])/np.sqrt(2*self.n_sample[idx])
+        # z_anomaly = (self.md_ref[idx, 1] - self.n_sample[idx])/np.sqrt(2*self.n_sample[idx])
         chi2_nominal = np.nan_to_num(chi2.sf(self.md_ref[idx, 0], self.n_sample[idx]), nan=0.5)
         chi2_anomaly = np.nan_to_num(chi2.sf(self.md_ref[idx, 1], self.n_sample[idx]), nan=0.5)
+        # chi2_nominal_test = norm.sf(z_nominal)
+        # chi2_anomaly_test =norm.sf(z_anomaly)
+        
+        # print(np.max(np.abs(chi2_nominal - chi2_nominal_test)))
+        # print(np.max(np.abs(chi2_anomaly - chi2_anomaly_test)))
 
-        p_nominal = (chi2_nominal + 0.000000001) * (1-self.p_anomaly[idx])
-        p_anomaly = (chi2_anomaly + 0.000000001) * self.p_anomaly[idx]
-        p_anomaly = 0*p_anomaly/(p_nominal + p_anomaly)
+        p_nominal = (chi2_nominal + 0.00000000) * (1-self.p_anomaly[idx])
+        p_anomaly = (chi2_anomaly + 0.00000000) * self.p_anomaly[idx]
+        p_anomaly = p_anomaly/(p_nominal + p_anomaly)
         self.p_anomaly[idx] = p_anomaly
-
+        # self.p_anomaly[idx] = chi2_anomaly_test
         ref = self.paint_ref(self.p_anomaly)
         self.md_ref = np.zeros((self.num_points,2))
         self.n_sample = np.zeros(self.num_points)
