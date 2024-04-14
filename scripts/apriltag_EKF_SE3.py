@@ -203,7 +203,7 @@ class EKF:
     def get_point_cloud(self):
         pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
         cloud, depth, pc_img = msg2pc(pc_msg)
-        T =  np.ascontiguousarray(self.K_inv.copy()@self.T_c_to_r[0:3,0:3].copy())
+        T =  np.ascontiguousarray(self.T_c_to_r[0:3,0:3].copy()@self.K_inv.copy())
         cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q_img), T)
         indx=~np.isnan(depth.reshape(-1))
         
