@@ -239,7 +239,7 @@ class Anomaly_Detector:
         sigma_node = np.zeros((3,3))#node.cov
         points = np.asarray(p.points)
 
-        cov=get_global_cov(point_cov, node_pose, sigma_node)/1000
+        cov=get_global_cov(point_cov, node_pose, sigma_node)
         # self.cov=get_global_cov(point_cov, T@node_pose, sigma_node)
         # cov=self.cov/100
         # cov = [np.eye(3)*0.001 for _ in range(len(points))]
