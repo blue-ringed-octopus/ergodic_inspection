@@ -18,6 +18,7 @@ from scipy.spatial import KDTree
 from copy import deepcopy
 import open3d as o3d
 import numpy as np
+from numpy.linalg import norm
 np.float = np.float64
 np.set_printoptions(precision=2)
 TPB = 32
@@ -136,7 +137,16 @@ class Anomaly_Detector:
         color = cv2.cvtColor(color, cv2.COLOR_BGR2RGB)
         color = np.squeeze(color)
         pc.colors = o3d.utility.Vector3dVector(color/255)
-
+        return pc
+    
+    def paint_cov(self, pc, cov):
+        c = np.array([norm(cov[i],"fro") for i in range(len(cov))])
+        c = c/max(c)
+        color = (c*255).astype(np.uint8)
+        color = cv2.applyColorMap(color, cv2.COLORMAP_TURBO)
+        color = cv2.cvtColor(color, cv2.COLOR_BGR2RGB)
+        color = np.squeeze(color)
+        pc.colors = o3d.utility.Vector3dVector(color/255)
         return pc
 
     def paint_ref(self, c):
@@ -194,6 +204,7 @@ class Anomaly_Detector:
         p, T = self.ICP(p)
         p = p.uniform_down_sample(500)
         point_cov = node.local_map['cov'].copy()
+        point_cov = point_cov[np.arange(0,len(point_cov), 500)]
         sigma_node = np.zeros((3,3))#node.cov
         points = np.asarray(p.points)
 
@@ -207,8 +218,8 @@ class Anomaly_Detector:
         normals = self.ref_normal[corr]
         mus = self.ref_points[corr]
         mds = get_md_par(points, mus, self.thres, cov, normals)
-        p = self.paint_pc(p, mds)
-
+        # p = self.paint_pc(p, mds)
+        p = self.paint_cov(p, cov)
         self.sum_md(mds, corr)
         idx = self.n_sample>0
         # z_nominal = (self.md_ref[idx, 0] - self.n_sample[idx])/np.sqrt(2*self.n_sample[idx])

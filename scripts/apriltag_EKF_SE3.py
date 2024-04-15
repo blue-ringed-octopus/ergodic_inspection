@@ -184,7 +184,7 @@ class EKF:
         self.Q_img = np.eye(3)
         self.Q_img[0,0]=10**2 #x-pixel
         self.Q_img[1,1]=10**2 #y-pixel
-        self.Q_img[2,2]=0.0**2 #depth 
+        self.Q_img[2,2]=0.01**2 #depth 
         
         self.at_detector = Detector(
                     families="tag36h11",
