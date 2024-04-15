@@ -249,7 +249,7 @@ class EKF:
         
         cloud_cov = cloud_cov[indx]
         features = self.detect_apriltag(pc_img, depth)
-        self.cloud = {"pc": cloud,"cov": cloud_cov, "depth": depth, "rgb": pc_img, "features": features}
+        self.cloud = {"pc": cloud,"cov": cloud_cov, "depth": depth, "rgb": pc_img, "features": features ,"cam_param": self.K.copy(), "cam_transform": self.T_c_to_r.copy()}
     # def get_cloud_covariance(self, depth):
     #     n, m = depth.shape
     #     T=self.T_c_to_r[0:3,0:3].copy()@inv(self.K.copy())

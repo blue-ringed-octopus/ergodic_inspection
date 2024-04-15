@@ -38,4 +38,5 @@ pc, ref = detector.detect(graph.pose_nodes[0])
 p.append(pc)
 
 # o3d.visualization.draw_geometries(p+[ref])
-o3d.visualization.draw_geometries([ref])
+# o3d.visualization.draw_geometries([ref])
+o3d.visualization.draw_geometries(p)
