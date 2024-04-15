@@ -193,7 +193,7 @@ class Anomaly_Detector:
         p = p.transform(node_pose)
         p, T = self.ICP(p)
         p = p.uniform_down_sample(1000)
-        point_cov = node.local_map['cov'].copy()*100
+        point_cov = node.local_map['cov'].copy()
         sigma_node = np.zeros((3,3))#node.cov
         points = np.asarray(p.points)
 
