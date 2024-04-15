@@ -105,7 +105,7 @@ def get_global_cov(point_cov, T_global, T_cov):
 class Anomaly_Detector:
     def __init__(self, mesh, bounding_box, thres=1):
         self.mesh = mesh
-        num_points = 50000
+        num_points = 100000
         self.num_points = num_points
         pc = mesh.sample_points_uniformly(
             number_of_points=num_points, use_triangle_normal=True)
@@ -116,7 +116,7 @@ class Anomaly_Detector:
         self.ref_normal = np.asarray(pc.normals)
         self.ref_points = np.asarray(pc.points)
         self.ref_tree = KDTree(self.ref_points)
-        self.neighbor_count = 20
+        self.neighbor_count = 40
         _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
 
         self.self_neighbor = corr
@@ -197,7 +197,7 @@ class Anomaly_Detector:
         sigma_node = np.zeros((3,3))#node.cov
         points = np.asarray(p.points)
 
-        cov=get_global_cov(point_cov, node_pose, sigma_node)
+        cov=get_global_cov(point_cov, T@node_pose, sigma_node)
         # self.cov=get_global_cov(point_cov, T@node_pose, sigma_node)
         # cov=self.cov/100
         # cov = [np.eye(3)*0.001 for _ in range(len(points))]
