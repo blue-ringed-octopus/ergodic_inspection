@@ -27,8 +27,38 @@ from numba import cuda
 from Lie import SE3
 
 TPB=32
+# @cuda.jit()
+# def cloud_cov_kernel(d_out, d_depth, d_Q, d_K_inv):
+#     i,j = cuda.grid(2)
+#     nx, ny=d_depth.shape
+
+#     if i<nx and j<ny:
+#         n=int(j+i*ny)
+#         d = d_depth[i,j]
+#         if not d == 0:
+#             J00 = d*d_K_inv[0,0]
+#             J01 = d*d_K_inv[0,1]
+#             J02 = d_K_inv[0,2] + i*d_K_inv[0,0] + j*d_K_inv[0,1]
+#             J10 = d*d_K_inv[1,0]
+#             J11 = d*d_K_inv[1,1]
+#             J12 = d_K_inv[1,2] + i*d_K_inv[1,0] + j*d_K_inv[1,1]
+#             J20 = d*d_K_inv[2,0]
+#             J21 =  d*d_K_inv[2,1]
+#             J22 = d_K_inv[2,2] + i*d_K_inv[2,0] + j*d_K_inv[2,1]
+        
+#             d_out[n,0,0] = d_Q[0,0]*J00**2 + d_Q[1,1]*J01**2 + d_Q[2,2]*J02**2
+#             d_out[n,0,1] = d_Q[0,0]*J00*J10 + d_Q[1,1]*J01*J11 + d_Q[2,2]*J02*J12
+#             d_out[n,0,2] = d_Q[0,0]*J00*J20 + d_Q[1,1]*J01*J21 + d_Q[2,2]*J02*J22
+            
+#             d_out[n,1,0] = d_out[n,0,1] 
+#             d_out[n,1,1] = d_Q[0,0]*J10**2 + d_Q[1,1]*J11**2 + d_Q[2,2]*J12**2
+#             d_out[n,1,2] = d_Q[0,0]*J10*J20 + d_Q[1,1]*J11*J21 + d_Q[2,2]*J12*J22
+            
+#             d_out[n,2,0] = d_out[n,0,2]
+#             d_out[n,2,1] = d_out[n,1,2]
+#             d_out[n,2,2] = d_Q[0,0]*J20**2 + d_Q[1,1]*J21**2 + d_Q[2,2]*J22**2
 @cuda.jit()
-def cloud_cov_kernel(d_out, d_depth, d_Q, d_T):
+def cloud_cov_kernel(d_out, d_depth, d_Q, d_K_inv, d_T):
     i,j = cuda.grid(2)
     nx, ny=d_depth.shape
 
@@ -36,15 +66,15 @@ def cloud_cov_kernel(d_out, d_depth, d_Q, d_T):
         n=int(j+i*ny)
         d = d_depth[i,j]
         if not d == 0:
-            J00 = d*d_T[0,0]
-            J01 = d*d_T[0,1]
-            J02 = d_T[0,2] + i*d_T[0,0] + j*d_T[0,1]
-            J10 = d*d_T[1,0]
-            J11 = d*d_T[1,1]
-            J12 = d_T[1,2] + i*d_T[1,0] + j*d_T[1,1]
-            J20 = d*d_T[2,0]
-            J21 =  d*d_T[2,1]
-            J22 = d_T[2,2] + i*d_T[2,0] + j*d_T[2,1]
+            J00 = d*(d_K_inv[0,0]*d_T[0,0] +d_K_inv[1,0]*d_T[0,1])
+            J01 = d*(d_K_inv[0,1]*d_T[0,0] +d_K_inv[1,1]*d_T[0,1])
+            J02 = d_T[0,2] +d_K_inv[0,2]*d_T[0,0] + d_K_inv[1,2]*d_T[0,1] + i*(d_K_inv[0,0]*d_T[0,0] +d_K_inv[1,0]*d_T[0,1]) + j*(d_K_inv[0,1]*d_T[0,0] +d_K_inv[1,1]*d_T[0,1])
+            J10 = d*(d_K_inv[0,0]*d_T[1,0] +d_K_inv[1,0]*d_T[1,1])
+            J11 = d*(d_K_inv[0,1]*d_T[1,0] +d_K_inv[1,1]*d_T[1,1])
+            J12 = d_T[1,2] +d_K_inv[0,2]*d_T[1,0] + d_K_inv[1,2]*d_T[1,1] + i*(d_K_inv[0,0]*d_T[1,0] +d_K_inv[1,0]*d_T[1,1]) + j*(d_K_inv[0,1]*d_T[1,0] +d_K_inv[1,1]*d_T[1,1])
+            J20 = d*(d_K_inv[0,0]*d_T[2,0] +d_K_inv[1,0]*d_T[2,1])
+            J21 = d*(d_K_inv[0,1]*d_T[2,0] +d_K_inv[1,1]*d_T[2,1])
+            J22 = d_T[2,2] +d_K_inv[0,2]*d_T[2,0] + d_K_inv[1,2]*d_T[2,1] + i*(d_K_inv[0,0]*d_T[2,0] +d_K_inv[1,0]*d_T[2,1]) + j*(d_K_inv[0,1]*d_T[2,0] +d_K_inv[1,1]*d_T[2,1])
         
             d_out[n,0,0] = d_Q[0,0]*J00**2 + d_Q[1,1]*J01**2 + d_Q[2,2]*J02**2
             d_out[n,0,1] = d_Q[0,0]*J00*J10 + d_Q[1,1]*J01*J11 + d_Q[2,2]*J02*J12
@@ -58,15 +88,16 @@ def cloud_cov_kernel(d_out, d_depth, d_Q, d_T):
             d_out[n,2,1] = d_out[n,1,2]
             d_out[n,2,2] = d_Q[0,0]*J20**2 + d_Q[1,1]*J21**2 + d_Q[2,2]*J22**2
             
-def get_cloud_covariance_par(depth, Q, T):
-    nx, ny=depth.shape
-    d_depth=cuda.to_device(depth)
-    d_Q=cuda.to_device(Q)
-    d_T=cuda.to_device(T)
+def get_cloud_covariance_par(depth, Q, K_inv, T):
+    nx, ny = depth.shape
+    d_depth = cuda.to_device(depth)
+    d_Q = cuda.to_device(Q)
+    d_K_inv = cuda.to_device(K_inv)
+    d_T = cuda.to_device(T)
     d_out=cuda.device_array((nx*ny, 3, 3),dtype=(np.float64))
     thread=(TPB, TPB)
     blocks=((nx+TPB-1)//TPB,(ny+TPB-1)//TPB)
-    cloud_cov_kernel[blocks, thread](d_out, d_depth,d_Q, d_T)
+    cloud_cov_kernel[blocks, thread](d_out, d_depth,d_Q, d_K_inv, d_T)
     cov=d_out.copy_to_host()
     return cov
 
@@ -153,7 +184,7 @@ class EKF:
         self.Q_img = np.eye(3)
         self.Q_img[0,0]=1**2 #x-pixel
         self.Q_img[1,1]=1**2 #y-pixel
-        self.Q_img[2,2]=0.0**2 #depth 
+        self.Q_img[2,2]=0.01**2 #depth 
         
         self.at_detector = Detector(
                     families="tag36h11",
@@ -203,8 +234,9 @@ class EKF:
     def get_point_cloud(self):
         pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
         cloud, depth, pc_img = msg2pc(pc_msg)
-        T =  np.ascontiguousarray(self.T_c_to_r[0:3,0:3].copy()@self.K_inv.copy()) #pixel to world coordinate
-        cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q_img), T)
+        K_inv = np.ascontiguousarray(self.K_inv.copy())
+        T = np.ascontiguousarray(self.T_c_to_r[0:3,0:3].copy()) #world coordinate
+        cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q_img), K_inv, T)
         indx=~np.isnan(depth.reshape(-1))
         
         cloud["points"]=cloud["points"][indx]
