@@ -340,13 +340,14 @@ class EKF:
     def _initialize_new_landmarks(self, landmarks):
         mu=self.mu.copy()       #current point estimates 
         sigma=self.sigma.copy() #current covariance
+        landmark_map = self.landmarks.copy()
         for landmark_id in landmarks:
             if not landmark_id in self.landmarks.keys():
                 landmark=landmarks[landmark_id]
                 
                 M = mu[0]@landmark["M"].copy() #feature orientation in world frame 
                 
-                self.landmarks[landmark_id]=len(mu)
+                landmark_map[landmark_id]=len(mu)
                 mu.append(M)
                 sigma_new=np.diag(np.ones(sigma.shape[0]+6)*99999999999)
                 sigma_new[0:sigma.shape[0], 0:sigma.shape[0]]=sigma.copy()
@@ -354,6 +355,7 @@ class EKF:
                 
         self.sigma=sigma
         self.mu=mu
+        self.landmarks = landmark_map
 
     def _correction(self,features):
         mu=self.mu.copy()
