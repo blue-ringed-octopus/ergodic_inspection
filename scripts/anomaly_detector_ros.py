@@ -97,6 +97,7 @@ if __name__ == "__main__":
     M_feature = ekf.landmarks[feature_id]
     
     M_init = M_prior@np.linalg.inv(M_feature)
+    print(M_init)
     graph_slam=Graph_SLAM(M_init, ekf)
     
     graph_slam.front_end.add_node(M_prior,"feature", 12)
