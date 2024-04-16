@@ -111,6 +111,7 @@ class Anomaly_Detector:
         pc = mesh.sample_points_uniformly(
             number_of_points=num_points, use_triangle_normal=True)
         # pc = pc.crop(bounding_box)
+        # pc.paint_uniform_color([0,0,0])
         self.bounding_box = bounding_box
         self.reference = pc
         self.p_anomaly = np.ones(len(pc.points))*0.5
@@ -202,9 +203,9 @@ class Anomaly_Detector:
         p.points = o3d.utility.Vector3dVector(cloud["points"])
         p = p.transform(node_pose)
         p, T = self.ICP(p)
-        p = p.uniform_down_sample(500)
+        p = p.uniform_down_sample(200)
         point_cov = node.local_map['cov'].copy()
-        point_cov = point_cov[np.arange(0,len(point_cov), 500)]
+        point_cov = point_cov[np.arange(0,len(point_cov), 200)]
         sigma_node = np.zeros((3,3))#node.cov
         points = np.asarray(p.points)
 
@@ -218,8 +219,8 @@ class Anomaly_Detector:
         normals = self.ref_normal[corr]
         mus = self.ref_points[corr]
         mds = get_md_par(points, mus, self.thres, cov, normals)
-        # p = self.paint_pc(p, mds)
-        p = self.paint_cov(p, cov)
+        p = self.paint_pc(p, mds)
+        # p = self.paint_cov(p, cov)
         self.sum_md(mds, corr)
         idx = self.n_sample>0
         # z_nominal = (self.md_ref[idx, 0] - self.n_sample[idx])/np.sqrt(2*self.n_sample[idx])
