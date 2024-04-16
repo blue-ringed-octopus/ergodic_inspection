@@ -202,12 +202,12 @@ if __name__ == "__main__":
     M_prior[0:3,3]=[-1.714, 0.1067, 0.1188]
     z=SE3.Log(M_prior)
     
-    
     ekf=apriltag_EKF_SE3.EKF(0)
+    
     while not feature_id in ekf.landmarks.keys():
         pass
     
-    M_feature = ekf.landmarks[feature_id]
+    M_feature = ekf.mu[ekf.landmarks[feature_id]]
     
     M_init = M_prior@np.linalg.inv(M_feature)
     print(M_init)
