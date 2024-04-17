@@ -102,6 +102,17 @@ def get_global_cov(point_cov, T_global, T_cov):
     global_cov_kernel[blocks, thread](d_out, d_point_cov, d_T, d_T_cov)
     return d_out.copy_to_host()
 
+def get_global_cov_SE3(points, T_global, point_cov, T_cov):
+    R = T_global[0:3, 0:3]
+    n = len(points)
+    cov = np.zeros((n,3,3))
+    for i, point in enumerate(points):
+        
+        J = np.zeros((3,6))
+        J[0:3,0:3] =  R
+        J[0:3,3:6] =  -R@SO3.hat(point)
+        cov[i,:,:] = R@point_cov[i, :, :]@R.T + J@T_cov@J.T
+    return cov
 
 class Anomaly_Detector:
     def __init__(self, mesh, bounding_box, thres=1):
@@ -206,21 +217,20 @@ class Anomaly_Detector:
         p = p.uniform_down_sample(200)
         point_cov = node.local_map['cov'].copy()
         point_cov = point_cov[np.arange(0,len(point_cov), 200)]
-        sigma_node = np.zeros((3,3))#node.cov
+        #sigma_node = np.zeros((3,3))#node.cov
         points = np.asarray(p.points)
-
-        cov=get_global_cov(point_cov, T@node_pose, sigma_node)
-        # self.cov=get_global_cov(point_cov, T@node_pose, sigma_node)
-        # cov=self.cov/100
-        # cov = [np.eye(3)*0.001 for _ in range(len(points))]
-
+        sigma_node = np.eye(6)
+        sigma_node[0:3,0:3] *= 0.01
+        sigma_node[3:6,3:6] *= 0.001
+        # cov=get_global_cov(point_cov, T@node_pose, sigma_node)
+        cov=get_global_cov_SE3(points, T@node_pose, point_cov, sigma_node)
         _, corr = self.ref_tree.query(points, k=1)
 
         normals = self.ref_normal[corr]
         mus = self.ref_points[corr]
         mds = get_md_par(points, mus, self.thres, cov, normals)
-        p = self.paint_pc(p, mds)
-        # p = self.paint_cov(p, cov)
+        # p = self.paint_pc(p, mds)
+        p = self.paint_cov(p, cov)
         self.sum_md(mds, corr)
         idx = self.n_sample>0
         # z_nominal = (self.md_ref[idx, 0] - self.n_sample[idx])/np.sqrt(2*self.n_sample[idx])
@@ -233,8 +243,8 @@ class Anomaly_Detector:
         # print(np.max(np.abs(chi2_nominal - chi2_nominal_test)))
         # print(np.max(np.abs(chi2_anomaly - chi2_anomaly_test)))
 
-        p_nominal = (chi2_nominal + 0.00000000) * (1-self.p_anomaly[idx])
-        p_anomaly = (chi2_anomaly + 0.00000000) * self.p_anomaly[idx]
+        p_nominal = (chi2_nominal + 0.00001) * (1-self.p_anomaly[idx])
+        p_anomaly = (chi2_anomaly + 0.00001) * self.p_anomaly[idx]
         p_anomaly = p_anomaly/(p_nominal + p_anomaly)
         self.p_anomaly[idx] = p_anomaly
         # self.p_anomaly[idx] = chi2_anomaly_test

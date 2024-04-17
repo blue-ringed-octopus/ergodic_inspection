@@ -189,11 +189,7 @@ def plot_graph(graph, pub):
     markerArray.markers=markers
     pub.publish(markerArray)
     
-    
-if __name__ == "__main__":
-    br = tf.TransformBroadcaster()
-    rospy.init_node('estimator',anonymous=False)
-    
+def initialize_graph_slam():
     #prior_feature 
     feature_id = 12 
     R_prior=SO3.Exp([0,0,np.pi/2])
@@ -201,22 +197,29 @@ if __name__ == "__main__":
     M_prior[0:3,0:3]=R_prior
     M_prior[0:3,3]=[-1.714, 0.1067, 0.1188]
     z=SE3.Log(M_prior)
-    
-    ekf=apriltag_EKF_SE3.EKF(0)
-    
     while not feature_id in ekf.landmarks.keys():
         pass
-    
     M_feature = ekf.mu[ekf.landmarks[feature_id]]
     
     M_init = M_prior@np.linalg.inv(M_feature)
-    print(M_init)
     graph_slam=Graph_SLAM(M_init, ekf)
-
-    factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
-    
     graph_slam.front_end.add_node(M_prior,"feature", 12)
     graph_slam.front_end.add_prior_factor([], [feature_id],z, np.eye(6)*0.001 , {} ,{feature_id: 0})
+    return graph_slam
+
+if __name__ == "__main__":
+    br = tf.TransformBroadcaster()
+    rospy.init_node('estimator',anonymous=False)
+    
+    
+    
+    ekf=apriltag_EKF_SE3.EKF(0)
+    
+    graph_slam = initialize_graph_slam()
+    
+    factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
+    
+   
     
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
 
@@ -224,7 +227,6 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         optimized=graph_slam.update()
     
-     
         plot_graph(graph_slam.front_end, factor_graph_marker_pub)
         
         M=graph_slam.M.copy() 

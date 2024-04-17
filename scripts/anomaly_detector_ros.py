@@ -16,7 +16,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 import ros_numpy
 from sensor_msgs.msg import PointCloud2
 from hierarchical_SLAM_SE3 import Graph_SLAM
-from hierarchical_SLAM_ros import plot_graph, pc_to_msg
+from hierarchical_SLAM_ros import plot_graph, pc_to_msg, initialize_graph_slam
 from anomaly_detector import Anomaly_Detector
 import apriltag_EKF_SE3
 
@@ -79,29 +79,13 @@ if __name__ == "__main__":
     
     mesh = o3d.io.read_triangle_mesh(path+"/resources/ballast.STL")
 
-    #prior_feature 
-    feature_id = 12 
-    R_prior=SO3.Exp([0,0,np.pi/2])
-    M_prior=np.eye(4)
-    M_prior[0:3,0:3]=R_prior
-    M_prior[0:3,3]=[-1.714, 0.1067, 0.1188]
-    z=SE3.Log(M_prior)
+   
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
     ekf=apriltag_EKF_SE3.EKF(0)
-    while not feature_id in ekf.landmarks.keys():
-        pass
-    
-    M_feature = ekf.landmarks[feature_id]
-    
-    M_init = M_prior@np.linalg.inv(M_feature)
-    print(M_init)
-    graph_slam=Graph_SLAM(M_init, ekf)
-    
-    graph_slam.front_end.add_node(M_prior,"feature", 12)
-    graph_slam.front_end.add_prior_factor([], [12],z, np.eye(6)*0.001 , {} ,{feature_id: 0})
+    graph_slam = initialize_graph_slam()
     box = mesh.get_axis_aligned_bounding_box()
     bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
     box.max_bound = bound
