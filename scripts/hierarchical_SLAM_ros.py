@@ -192,10 +192,10 @@ def plot_graph(graph, pub):
 def initialize_graph_slam():
     #prior_feature 
     feature_id = 12 
-    R_prior=SO3.Exp([0,0,np.pi/2])
+    R_prior=SO3.Exp([0,0,-np.pi/2])
     M_prior=np.eye(4)
     M_prior[0:3,0:3]=R_prior
-    M_prior[0:3,3]=[-1.714, 0.1067, 0.1188]
+    M_prior[0:3,3]=[1.714, -0.1067, 0.1188]
     z=SE3.Log(M_prior)
     while not feature_id in ekf.landmarks.keys():
         pass
