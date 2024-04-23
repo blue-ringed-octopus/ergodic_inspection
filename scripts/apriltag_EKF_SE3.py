@@ -314,7 +314,7 @@ class EKF:
         
     def detect_apriltag(self,rgb, depth):
         gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
-        result=self.at_detector.detect(gray, estimate_tag_pose=True, tag_size=0.13636, 
+        result=self.at_detector.detect(gray, estimate_tag_pose=True, tag_size=0.12, 
         				camera_params=[self.K[0,0], self.K[1,1], self.K[0,2], self.K[1,2]])
         features={}
         for r in result:
