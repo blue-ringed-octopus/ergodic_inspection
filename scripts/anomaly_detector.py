@@ -7,6 +7,7 @@ Created on Mon Jan 15 14:26:02 2024
 """
 
 from scipy.stats import chi2, norm
+from scipy.special import erf, erfc
 import time
 from collections import Counter
 from Lie import SE3, SO3
@@ -18,7 +19,8 @@ from scipy.spatial import KDTree
 from copy import deepcopy
 import open3d as o3d
 import numpy as np
-from numpy.linalg import norm
+from numpy.linalg import  inv
+from  math import sqrt
 np.float = np.float64
 np.set_printoptions(precision=2)
 TPB = 32
@@ -35,16 +37,21 @@ def md_kernel(d_out, d_epsilon, d_cov, d_normal, d_p, d_mu):
         ncn = d_cov[i, 0, 0]*d_normal[i, 0]**2 + 2*d_cov[i, 0, 1]*d_normal[i, 0]*d_normal[i, 1] + 2*d_cov[i, 0, 2]*d_normal[i, 0] * \
             d_normal[i, 2] + d_cov[i, 1, 1]*d_normal[i, 1]**2 + 2*d_cov[i, 1, 2] * \
             d_normal[i, 1]*d_normal[i, 2] + d_cov[i, 2, 2]*d_normal[i, 2]**2
+        
+        d0 = -(nmu-npoint)/sqrt(ncn)
+        d1 = (d_epsilon + nmu - npoint)/sqrt(ncn)
+        # if npoint <= nmu:
+        #     d0 = 0
+        # else:
+        #     # d0 = (nmu-npoint)**2/ncn
+        #     d0 = (nmu-npoint)/sqrt(ncn)
 
-        if npoint <= nmu:
-            d0 = 0
-        else:
-            d0 = (nmu-npoint)**2/ncn
 
-        if npoint >= nmu+d_epsilon:
-            d1 = 0
-        else:
-            d1 = (d_epsilon + nmu-npoint)**2/ncn
+        # if npoint >= nmu+d_epsilon:
+        #     d1 = 0
+        # else:
+        #     # d1 = (d_epsilon + nmu-npoint)**2/ncn
+        #     d1 = (d_epsilon + nmu-npoint)/sqrt(ncn)
 
         d_out[i, 0] = d0
         d_out[i, 1] = d1
@@ -52,9 +59,10 @@ def md_kernel(d_out, d_epsilon, d_cov, d_normal, d_p, d_mu):
 
 def get_md_par(points, mu, epsilon, cov, normal):
     n = points.shape[0]
+    mu = np.ascontiguousarray(mu)
     d_mu = cuda.to_device(mu)
     d_cov = cuda.to_device(cov)
-    d_normal = cuda.to_device(normal)
+    d_normal = cuda.to_device( np.ascontiguousarray(normal))
     d_p = cuda.to_device(points)
     thread = TPB
     d_out = cuda.device_array((n, 2), dtype=(np.float64))
@@ -129,7 +137,7 @@ class Anomaly_Detector:
         self.ref_normal = np.asarray(pc.normals)
         self.ref_points = np.asarray(pc.points)
         self.ref_tree = KDTree(self.ref_points)
-        self.neighbor_count = 40
+        self.neighbor_count = 20
         _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
 
         self.self_neighbor = corr
@@ -140,7 +148,7 @@ class Anomaly_Detector:
   #  def detect_thread(self, node):
 
     def paint_pc(self, pc, mds):
-        c = np.array([mds[i, 0]/(mds[i, 0]+mds[i, 1])
+        c = np.array([0.5 if mds[i, 0]+mds[i, 1]==0 else mds[i, 0]/(mds[i, 0]+mds[i, 1]  )
                      for i in range(len(mds))])
         #chi=np.array([1 for i in range(len(chi_1))])
 
@@ -171,9 +179,6 @@ class Anomaly_Detector:
 
         return pc
 
-    def calculate_md(self, node):
-        pass
-
     def sum_md(self, mds, corr):
         # t = time.time()
         # count = Counter(corr)        
@@ -183,7 +188,7 @@ class Anomaly_Detector:
         # n_sample = n_sample[self.self_neighbor]
         # self.n_sample = np.sum(n_sample, 1)
          
-        one = np.ones(len(mds))*3
+        one = np.ones(len(mds))
         for i in range(self.neighbor_count):
             np.add.at(self.md_ref, self.self_neighbor[corr, :][:, i], mds)
             np.add.at(self.n_sample , self.self_neighbor[corr,:][:,i], one)
@@ -199,53 +204,93 @@ class Anomaly_Detector:
 
     def ICP(self, pc):
         result_icp = o3d.pipelines.registration.registration_icp(
-            pc, self.reference , 10, np.eye(4),
+            pc, self.reference , 0.5, np.eye(4),
             o3d.pipelines.registration.TransformationEstimationPointToPlane())
         T = result_icp.transformation
         
         return pc.transform(T), T
-    
-    def detect(self, node):
+    def est_correspondence(self, points, cov):
+        t = time.time()
+        n = len(points)
+        k = 1
+        _, corr = self.ref_tree.query(points, k=k)
+        normals = self.ref_normal[corr]
+        mus = self.ref_points[corr]
+        mds = np.zeros((k,n,2))
+        if k > 1:
+            for i in range(k):
+                mds[i,:,:] = get_md_par(points, mus[:,i,:], self.thres, cov, normals[:,i,:])
+            self.mds = mds
+            idx = np.argmin(mds[:,:,0],0) #minimize null hypothesis 
+            mds = mds[idx,range(len(idx)), :]
+            corr = corr[range(len(idx)), idx]
+        else:
+            mds = get_md_par(points, mus, self.thres, cov, normals)
+            
+        # print("md time: ", time.time()-t)
+        return mds, corr
+    def random_down_sample(self, point_cloud, covs):
+        # p = p.uniform_down_sample(117)
+        # point_cov = point_cov[np.arange(0,len(point_cov),117)]
+        
+        n = len(point_cloud.points)
+        n_ds = 5000
+        if n<n_ds:
+            return point_cloud, covs
+        
+        idx = np.random.choice(range(n), n_ds, replace = False)
+        point_cloud = point_cloud.select_by_index(idx)
+        covs = covs[idx]
+        
+        return point_cloud, covs
+        
+    def detect(self, node, features):
         print("estimating anomaly: node " + str(node.id))
 
-        node_pose = node.M.copy()
+        # M = node.M.copy()
+        if( len(node.local_map["features"])) == 0:
+           M = node.M.copy() 
+        else:
+            dm = np.zeros(6)
+            for feature_id, feature in node.local_map["features"].items():
+                dm  += SE3.Log(features[feature_id].M.copy()@inv(feature['M']))
+            dm /= len(node.local_map["features"])
+            M = SE3.Exp(dm)
         cloud = node.local_map['pc'].copy()
         p = o3d.geometry.PointCloud()
         p.points = o3d.utility.Vector3dVector(cloud["points"])
-        p = p.transform(node_pose)
+        p = p.transform(M)
         # p, T = self.ICP(p)
         T = np.eye(4)
-        p = p.uniform_down_sample(200)
         point_cov = node.local_map['cov'].copy()
-        point_cov = point_cov[np.arange(0,len(point_cov), 200)]
+        p, point_cov = self.random_down_sample(p, point_cov)
         #sigma_node = np.zeros((3,3))#node.cov
         points = np.asarray(p.points)
-        sigma_node = np.eye(6)
-        sigma_node[0:3,0:3] *= 0.0001
-        sigma_node[3:6,3:6] *= 0.00001
+        sigma_node = np.eye(6) 
+        sigma_node[0:3,0:3] *= 0.005
+        sigma_node[3:6,3:6] *= 0.0001
         # cov=get_global_cov(point_cov, T@node_pose, sigma_node)
-        cov=get_global_cov_SE3(points, T@node_pose, point_cov, sigma_node)
-        _, corr = self.ref_tree.query(points, k=1)
-
-        normals = self.ref_normal[corr]
-        mus = self.ref_points[corr]
-        mds = get_md_par(points, mus, self.thres, cov, normals)
-        # p = self.paint_pc(p, mds)
-        p = self.paint_cov(p, cov)
+        cov=get_global_cov_SE3(points, T@M, point_cov, sigma_node)
+        
+        mds, corr = self.est_correspondence(points, cov)
+       
+        p = self.paint_pc(p, mds)
+        # p = self.paint_cov(p, cov)
         self.sum_md(mds, corr)
         idx = self.n_sample>0
-        # z_nominal = (self.md_ref[idx, 0] - self.n_sample[idx])/np.sqrt(2*self.n_sample[idx])
-        # z_anomaly = (self.md_ref[idx, 1] - self.n_sample[idx])/np.sqrt(2*self.n_sample[idx])
-        chi2_nominal = np.nan_to_num(chi2.sf(self.md_ref[idx, 0], self.n_sample[idx]), nan=0.5)
-        chi2_anomaly = np.nan_to_num(chi2.sf(self.md_ref[idx, 1], self.n_sample[idx]), nan=0.5)
-        # chi2_nominal_test = norm.sf(z_nominal)
-        # chi2_anomaly_test =norm.sf(z_anomaly)
-        
+        # chi2_nominal = np.nan_to_num(chi2.sf(x = self.md_ref[idx, 0], df = self.n_sample[idx], scale = 1), nan=0.5)
+        # chi2_anomaly = np.nan_to_num(chi2.sf(self.md_ref[idx, 1], self.n_sample[idx]), nan=0.5)
+        # chi2_nominal = np.nan_to_num(chi2.pdf(self.md_ref[idx, 0], self.n_sample[idx]), nan=0.5)
+        # chi2_anomaly = np.nan_to_num(chi2.pdf(self.md_ref[idx, 1], self.n_sample[idx]), nan=0.5)
+
+        z_nominal = norm.sf(self.md_ref[idx, 0]/np.sqrt(self.n_sample[idx]))
+        z_anomaly  = norm.sf(self.md_ref[idx, 1]/np.sqrt(self.n_sample[idx]))
+        # z_nominal = 1- z_anomaly
         # print(np.max(np.abs(chi2_nominal - chi2_nominal_test)))
         # print(np.max(np.abs(chi2_anomaly - chi2_anomaly_test)))
 
-        p_nominal = (chi2_nominal + 0.00001) * (1-self.p_anomaly[idx])
-        p_anomaly = (chi2_anomaly + 0.00001) * self.p_anomaly[idx]
+        p_nominal = (z_nominal + 0) * (1-self.p_anomaly[idx])
+        p_anomaly = (z_anomaly + 0) * self.p_anomaly[idx]
         p_anomaly = p_anomaly/(p_nominal + p_anomaly)
         self.p_anomaly[idx] = p_anomaly
         # self.p_anomaly[idx] = chi2_anomaly_test
@@ -253,4 +298,4 @@ class Anomaly_Detector:
         self.md_ref = np.zeros((self.num_points,2))
         self.n_sample = np.zeros(self.num_points)
         # self.chi2= np.zeros((self.num_points,2))
-        return p.crop(self.bounding_box), ref.crop(self.bounding_box)
+        return p, ref.crop(self.bounding_box)
