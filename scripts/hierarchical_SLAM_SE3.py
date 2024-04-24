@@ -347,7 +347,7 @@ class Graph_SLAM:
             #     pickle.dump(graph_test, handle)
             return H
             
-    def __init__(self, M_init, ekf):
+    def __init__(self, M_init, ekf, localize_only = False):
         self.global_map=None
         self.optimized = False
         self.M=M_init.copy()

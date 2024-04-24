@@ -331,7 +331,7 @@ class EKF:
             M = np.eye(4)
             M[0:3,0:3] = R
             M[0:3, 3] = np.squeeze(r.pose_t)
-            if z<2:
+            if z<1.5:
                 features[r.tag_id]= {"xp": xp, "yp": yp, "z":z, "M":self.T_c_to_r@M }
         return features
     
