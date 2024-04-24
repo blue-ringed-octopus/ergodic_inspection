@@ -220,7 +220,8 @@ def read_prior():
             features = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
-    z = []
+            
+    z = np.zeros(6*len(features))
     idx_map = {}
     children = {}
     for i, (feature_id, pose) in enumerate(features.items()):
@@ -228,7 +229,7 @@ def read_prior():
         M = np.eye(4)
         M[0:3,0:3] = Rot.from_euler('xyz', pose["orientation"]).as_matrix()
         M[0:3,3] =  pose["position"]
-        z += SE3.Log(M)
+        z[6*i:6*i+6]=SE3.Log(M)
         children[feature_id] = {"M": M}
         
     prior["z"] = z
