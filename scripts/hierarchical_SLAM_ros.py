@@ -230,7 +230,7 @@ def read_prior():
         M[0:3,0:3] = Rot.from_euler('xyz', pose["orientation"]).as_matrix()
         M[0:3,3] =  pose["position"]
         z[6*i:6*i+6]=SE3.Log(M)
-        children[feature_id] = {"M": M}
+        children[feature_id] = M
         
     prior["z"] = z
     prior["idx_map"] = idx_map
