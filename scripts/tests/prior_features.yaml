@@ -1,0 +1,95 @@
+0: 
+   position: [4.054, -0.288, 0.1278 ]
+   orientation: [0, 0, 3.1415]
+
+1:
+   position: [5.051, -1.3464, 0.26 ]
+   orientation: [0, 0, 3.1415]
+
+2:
+   position: [4.0748, -2.769, 0.1068]
+   orientation: [0, 0, 0]
+
+3:
+   position: [0.38, -1.333, 0.146]
+   orientation: [0, 0, 0]
+
+4:
+   position: [0.575, -4.063, 0.227]
+   orientation: [0, 0, 1.5708]
+
+5:
+   position: [0.914111, -5, 0.227]
+   orientation: [0, 0, 0]
+
+6:
+   position: [0,0,0]
+   orientation: [0, 0, 0]
+
+7:
+   position: [1.2787, -6.189, 0.227]
+   orientation: [0, 0, 1.5708]
+
+8:
+   position: [2.752, -5.33111, 0.177]
+   orientation: [0, 0, 1.5708]
+
+9:
+   position: [3.0518, -1.3468, 0.227]
+   orientation: [0, 0, -1.5708]
+
+10:
+   position: [2.3541, -2.7565, 0.171]
+   orientation: [0, 0, 3.1415]
+
+11:
+   position: [3.4820, -3.18185, 0.227 ]
+   orientation: [0, 0, -1.5708]
+
+12:
+   position: [1.71401, -0.106541, 0.1188]
+   orientation: [0, 0, -1.5708]
+
+13:
+   position: [5.05, -0.422, 0.25]
+   orientation: [0, 0, 3.1415]
+
+14:
+   position: [2.516, -1.326, 0.227]
+   orientation: [0, 0, 1.5708]
+
+15:
+   position: [0.574, -3.174, 0.227]
+   orientation: [0, 0, 0]
+
+16:
+   position: [4.045, -1.772, 0.125 ]
+   orientation: [0, 0, 3.1415]
+
+17:
+   position: [5.051, -2.25, 0.227]
+   orientation: [0, 0, 3.1415]
+
+18:
+   position: [2.381, -2.7281, 0.227]
+   orientation: [0, 0, 0]
+
+19:
+   position: [5.0505, -3.16, 0.227]
+   orientation: [0, 0, 3.1415]
+
+20:
+   position: [0.360, -2.25, 0.227]
+   orientation: [0, 0, 0]
+
+21:
+   position: [1.8755, -5.3267, 0.227]
+   orientation: [0, 0, 1.5708]
+
+22:
+   position: [5.05, -5.037, 0.227]
+   orientation: [0, 0, 3.1415]
+
+23:
+   position: [0.360 -0.4097 0.166]
+   orientation: [0, 0, 0]

@@ -15,9 +15,13 @@ import ros_numpy
 import numpy as np
 from hierarchical_SLAM_SE3 import Graph_SLAM
 from Lie import SE3, SO3
+import yaml
+import rospkg
+import scipy.spatial.transform.Rotation as Rot
 
 np.float = np.float64 
 np.set_printoptions(precision=2)
+rospack=rospkg.RosPack()
 
 def pc_to_msg(pc):
     points=np.asarray(pc.points)
@@ -189,33 +193,57 @@ def plot_graph(graph, pub):
     markerArray.markers=markers
     pub.publish(markerArray)
     
-def initialize_graph_slam():
+def initialize_graph_slam(ekf, localize_mode  = False):
     #prior_feature 
-    feature_id = 12 
-    R_prior=SO3.Exp([0,0,-np.pi/2])
-    M_prior=np.eye(4)
-    M_prior[0:3,0:3]=R_prior
-    M_prior[0:3,3]=[1.714, -0.1067, 0.1188]
-    z=SE3.Log(M_prior)
-    while not feature_id in ekf.landmarks.keys() and not rospy.is_shutdown():
-        pass
-    M_feature = ekf.mu[ekf.landmarks[feature_id]]
+    prior = read_prior()
+    intersection = [id_  for id_ in ekf.landmarks.keys() if id_ in prior["children"]]
+    while not len(intersection) and not rospy.is_shutdown():
+        intersection = [id_  for id_ in ekf.landmarks.keys() if id_ in prior["children"]]
     
+    feature_id = intersection[0]
+    M_feature = ekf.mu[ekf.landmarks[feature_id]]
+    M_prior = prior["children"][feature_id]
     M_init = M_prior@np.linalg.inv(M_feature)
-    graph_slam=Graph_SLAM(M_init, ekf)
-    graph_slam.front_end.add_node(M_prior,"feature", 12)
-    graph_slam.front_end.add_prior_factor([], [feature_id],z, np.eye(6)*0.001 , {} ,{feature_id: 0})
+    graph_slam=Graph_SLAM(M_init, ekf, localize_mode)
+    for id_, M_prior in prior.children.items():
+        graph_slam.front_end.add_node(M_prior,"feature", id_)
+        
+    graph_slam.front_end.add_prior_factor([], list(prior.children.keys()),prior.z, np.eye(6)*0.001 , {} , prior.idx_map)
     return graph_slam
 
+def read_prior():
+    prior={}
+    path = rospack.get_path("ergodic_inspection")
+    file = "file:///" + path + "/resources/prior_features.yaml"
+    with open(file) as stream:
+        try:
+            features = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+    z = []
+    idx_map = {}
+    children = {}
+    for i, feature_id, pose in enumerate(features.items()):
+        idx_map[feature_id] = 6*i
+        M = np.eye(4)
+        M[0:3,0:3] = Rot.from_euler('xyz', pose["orientation"]).as_matrix()
+        M[0:3,3] =  pose["position"]
+        z += SE3.Log(M)
+        children[feature_id] = {"M": M}
+        
+    prior["z"] = z
+    prior["idx_map"] = idx_map
+    prior["children"] = children
+    prior["cov"] = np.eye(len(z))* 0.001
+    
 if __name__ == "__main__":
+   
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
-    
-    
     ekf=apriltag_EKF_SE3.EKF(0)
     
-    graph_slam = initialize_graph_slam()
+    graph_slam = initialize_graph_slam(ekf, True)
     
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     
