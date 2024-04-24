@@ -35,6 +35,7 @@ class Graph_SLAM:
                     
         class Factor:
             def __init__(self, id_, parent_node, children_nodes, feature_nodes, z, sigma, idx_map ):
+                self.prior = parent_node == None
                 self.parent=parent_node
                 self.children=children_nodes
                 self.feature_nodes=feature_nodes
@@ -42,11 +43,12 @@ class Graph_SLAM:
                 self.omega=inv(sigma)
                 self.omega=(self.omega.T+self.omega)/2
                 self.pruned=False
-                self.n = len(feature_nodes)
+                self.n_features = len(feature_nodes)
+                self.n_poses =  len(children_nodes)
                 self.idx_map = idx_map
                 self.id = id_
                 
-            def get_jacobian(self):
+            def get_jacobian(self, M_init):
                 pass 
             
             def prune(self, node_id):
@@ -206,7 +208,7 @@ class Graph_SLAM:
                     M.append(node.M.copy())
                     pose_idx_map[node_id]=n
                     n+=1
-                    
+            
             for node_id,node in graph.feature_nodes.items():
                 M.append(node.M.copy())
                 feature_idx_map[node_id]=n
@@ -215,15 +217,24 @@ class Graph_SLAM:
             return M, {"pose":pose_idx_map, "features": feature_idx_map }
         
         @staticmethod
-        def linearize(M, prior, factors, global_idx_map):
-            n = len(M)
-            H = np.zeros((6*n, 6*n))
-            b = np.zeros(6*n)
+        def linearize(M, prior, factors, global_idx_map, localize_mode = False):
+            if localize_mode:
+                n_global = len(global_idx_map["pose"])
+            else:
+                n_global = len(M)
+                
+            H = np.zeros((6*n_global, 6*n_global))
+            b = np.zeros(6*n_global)
             
             #prior
-            J = np.eye(len(prior.z))
-            F = np.zeros((6*n, len(prior.z)))   
-            e = np.zeros(len(prior.z))
+            if localize_mode:
+                n_prior = (prior.n_features)
+            else:
+                n_prior = (prior.n_features+prior.n_poses)
+                
+            J = np.eye(n_global)
+            F = np.zeros((6*n_global, 6*n_prior))   
+            e = np.zeros(6*n_prior)
             prior_idx_map = prior.idx_map.copy()
 
             omega = prior.omega.copy()
@@ -233,29 +244,35 @@ class Graph_SLAM:
                 z = prior.z[i:i+6].copy()
                 z_bar = SE3.Log(M[idx])
                 e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
-                # e[i:i+6] = z - z_bar
                 J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
                 F[6*idx:6*idx+6,i:i+6] = np.eye(6)
                 
-            for feature in prior.feature_nodes:
-                idx = global_idx_map["features"][feature.id]
-                i = 6*prior_idx_map["features"][feature.id]
-                F[6*idx:6*idx+6,i:i+6] = np.eye(6)
-
-                z = prior.z[i:i+6].copy()
-                z_bar = SE3.Log(M[idx])
-                J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
-                e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
+            if not localize_mode:
+                for feature in prior.feature_nodes:
+                    idx = global_idx_map["features"][feature.id]
+                    i = 6*prior_idx_map["features"][feature.id]
+                    F[6*idx:6*idx+6,i:i+6] = np.eye(6)
+                    z = prior.z[i:i+6].copy()
+                    z_bar = SE3.Log(M[idx])
+                    J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
+                    e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
                 
             H+=F@(J.T@omega@J)@F.T
             b+=F@J.T@omega@e    
+            
             for factor in factors.values():
                 factor_idx_map = factor.idx_map["features"].copy()
                 omega = factor.omega.copy()
-                F = np.zeros((6*n, 12+factor.n*6))          #map from factor vector to graph vector
-                J = np.zeros((6+factor.n*6,12+factor.n*6)) #map from factor vector to observation
-                e = np.zeros(len(factor.z)) #difference between observation and expected observation
-                 
+                n_obsv = 1 + factor.n_features          #child and observed features
+                if localize_mode:
+                    n_factor = 2               #parent, child and observed features
+                else:
+                    n_factor = 1 + n_obsv 
+                F = np.zeros((6*n_global, 6*n_factor))  #map from factor vector to graph vector
+                J = np.zeros((6*n_obsv, 6*n_factor))    #map from factor vector to observation
+                e = np.zeros(6*n_obsv)                  #difference between observation and expected observation
+                
+                #Odometry
                 idx = global_idx_map['pose'][factor.parent.id]
                 F[6*idx:6*idx+6,0:6] = np.eye(6)
                 z = factor.z[0:6].copy()
@@ -271,22 +288,22 @@ class Graph_SLAM:
                 J[0:6, 6:12] = SE3.Jr_inv(z_bar)
                 e[0:6] = SE3.Log(SE3.Exp(z - z_bar))
                 
-                
+                #features
                 for feature in factor.feature_nodes:
-                    idx = global_idx_map['features'][feature.id]
                     i = 6*factor_idx_map[feature.id]
-                    F[6*idx:6*idx+6,6+i:6+i+6] = np.eye(6)
+                    idx = global_idx_map['features'][feature.id]
+                    if not localize_mode:
+                        F[6*idx:6*idx+6,6+i:6+i+6] = np.eye(6)
 
                     z = factor.z[i:i+6].copy()
                     z_bar = SE3.Log(M_r1_inv@M[idx])
 
-                    J[i:i+6, 0:6] = -SE3.Jl_inv(z_bar)
-                    J[i:i+6, 6+i:6+i+6] = SE3.Jr_inv(z_bar)
+                    J[i:i+6, 0:6] = -SE3.Jl_inv(z_bar) #observer jacobian
+                    if not localize_mode:
+                        J[i:i+6, 6+i:6+i+6] = SE3.Jr_inv(z_bar) #observed jacobian
                     
                     e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
-                    
-            
-              
+ 
                 H+=F@(J.T@omega@J)@F.T
                 b+=F@J.T@omega@e
             return H, b
@@ -321,7 +338,7 @@ class Graph_SLAM:
             M = [m@SE3.Exp(dx[6*i:6*i+6]) for i, m in enumerate(M)]
             return M
         
-        def optimize(self, graph):
+        def optimize(self, graph, localize_only = False):
             # with open('graph.pickle', 'wb') as handle:
             #     pickle.dump(graph, handle)
             print("optimizing graph")
