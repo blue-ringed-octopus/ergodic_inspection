@@ -152,6 +152,7 @@ def draw_frame(img, tag, K):
 
 class EKF:
     def __init__(self, node_id):
+        self.landmarks={}
         self.bridge = CvBridge()
 
         T_c_to_r, T_r_to_c = get_camera_to_robot_tf()
