@@ -339,8 +339,8 @@ class Graph_SLAM:
             return M
         
         def optimize(self, graph, localize_mode = False):
-            # with open('graph.pickle', 'wb') as handle:
-            #     pickle.dump(graph, handle)
+            with open('graph.pickle', 'wb') as handle:
+                pickle.dump(graph, handle)
             print("optimizing graph")
             M, idx_map = self.node_to_vector(graph)
             H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map)
