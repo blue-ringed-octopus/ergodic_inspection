@@ -84,6 +84,6 @@ for node in graph_prune.feature_nodes.values():
 
 
 plt.axis('scaled')
-plt.xlim([-6, 0])
-plt.ylim([-1,4])
+# plt.xlim([-6, 0])
+# plt.ylim([-1,4])
 plt.title("optmized")

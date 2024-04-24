@@ -138,13 +138,11 @@ class Graph_SLAM:
                 J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(z[6*i:6*i+6])
             
             cov = J@cov@J.T
-            prior.z = z
-            prior.omega = inv(cov)
-            prior.omega = (prior.omega + prior.omega.T)/2
-            prior.idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
-            prior.children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
-            prior.feature_nodes = [self.feature_nodes[id_] for id_ in feature_idx_map.keys()]
-
+            idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
+            children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
+            feature_nodes = [self.feature_nodes[id_] for id_ in feature_idx_map.keys()]
+            
+            prior =  self.Factor(id_, None, children, feature_nodes, z, cov, idx_map)
             self.prior_factor = prior
             
         def prune(self, window):
@@ -232,7 +230,7 @@ class Graph_SLAM:
             else:
                 n_prior = (prior.n_features+prior.n_poses)
                 
-            J = np.eye(6*n_global)
+            J = np.eye(6*n_prior)
             F = np.zeros((6*n_global, 6*n_prior))   
             e = np.zeros(6*n_prior)
             prior_idx_map = prior.idx_map.copy()
@@ -256,7 +254,6 @@ class Graph_SLAM:
                     z_bar = SE3.Log(M[idx])
                     J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
                     e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
-                
             H+=F@(J.T@omega@J)@F.T
             b+=F@J.T@omega@e    
             
@@ -339,8 +336,8 @@ class Graph_SLAM:
             return M
         
         def optimize(self, graph, localize_mode = False):
-            with open('graph.pickle', 'wb') as handle:
-                pickle.dump(graph, handle)
+            # with open('graph.pickle', 'wb') as handle:
+            #     pickle.dump(graph, handle)
             print("optimizing graph")
             M, idx_map = self.node_to_vector(graph)
             H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map)
