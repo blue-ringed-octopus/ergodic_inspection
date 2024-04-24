@@ -91,5 +91,5 @@
    orientation: [0, 0, 3.1415]
 
 23:
-   position: [0.360 -0.4097 0.166]
+   position: [0.360, -0.4097, 0.166]
    orientation: [0, 0, 0]
