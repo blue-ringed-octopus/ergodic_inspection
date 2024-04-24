@@ -361,7 +361,8 @@ class Graph_SLAM:
             #     pickle.dump(graph_test, handle)
             return H
             
-    def __init__(self, M_init, ekf, localize_only = False):
+    def __init__(self, M_init, ekf, localize_mode = False):
+        self.localize_mode = localize_mode
         self.global_map=None
         self.optimized = False
         self.M=M_init.copy()
@@ -379,7 +380,6 @@ class Graph_SLAM:
     
     def _posterior_to_factor(self, mu, sigma):
         self.front_end.pose_nodes[self.current_node_id].local_map=deepcopy(self.ekf.cloud)
-        print(self.front_end.pose_nodes[self.current_node_id].local_map)
         new_node_id=self.front_end.add_node(self.M.copy(),"pose")
 
         
@@ -467,7 +467,7 @@ class Graph_SLAM:
         if delta>=1.5:
             self._posterior_to_factor(mu, sigma)
             self.ekf.reset(self.current_node_id)
-            H=self.back_end.optimize(self.front_end)
+            H=self.back_end.optimize(self.front_end, self.localize_mode)
             with open('graph.pickle', 'wb') as handle:
                 pickle.dump(self.front_end, handle)
             self.omega=H

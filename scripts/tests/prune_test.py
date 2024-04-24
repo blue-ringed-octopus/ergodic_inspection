@@ -26,7 +26,7 @@ with open('graph.pickle', 'rb') as f:
 graph_prune = deepcopy(graph)
 
 optimizer = Graph_SLAM.Back_end()
-optimizer.optimize(graph_prune)
+optimizer.optimize(graph_prune, True)
 graph_prune.prune(1)
 optimizer.optimize(graph_prune)
 
