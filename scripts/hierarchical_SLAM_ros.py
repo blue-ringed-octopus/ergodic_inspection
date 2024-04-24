@@ -214,7 +214,7 @@ def initialize_graph_slam(ekf, localize_mode  = False):
 def read_prior():
     prior={}
     path = rospack.get_path("ergodic_inspection")
-    file = "file:///" + path + "/resources/prior_features.yaml"
+    file = path + "/resources/prior_features.yaml"
     with open(file) as stream:
         try:
             features = yaml.safe_load(stream)
