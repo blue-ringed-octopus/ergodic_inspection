@@ -321,18 +321,19 @@ class Graph_SLAM:
         #     for node_id, idx in self.feature_idx_map.items():
         #         graph.feature_nodes[node_id].M = graph.feature_nodes[node_id].M@SE3.Exp(dx[idx:idx+6])
     
-        def update_nodes(self, graph, M,cov, idx_map):
+        def update_nodes(self, graph, M,cov, idx_map, localize_mode):
             for node_id, idx in idx_map["pose"].items():
                 graph.pose_nodes[node_id].M = M[idx]
                 graph.pose_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
                 
-            for node_id, idx in idx_map["features"].items():  
-                graph.feature_nodes[node_id].M = M[idx]
-                graph.feature_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
+            if not localize_mode:
+                for node_id, idx in idx_map["features"].items():  
+                    graph.feature_nodes[node_id].M = M[idx]
+                    graph.feature_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
 
         @staticmethod
         def update_pose(M, dx):
-            M = [m@SE3.Exp(dx[6*i:6*i+6]) for i, m in enumerate(M)]
+            M = [m@SE3.Exp(dx[6*i:6*i+6]) if 6*i+6< len(dx) else m for i, m in enumerate(M) ]
             return M
         
         def optimize(self, graph, localize_mode = False):
@@ -340,20 +341,20 @@ class Graph_SLAM:
             #     pickle.dump(graph, handle)
             print("optimizing graph")
             M, idx_map = self.node_to_vector(graph)
-            H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map)
+            H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map, localize_mode)
             dx=self.linear_solve(H,b)
             i=0
             M = self.update_pose(M, 0.01*dx)
 
             while np.max(np.abs(dx))>0.001 and i<50:
                 print("step: ", i)
-                H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map)
+                H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map, localize_mode)
                 dx=self.linear_solve(H,b)
 
                 M = self.update_pose(M, 0.01*dx)
                 i+=1
     
-            self.update_nodes(graph, M, inv(H), idx_map)
+            self.update_nodes(graph, M, inv(H), idx_map, localize_mode)
             print("optimized")
             
             # with open('graph.pickle', 'wb') as handle:
