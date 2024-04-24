@@ -236,7 +236,7 @@ def read_prior():
     prior["idx_map"] = idx_map
     prior["children"] = children
     prior["cov"] = np.eye(len(z))* 0.001
-    
+    return prior
 if __name__ == "__main__":
    
     br = tf.TransformBroadcaster()
