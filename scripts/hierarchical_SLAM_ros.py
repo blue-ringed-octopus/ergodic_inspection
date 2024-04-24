@@ -17,7 +17,7 @@ from hierarchical_SLAM_SE3 import Graph_SLAM
 from Lie import SE3, SO3
 import yaml
 import rospkg
-import scipy.spatial.transform.Rotation as Rot
+from scipy.spatial.transform import Rotation as Rot
 
 np.float = np.float64 
 np.set_printoptions(precision=2)
