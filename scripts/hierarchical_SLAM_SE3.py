@@ -232,7 +232,7 @@ class Graph_SLAM:
             else:
                 n_prior = (prior.n_features+prior.n_poses)
                 
-            J = np.eye(n_global)
+            J = np.eye(6*n_global)
             F = np.zeros((6*n_global, 6*n_prior))   
             e = np.zeros(6*n_prior)
             prior_idx_map = prior.idx_map.copy()
@@ -338,7 +338,7 @@ class Graph_SLAM:
             M = [m@SE3.Exp(dx[6*i:6*i+6]) for i, m in enumerate(M)]
             return M
         
-        def optimize(self, graph, localize_only = False):
+        def optimize(self, graph, localize_mode = False):
             # with open('graph.pickle', 'wb') as handle:
             #     pickle.dump(graph, handle)
             print("optimizing graph")
