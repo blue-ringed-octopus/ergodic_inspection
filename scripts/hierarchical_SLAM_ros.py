@@ -197,7 +197,7 @@ def initialize_graph_slam():
     M_prior[0:3,0:3]=R_prior
     M_prior[0:3,3]=[1.714, -0.1067, 0.1188]
     z=SE3.Log(M_prior)
-    while not feature_id in ekf.landmarks.keys():
+    while not feature_id in ekf.landmarks.keys() and not rospy.is_shutdown():
         pass
     M_feature = ekf.mu[ekf.landmarks[feature_id]]
     
