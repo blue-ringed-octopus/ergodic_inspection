@@ -243,32 +243,33 @@ class Graph_SLAM:
                 n_prior = (prior.n_poses)
             else:
                 n_prior = (prior.n_features+prior.n_poses)
-                
-            J = np.eye(6*n_prior)
-            F = np.zeros((6*n_global, 6*n_prior))   
-            e = np.zeros(6*n_prior)
-            prior_idx_map = prior.idx_map.copy()
-            omega = prior.omega.copy()
-            for child in prior.children:
-                i = 6*prior_idx_map["pose"][child.id]
-                idx = global_idx_map["pose"][child.id]
-                z = prior.z[i:i+6].copy()
-                z_bar = SE3.Log(M[idx])
-                e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
-                J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
-                F[6*idx:6*idx+6,i:i+6] = np.eye(6)
-                
-            if not localize_mode:
-                for feature in prior.feature_nodes:
-                    idx = global_idx_map["features"][feature.id]
-                    i = 6*prior_idx_map["features"][feature.id]
-                    F[6*idx:6*idx+6,i:i+6] = np.eye(6)
+            
+            if n_prior>0:
+                J = np.eye(6*n_prior)
+                F = np.zeros((6*n_global, 6*n_prior))   
+                e = np.zeros(6*n_prior)
+                prior_idx_map = prior.idx_map.copy()
+                omega = prior.omega.copy()
+                for child in prior.children:
+                    i = 6*prior_idx_map["pose"][child.id]
+                    idx = global_idx_map["pose"][child.id]
                     z = prior.z[i:i+6].copy()
                     z_bar = SE3.Log(M[idx])
-                    J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
                     e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
-            H+=F@(J.T@omega@J)@F.T
-            b+=F@J.T@omega@e    
+                    J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
+                    F[6*idx:6*idx+6,i:i+6] = np.eye(6)
+                    
+                if not localize_mode:
+                    for feature in prior.feature_nodes:
+                        idx = global_idx_map["features"][feature.id]
+                        i = 6*prior_idx_map["features"][feature.id]
+                        F[6*idx:6*idx+6,i:i+6] = np.eye(6)
+                        z = prior.z[i:i+6].copy()
+                        z_bar = SE3.Log(M[idx])
+                        J[i:i+6, i:i+6] = SE3.Jr_inv(z_bar)
+                        e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
+                H+=F@(J.T@omega@J)@F.T
+                b+=F@J.T@omega@e    
             
             for factor in factors.values():
                 factor_idx_map = factor.idx_map["features"].copy()
