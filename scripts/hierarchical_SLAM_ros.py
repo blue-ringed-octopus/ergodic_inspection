@@ -210,8 +210,6 @@ def initialize_graph_slam(ekf, localize_mode  = False):
         
     if not localize_mode:
         graph_slam.front_end.add_prior_factor([], list(prior["children"].keys()),prior['z'], prior["cov"] , {} , prior["idx_map"])
-    else:
-        graph_slam.front_end.add_prior_factor([], [],None, None , {} , {"features":{}, "poses":{}})
 
     return graph_slam
 

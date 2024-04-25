@@ -62,13 +62,13 @@ class Graph_SLAM:
                     node.factor.pop(self.id)
                     
         def __init__(self):
-            self.prior_factor = None
+            self.prior_factor = self.factor(0, [],[], [], None, None,  {"features":{}, "poses":{}})
             self.pose_nodes={}
             self.factors={}
             self.feature_nodes={}
             self.window = 10
             self.current_pose_id = -1
-            self.current_factor_id = 0
+            self.current_factor_id = 1
         
         def marginalize(self, node, localize_mode):
             print("marginalize node", node.id)
@@ -184,7 +184,7 @@ class Graph_SLAM:
             children = [self.pose_nodes[id_] for id_ in children_ids]
             features = [self.feature_nodes[id_] for id_ in features_ids]
                       
-            factor = self.Factor(self.current_factor_id, None,children,features ,z,sigma, idx_map)  
+            factor = self.Factor(self.prior_factor.id, None,children,features ,z,sigma, idx_map)  
                 
             self.prior_factor = factor
                         
