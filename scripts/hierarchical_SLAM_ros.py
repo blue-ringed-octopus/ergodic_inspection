@@ -225,7 +225,7 @@ def read_prior():
     idx_map = {}
     children = {}
     for i, (feature_id, pose) in enumerate(features.items()):
-        idx_map[feature_id] = 6*i
+        idx_map[feature_id] = i
         M = np.eye(4)
         M[0:3,0:3] = Rot.from_euler('xyz', pose["orientation"]).as_matrix()
         M[0:3,3] =  pose["position"]
