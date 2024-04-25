@@ -40,8 +40,11 @@ class Graph_SLAM:
                 self.children=children_nodes
                 self.feature_nodes=feature_nodes
                 self.z=z
-                self.omega=inv(sigma)
-                self.omega=(self.omega.T+self.omega)/2
+                if sigma == None:
+                    self.omega = None
+                else:
+                    self.omega=inv(sigma)
+                    self.omega=(self.omega.T+self.omega)/2
                 self.pruned=False
                 self.n_features = len(feature_nodes)
                 self.n_poses =  len(children_nodes)
