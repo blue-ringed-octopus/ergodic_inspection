@@ -70,13 +70,15 @@ class Graph_SLAM:
             self.current_pose_id = -1
             self.current_factor_id = 0
         
-        def marginalize(self, node):
+        def marginalize(self, node, localize_mode):
             print("marginalize node", node.id)
             prior = self.prior_factor
-            pose_idx_map=prior.idx_map["pose"].copy()
-            feature_idx_map=prior.idx_map["features"].copy()
-            n = len(pose_idx_map) + len(feature_idx_map)
-                            
+            pose_idx_map={}
+            feature_idx_map={}
+            n = 0
+            for key in prior.idx_map["pose"].keys():
+                pose_idx_map[key] = n
+                n+=1
             for factor in node.factor.values():
                 if not factor.parent.id in prior.idx_map["pose"].keys():
                     pose_idx_map[factor.parent.id] = n
@@ -87,6 +89,11 @@ class Graph_SLAM:
                         pose_idx_map[id_] = n
                         n += 1
                         
+            for key in prior.idx_map["features"].keys():
+                feature_idx_map[key] = n
+                n+=1       
+                
+            for factor in node.factor.values():                        
                 for id_ in factor.idx_map["features"].keys():
                     if not id_ in feature_idx_map.keys():
                         feature_idx_map[id_] = n
@@ -100,15 +107,14 @@ class Graph_SLAM:
                 M[i] = self.feature_nodes[id_].M.copy()
                 
                 
-            H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map})   
+            H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map}, localize_mode)   
             dx=Graph_SLAM.Back_end.linear_solve(H,b)
             M =  Graph_SLAM.Back_end.update_pose(M, 0.5*dx)
             i = 0
             while np.max(np.abs(dx))>0.0001 and i<100:
                 print("step: ", i)
-                H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map})   
+                H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map}, localize_mode)   
                 dx=Graph_SLAM.Back_end.linear_solve(H,b)
-                # k = pose_idx_map[2]
 
                 M =  Graph_SLAM.Back_end.update_pose(M, 0.5*dx)
                 i+=1
@@ -126,28 +132,36 @@ class Graph_SLAM:
             for key, idx in feature_idx_map.items():
                 if idx > node_idx:
                     feature_idx_map[key] -=1
-
+                    
+            n_prior = len(pose_idx_map)
+            if not localize_mode:
+                n_prior += len(feature_idx_map)
             M = np.delete(M,node_idx,0) 
-            z = np.concatenate([SE3.Log(m) for  m in M])
+            
+            z = np.concatenate([SE3.Log(M[i]) for  i in range(n_prior)])
             cov = np.delete(cov,idx_range, 0 )
             cov = np.delete(cov,idx_range, 1 )
             
             J = np.zeros(((len(z)), len(z)))
             
-            for i, m in enumerate(M):
+            for i in range(n_prior):
                 J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(z[6*i:6*i+6])
             
             cov = J@cov@J.T
-            idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
             children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
-            feature_nodes = [self.feature_nodes[id_] for id_ in feature_idx_map.keys()]
+            if localize_mode:
+                idx_map={"features": {}, "pose": pose_idx_map}    
+                feature_nodes = []
+            else:
+                idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
+                feature_nodes = [self.feature_nodes[id_] for id_ in feature_idx_map.keys()]
             
-            prior =  self.Factor(id_, None, children, feature_nodes, z, cov, idx_map)
+            prior =  self.Factor(self.prior_factor.id, None, children, feature_nodes, z, cov, idx_map)
             self.prior_factor = prior
             
-        def prune(self, window):
+        def prune(self, window, localize_mode):
             for node in list(self.pose_nodes.values())[:-window]:
-                self.marginalize(node)
+                self.marginalize(node, localize_mode)
                 for id_, factor in node.factor.items():
                     factor.prune(node.id)
                     self.factors.pop(id_)
@@ -226,7 +240,7 @@ class Graph_SLAM:
             
             #prior
             if localize_mode:
-                n_prior = (prior.n_features)
+                n_prior = (prior.n_poses)
             else:
                 n_prior = (prior.n_features+prior.n_poses)
                 
@@ -234,7 +248,6 @@ class Graph_SLAM:
             F = np.zeros((6*n_global, 6*n_prior))   
             e = np.zeros(6*n_prior)
             prior_idx_map = prior.idx_map.copy()
-
             omega = prior.omega.copy()
             for child in prior.children:
                 i = 6*prior_idx_map["pose"][child.id]
@@ -474,7 +487,7 @@ class Graph_SLAM:
             self.omega=H
             # self.global_map_assemble()
             self.optimized=True
-            self.front_end.prune(10)
+            self.front_end.prune(10, self.localize_mode)
 
         return self.optimized
 

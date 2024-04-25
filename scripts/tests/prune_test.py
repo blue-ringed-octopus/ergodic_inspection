@@ -27,8 +27,9 @@ graph_prune = deepcopy(graph)
 
 optimizer = Graph_SLAM.Back_end()
 optimizer.optimize(graph_prune, True)
-graph_prune.prune(1)
-optimizer.optimize(graph_prune)
+graph_prune.prune(10, True)
+optimizer.optimize(graph_prune, True)
+
 
 #%%
 plt.figure(1)

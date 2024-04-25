@@ -208,7 +208,8 @@ def initialize_graph_slam(ekf, localize_mode  = False):
     for id_, M_prior in prior["children"].items():
         graph_slam.front_end.add_node(M_prior,"feature", id_)
         
-    graph_slam.front_end.add_prior_factor([], list(prior["children"].keys()),prior['z'], prior["cov"] , {} , prior["idx_map"])
+    if not localize_mode:
+        graph_slam.front_end.add_prior_factor([], list(prior["children"].keys()),prior['z'], prior["cov"] , {} , prior["idx_map"])
     return graph_slam
 
 def read_prior():
@@ -239,13 +240,13 @@ def read_prior():
     return prior
 
 if __name__ == "__main__":
-   
+    localization_mode = True
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
     ekf=apriltag_EKF_SE3.EKF(0)
     
-    graph_slam = initialize_graph_slam(ekf, True)
+    graph_slam = initialize_graph_slam(ekf, localization_mode)
     
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     
