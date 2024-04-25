@@ -62,7 +62,7 @@ class Graph_SLAM:
                     node.factor.pop(self.id)
                     
         def __init__(self):
-            self.prior_factor = self.factor(0, [],[], [], None, None,  {"features":{}, "poses":{}})
+            self.prior_factor = self.Factor(0, [],[], [], None, None,  {"features":{}, "poses":{}})
             self.pose_nodes={}
             self.factors={}
             self.feature_nodes={}
