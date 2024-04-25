@@ -40,11 +40,8 @@ class Graph_SLAM:
                 self.children=children_nodes
                 self.feature_nodes=feature_nodes
                 self.z=z
-                if sigma == None:
-                    self.omega = None
-                else:
-                    self.omega=inv(sigma)
-                    self.omega=(self.omega.T+self.omega)/2
+                self.omega=inv(sigma)
+                self.omega=(self.omega.T+self.omega)/2
                 self.pruned=False
                 self.n_features = len(feature_nodes)
                 self.n_poses =  len(children_nodes)
@@ -65,7 +62,7 @@ class Graph_SLAM:
                     node.factor.pop(self.id)
                     
         def __init__(self):
-            self.prior_factor = self.Factor(0, [],[], [], None, None,  {"features":{}, "poses":{}})
+            self.prior_factor = self.Factor(0, [],[], [], None, np.eye(2),  {"features":{}, "poses":{}})
             self.pose_nodes={}
             self.factors={}
             self.feature_nodes={}
