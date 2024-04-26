@@ -209,7 +209,7 @@ def initialize_graph_slam(ekf, localize_mode  = False):
         graph_slam.front_end.add_node(M_prior,"feature", id_)
         
     if not localize_mode:
-        graph_slam.front_end.add_prior_factor([], list(prior["children"].keys()),prior['z'], prior["cov"] , {} , prior["idx_map"])
+        graph_slam.front_end.add_prior_factor([], list(prior["children"].keys()),prior['z'], prior["cov"] , {} , {"features": prior["idx_map"]})
 
     return graph_slam
 
