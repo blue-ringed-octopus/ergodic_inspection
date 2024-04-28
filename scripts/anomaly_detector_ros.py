@@ -82,12 +82,12 @@ if __name__ == "__main__":
     rospy.init_node('estimator',anonymous=False)
     
     ekf=apriltag_EKF_SE3.EKF(0)
-    graph_slam = initialize_graph_slam()
+    graph_slam = initialize_graph_slam(ekf, localize_mode = True)
     box = mesh.get_axis_aligned_bounding_box()
     bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
     box.max_bound = bound
 
-    detector = Anomaly_Detector(mesh, box,0.5)
+    detector = Anomaly_Detector(mesh, box,0.01)
     marker = get_mesh_marker(mesh_resource)
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
