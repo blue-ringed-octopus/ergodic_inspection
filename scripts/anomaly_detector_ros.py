@@ -92,6 +92,7 @@ if __name__ == "__main__":
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
+    ref_pc_pub=rospy.Publisher("/pc_ref", PointCloud2, queue_size = 2)
     cad_pub = rospy.Publisher("/ref", Marker, queue_size = 2)
 
     rate = rospy.Rate(30) 
@@ -118,7 +119,7 @@ if __name__ == "__main__":
             pc, ref = detector.detect(graph_slam.front_end.pose_nodes[node_id], graph_slam.front_end.feature_nodes)
             pc_msg=pc_to_msg(graph_slam.global_map)
             pc_pub.publish(pc_msg)
-            
             ref_pc = get_ref_pc(ref)
+            ref_pc_pub.publish(ref_pc)
         rate.sleep()
 
