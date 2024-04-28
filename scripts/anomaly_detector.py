@@ -260,8 +260,8 @@ class Anomaly_Detector:
         p = o3d.geometry.PointCloud()
         p.points = o3d.utility.Vector3dVector(cloud["points"])
         p = p.transform(M)
-        # p, T = self.ICP(p)
-        T = np.eye(4)
+        p, T = self.ICP(p)
+        # T = np.eye(4)
         point_cov = node.local_map['cov'].copy()
         p, point_cov = self.random_down_sample(p, point_cov)
         #sigma_node = np.zeros((3,3))#node.cov
