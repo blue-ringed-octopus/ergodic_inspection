@@ -24,11 +24,11 @@ with open('graph.pickle', 'rb') as f:
 
 #%%
 graph_prune = deepcopy(graph)
-
+localize_only =True
 optimizer = Graph_SLAM.Back_end()
-optimizer.optimize(graph_prune, True)
-graph_prune.prune(10, True)
-optimizer.optimize(graph_prune, True)
+optimizer.optimize(graph_prune, localize_only)
+graph_prune.prune(9, localize_only)
+optimizer.optimize(graph_prune, localize_only)
 
 
 #%%

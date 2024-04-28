@@ -46,12 +46,9 @@ def get_mesh_marker(mesh_resource):
     marker.scale.z = 1
     return marker
 
-def get_ref_pc(points, chi2):
-    chi=chi2[:,1]/(chi2[:,1]+chi2[:,2])
-    colors = (chi*255).astype(np.uint8)
-    colors = cv2.applyColorMap(colors, cv2.COLORMAP_TURBO)
-    colors = cv2.cvtColor(colors, cv2.COLOR_BGR2RGB)
-    colors = np.squeeze(colors)
+def get_ref_pc(cloud):
+    points = np.array(cloud.points)
+    colors =  np.array(cloud.colors)
     
     pc_array = np.zeros(len(points), dtype=[
     ('x', np.float32),
@@ -117,10 +114,10 @@ if __name__ == "__main__":
 
         if optimized:
             graph_slam.global_map_assemble()
-            pc, ref = detector.detect(graph_slam.front_end.pose_nodes[0])
+            pc, ref = detector.detect(graph_slam.front_end.pose_nodes[-1])
             pc_msg=pc_to_msg(graph_slam.global_map)
             pc_pub.publish(pc_msg)
             
-            # ref_pc = get_ref_pc(detector.ref_points, detector.p_anomaly)
+            ref_pc = get_ref_pc(ref)
         rate.sleep()
 
