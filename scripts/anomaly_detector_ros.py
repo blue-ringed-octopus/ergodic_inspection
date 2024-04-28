@@ -115,7 +115,7 @@ if __name__ == "__main__":
 
         if optimized:
             graph_slam.global_map_assemble()
-            node_id  = list(graph_slam.front_end.pose_nodes.keys())[0]
+            node_id  = list(graph_slam.front_end.pose_nodes.keys())[-1]
             pc, ref = detector.detect(graph_slam.front_end.pose_nodes[node_id], graph_slam.front_end.feature_nodes)
             pc_msg=pc_to_msg(graph_slam.global_map)
             pc_pub.publish(pc_msg)
