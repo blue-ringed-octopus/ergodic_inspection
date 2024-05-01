@@ -249,7 +249,7 @@ class EKF:
         cloud["points"]=np.asarray(p.points)
         
         cloud_cov = cloud_cov[indx]
-        features = self.detect_apriltag(pc_img, depth)
+        features = self.detect_apriltag(pc_img, depth, np.inf)
         self.cloud = {"pc": cloud,"cov": cloud_cov, "depth": depth, "rgb": pc_img, "features": features ,"cam_param": self.K.copy(), "cam_transform": self.T_c_to_r.copy()}
         print(features)
     # def get_cloud_covariance(self, depth):
@@ -314,7 +314,7 @@ class EKF:
             self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@(self.R+self.R@Rv)@(Ju.T)@F
             self.odom_prev=odom
         
-    def detect_apriltag(self,rgb, depth):
+    def detect_apriltag(self,rgb, depth, max_depth = 1):
         gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
         result=self.at_detector.detect(gray, estimate_tag_pose=True, tag_size=0.16, 
         				camera_params=[self.K[0,0], self.K[1,1], self.K[0,2], self.K[1,2]])
@@ -333,7 +333,7 @@ class EKF:
             M = np.eye(4)
             M[0:3,0:3] = R
             M[0:3, 3] = np.squeeze(r.pose_t)
-            if z<1.5:
+            if z<max_depth:
                 features[r.tag_id]= {"xp": xp, "yp": yp, "z":z, "M":self.T_c_to_r@M }
         return features
     
@@ -413,7 +413,7 @@ class EKF:
         with self.lock:
             rgb = self.bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
             depth = self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
-            features=self.detect_apriltag(rgb, depth)
+            features=self.detect_apriltag(rgb, depth, 5)
             for feature in features.values():
                 rgb=draw_frame(rgb, feature, self.K)
             self._initialize_new_landmarks(features)
