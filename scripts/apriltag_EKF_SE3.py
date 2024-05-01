@@ -222,9 +222,9 @@ class EKF:
         
     def reset(self, node_id):
         print("reseting EKF")
+        self.get_point_cloud()
+        self.id = node_id
         with self.lock:
-            self.get_point_cloud()
-            self.id=node_id
             self.mu=[np.eye(4)]
             self.sigma=np.zeros((6,6))
             self.landmarks={}
@@ -251,6 +251,7 @@ class EKF:
         cloud_cov = cloud_cov[indx]
         features = self.detect_apriltag(pc_img, depth)
         self.cloud = {"pc": cloud,"cov": cloud_cov, "depth": depth, "rgb": pc_img, "features": features ,"cam_param": self.K.copy(), "cam_transform": self.T_c_to_r.copy()}
+        print(features)
     # def get_cloud_covariance(self, depth):
     #     n, m = depth.shape
     #     T=self.T_c_to_r[0:3,0:3].copy()@inv(self.K.copy())

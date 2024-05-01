@@ -250,8 +250,9 @@ class Anomaly_Detector:
         # M = node.M.copy()
         if( len(node.local_map["features"])) == 0:
            M = node.M.copy() 
+           print(node.id)
         else:
-            dm = np.zeros(6)
+            dm = SE3.Log(node.M)
             for feature_id, feature in node.local_map["features"].items():
                 dm  += SE3.Log(features[feature_id].M.copy()@inv(feature['M']))
             dm /= len(node.local_map["features"])
@@ -260,8 +261,8 @@ class Anomaly_Detector:
         p = o3d.geometry.PointCloud()
         p.points = o3d.utility.Vector3dVector(cloud["points"])
         p = p.transform(M)
-        p, T = self.ICP(p)
-        # T = np.eye(4)
+        # p, T = self.ICP(p)
+        T = np.eye(4)
         point_cov = node.local_map['cov'].copy()
         p, point_cov = self.random_down_sample(p, point_cov)
         #sigma_node = np.zeros((3,3))#node.cov
@@ -289,8 +290,8 @@ class Anomaly_Detector:
         # print(np.max(np.abs(chi2_nominal - chi2_nominal_test)))
         # print(np.max(np.abs(chi2_anomaly - chi2_anomaly_test)))
 
-        p_nominal = (z_nominal + 0) * (1-self.p_anomaly[idx])
-        p_anomaly = (z_anomaly + 0) * self.p_anomaly[idx]
+        p_nominal = (z_nominal + 0.1) * (1-self.p_anomaly[idx])
+        p_anomaly = (z_anomaly + 0.1) * self.p_anomaly[idx]
         p_anomaly = p_anomaly/(p_nominal + p_anomaly)
         self.p_anomaly[idx] = p_anomaly
         # self.p_anomaly[idx] = chi2_anomaly_test
