@@ -222,9 +222,9 @@ class EKF:
         
     def reset(self, node_id):
         print("reseting EKF")
-        self.get_point_cloud()
-        self.id = node_id
         with self.lock:
+            self.get_point_cloud()
+            self.id = node_id
             self.mu=[np.eye(4)]
             self.sigma=np.zeros((6,6))
             self.landmarks={}
