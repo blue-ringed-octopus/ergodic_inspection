@@ -301,5 +301,5 @@ class Anomaly_Detector:
         self.n_sample = np.zeros(self.num_points)
         # self.chi2= np.zeros((self.num_points,2))
         with open('ref_cloud_detected.pickle', 'wb') as handle:
-            pickle.dump({"ref_pc": ref.crop(self.bounding_box), "p_anomaly": self.p_anomaly}, handle)
+            pickle.dump({"ref_pc": np.asarray(ref.crop(self.bounding_box).points), "p_anomaly": self.p_anomaly}, handle)
         return p, ref.crop(self.bounding_box)
