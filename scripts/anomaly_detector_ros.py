@@ -19,10 +19,10 @@ from hierarchical_SLAM_SE3 import Graph_SLAM
 from hierarchical_SLAM_ros import plot_graph, pc_to_msg, initialize_graph_slam
 from anomaly_detector import Anomaly_Detector
 import apriltag_EKF_SE3
-
 import tf
 import cv2
-from Lie import SE3, SO3
+import pickle
+
 rospack=rospkg.RosPack()
 
             
@@ -71,6 +71,7 @@ def get_ref_pc(cloud):
 
     
 if __name__ == "__main__":
+    thres = 0.02
     path = rospack.get_path("ergodic_inspection")
     mesh_resource = "file:///" + path + "/resources/ballast.STL"
     
@@ -87,7 +88,7 @@ if __name__ == "__main__":
     bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
     box.max_bound = bound
 
-    detector = Anomaly_Detector(mesh, box,0.01)
+    detector = Anomaly_Detector(mesh, box,0.02)
     marker = get_mesh_marker(mesh_resource)
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
@@ -121,5 +122,6 @@ if __name__ == "__main__":
             pc_pub.publish(pc_msg)
             ref_pc = get_ref_pc(ref)
             ref_pc_pub.publish(ref_pc)
+
         rate.sleep()
 

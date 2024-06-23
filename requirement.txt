@@ -1,0 +1,7 @@
+numpy==1.26.2
+open3d==0.16.0
+pupil-apriltags==1.0.4.post10 
+scipy==1.11.4
+cvxpy==1.4.2
+rosnumpy==0.0.5.2
+numba==0.58.1
