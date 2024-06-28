@@ -21,6 +21,9 @@ import open3d as o3d
 import numpy as np
 from numpy.linalg import  inv
 from  math import sqrt
+from copy import deepcopy
+import yaml
+
 np.float = np.float64
 np.set_printoptions(precision=2)
 TPB = 32
@@ -129,24 +132,49 @@ class Anomaly_Detector:
         self.num_points = num_points
         pc = mesh.sample_points_uniformly(
             number_of_points=num_points, use_triangle_normal=True)
-        # pc = pc.crop(bounding_box)
-        # pc.paint_uniform_color([0,0,0])
+
         self.bounding_box = bounding_box
-        self.reference = pc
-        self.p_anomaly = np.ones(len(pc.points))*0.5
+        self.reference = deepcopy(pc)
         self.ref_normal = np.asarray(pc.normals)
         self.ref_points = np.asarray(pc.points)
         self.ref_tree = KDTree(self.ref_points)
+        
+        crop_pc = pc.crop(self.bounding_box)
+        _, self.crop_index = self.ref_tree.query(np.asarray(crop_pc.points),1)
+        
+
+        
         self.neighbor_count = 20
         _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
+        self.p_anomaly = np.ones(len(pc.points))*0.5
 
         self.self_neighbor = corr
         self.thres = thres
         self.n_sample = np.zeros(num_points)
         self.md_ref = np.zeros((num_points, 2))
         self.chi2 = np.zeros((num_points, 2))
+        self.get_regions()
+        
   #  def detect_thread(self, node):
 
+    def get_regions(self):
+        with open("region_bounds.yaml") as stream:
+            try:
+                region_bounds = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+        region_idx=[]
+        ref  = deepcopy(self.reference)    
+        for bound in region_bounds.values():     
+            box = ref.get_axis_aligned_bounding_box()
+            box.max_bound = bound["max_bound"]
+            box.min_bound = bound["min_bound"]
+            region = ref.crop(box)
+            _, idx = self.ref_tree.query(region.points)
+            region_idx.append(idx)
+            
+        self.region_idx = region_idx
+        self.region_bounds =  region_bounds
     def paint_pc(self, pc, mds):
         c = np.array([0.5 if mds[i, 0]+mds[i, 1]==0 else mds[i, 0]/(mds[i, 0]+mds[i, 1]  )
                      for i in range(len(mds))])
@@ -301,5 +329,5 @@ class Anomaly_Detector:
         self.n_sample = np.zeros(self.num_points)
         # self.chi2= np.zeros((self.num_points,2))
         with open('ref_cloud_detected.pickle', 'wb') as handle:
-            pickle.dump({"ref_pc": np.asarray(ref.crop(self.bounding_box).points), "p_anomaly": self.p_anomaly}, handle)
+            pickle.dump({"ref_pc": self.ref_points[self.crop_index], "p_anomaly": self.p_anomaly[self.crop_index]}, handle)
         return p, ref.crop(self.bounding_box)

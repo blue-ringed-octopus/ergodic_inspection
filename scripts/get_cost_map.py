@@ -19,10 +19,11 @@ kernel_size=(5,5)
 
 #%% Import FOD clouds
 mesh = o3d.io.read_triangle_mesh("tests/ballast.STL")
-
+frame = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
+o3d.visualization.draw_geometries([frame, mesh])
 box = mesh.get_axis_aligned_bounding_box()
-min_bound = [box.min_bound[0],box.min_bound[1], 0.05 ]
-max_bound = [box.max_bound[0],box.max_bound[1], 0.2 ]
+min_bound = np.array([box.min_bound[0],box.min_bound[1], 0.05 ])
+max_bound = np.array([box.max_bound[0],box.max_bound[1], 0.2 ])
 box.min_bound = min_bound
 box.max_bound = max_bound
 pc = mesh.sample_points_uniformly(
@@ -35,6 +36,7 @@ pc.points=o3d.utility.Vector3dVector(pt)
 
 
 voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pc, voxel_size=resolution)
+origin = voxel_grid.get_voxel([0,0,0])
 voxels = voxel_grid.get_voxels()  # returns list of voxels
 indices = np.stack(list(vx.grid_index for vx in voxels))[:,0:2]
 matrix=np.zeros(np.max(indices, axis=0)+1)
@@ -43,25 +45,25 @@ _, matrix = cv2.threshold(matrix,127,255,cv2.THRESH_BINARY)
 
 masked_map = np.uint8(matrix.copy())
 
-h, w = masked_map.shape[:2]
-mask = np.zeros((h + 2, w + 2), np.uint8)
+x_shape, y_shape = masked_map.shape[:2]
+mask = np.zeros((x_shape + 2, y_shape + 2), np.uint8)
 seed = [10, 50]
 cv2.floodFill(masked_map, mask, (np.uint32(seed[0]), np.uint32(seed[1])), 255)
 masked_map=255-masked_map+matrix
-plt.imshow(masked_map)    
+plt.imshow(masked_map.T, origin="lower")    
 #%% map to cost map
 TPB=32
 @cuda.jit
 def inflation_kernel(d_out, d_image, radius,cost_scaling_factor,robot_radius):
     nx=d_image.shape[0]
     ny=d_image.shape[1]
-    min_dist=radius**2
+    min_dist=radius
     x,y=cuda.grid(2)
     if x<nx and y<ny:
         d_out[x,y]=0
         for i in range(nx):
             for j in range(ny):
-                dist=(x-i)**2+(y-j)**2
+                dist=math.sqrt((x-i)**2+(y-j)**2)
                 if d_image[i,j]==255:
                     if dist<min_dist:
                         min_dist=dist
@@ -97,9 +99,11 @@ robot_radius=0.175/resolution
 inflation_radius= 0.5/resolution
 cost_scaling_factor = 10.0* resolution
 
-costmap = inflation_par(masked_map, inflation_radius, cost_scaling_factor,robot_radius)
-plt.imshow(costmap)
+cost = inflation_par(masked_map, inflation_radius, cost_scaling_factor,robot_radius)
+plt.imshow(cost.T, origin="lower")
 
+resolution = (max_bound-min_bound)[0:2]
+resolution = resolution/[x_shape, y_shape]
 
 with open('costmap.pickle', 'wb') as handle:
-    pickle.dump({"costmap": costmap, "resolution": resolution}, handle)
+    pickle.dump({"costmap": cost, "resolution": resolution,"origin": [0,0], "bounds":{"min": min_bound, "max": max_bound} }, handle)
