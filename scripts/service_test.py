@@ -7,19 +7,29 @@ Created on Fri Jun 28 18:53:01 2024
 """
 
 
-from __future__ import print_function
-
+# from __future__ import print_function
+import open3d as o3d
+from anomaly_detector import Anomaly_Detector
 from ergodic_inspection.srv import PointCloudWithEntropy, PointCloudWithEntropyResponse
+from sensor_msgs.msg import PointCloud2
+
 import rospy
 def handle_add_two_ints(req):
-     print("Returning [%s + %s = %s]"%(req.a, req.b, (req.a + req.b)))
-     return PointCloudWithEntropyResponse(req.a + req.b)
+     print("Requested Region ID: "+ req.regionID)
+     return PointCloudWithEntropyResponse(0)
  
-def add_two_ints_server():
-     rospy.init_node('add_two_ints_server')
+def pointcloud_server():
+     rospy.init_node('reference_cloud_server')
      s = rospy.Service('add_two_ints', PointCloudWithEntropy, handle_add_two_ints)
-     print("Ready to add two ints.")
+     print("PointCloud server online")
      rospy.spin()
  
 if __name__ == "__main__":
-     add_two_ints_server()
+    mesh = o3d.io.read_triangle_mesh("ballast.STL")
+    box = mesh.get_axis_aligned_bounding_box()
+    bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
+    box.max_bound = bound
+
+    global detector
+    detector = Anomaly_Detector(mesh, box,0.02)
+    pointcloud_server()

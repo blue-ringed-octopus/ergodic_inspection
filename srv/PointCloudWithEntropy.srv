@@ -1,4 +1,3 @@
-int64 a
-int64 b
+int64 regionID
 ---
-int64 sum
+sensor_msgs/PointCloud2 ref
