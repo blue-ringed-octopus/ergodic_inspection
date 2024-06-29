@@ -28,7 +28,7 @@ def pointcloud_server():
      rospy.spin()
  
 if __name__ == "__main__":
-    mesh = o3d.io.read_triangle_mesh(path+"/resource/ballast.STL")
+    mesh = o3d.io.read_triangle_mesh(path+"/resources/ballast.STL")
     box = mesh.get_axis_aligned_bounding_box()
     bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
     box.max_bound = bound
