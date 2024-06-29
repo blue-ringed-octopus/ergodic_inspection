@@ -12,6 +12,9 @@ import open3d as o3d
 from anomaly_detector import Anomaly_Detector
 from ergodic_inspection.srv import PointCloudWithEntropy, PointCloudWithEntropyResponse
 from sensor_msgs.msg import PointCloud2
+import rospkg
+rospack=rospkg.RosPack()
+path = rospack.get_path("ergodic_inspection")
 
 import rospy
 def handle_add_two_ints(req):
@@ -25,7 +28,7 @@ def pointcloud_server():
      rospy.spin()
  
 if __name__ == "__main__":
-    mesh = o3d.io.read_triangle_mesh("ballast.STL")
+    mesh = o3d.io.read_triangle_mesh(path+"/resource/ballast.STL")
     box = mesh.get_axis_aligned_bounding_box()
     bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
     box.max_bound = bound
