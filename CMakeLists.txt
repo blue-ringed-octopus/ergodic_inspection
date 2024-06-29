@@ -75,9 +75,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
- generate_messages(
+ generate messages(
    DEPENDENCIES
-   std_msgs  # Or other packages containing msgs
+   std_msgs  
+   sensor_msgs
  )
 
 ################################################
