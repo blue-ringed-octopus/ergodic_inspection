@@ -19,7 +19,7 @@ path = rospack.get_path("ergodic_inspection")
 
 import rospy
 def handle_add_two_ints(req):
-     print("Requested Region ID: "+ req.regionID)
+     print("Requested Region ID: "+ str(req.regionID))
      return PointCloudWithEntropyResponse(0)
  
 def pointcloud_server():
