@@ -13,6 +13,7 @@ from anomaly_detector import Anomaly_Detector
 from ergodic_inspection.srv import PointCloudWithEntropy, PointCloudWithEntropyResponse
 from sensor_msgs.msg import PointCloud2
 import rospkg
+import yaml
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
 
@@ -29,10 +30,15 @@ def pointcloud_server():
  
 if __name__ == "__main__":
     mesh = o3d.io.read_triangle_mesh(path+"/resources/ballast.STL")
+    with open(path+"/resources/region_bounds.yaml") as stream:
+        try:
+            region_bounds = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
     box = mesh.get_axis_aligned_bounding_box()
     bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
     box.max_bound = bound
 
     global detector
-    detector = Anomaly_Detector(mesh, box,0.02)
+    detector = Anomaly_Detector(mesh, box,region_bounds,0.02)
     pointcloud_server()

@@ -22,7 +22,6 @@ import numpy as np
 from numpy.linalg import  inv
 from  math import sqrt
 from copy import deepcopy
-import yaml
 
 np.float = np.float64
 np.set_printoptions(precision=2)
@@ -126,7 +125,7 @@ def get_global_cov_SE3(points, T_global, point_cov, T_cov):
     return cov
 
 class Anomaly_Detector:
-    def __init__(self, mesh, bounding_box, thres=1):
+    def __init__(self, mesh, bounding_box,region_bounds, thres=1):
         self.mesh = mesh
         num_points = 100000
         self.num_points = num_points
@@ -153,16 +152,13 @@ class Anomaly_Detector:
         self.n_sample = np.zeros(num_points)
         self.md_ref = np.zeros((num_points, 2))
         self.chi2 = np.zeros((num_points, 2))
+        self.region_bounds =  region_bounds
         self.get_regions()
         
   #  def detect_thread(self, node):
 
     def get_regions(self):
-        with open("region_bounds.yaml") as stream:
-            try:
-                region_bounds = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
+        region_bounds=self.region_bounds
         region_idx=[]
         ref  = deepcopy(self.reference)    
         for bound in region_bounds.values():     
