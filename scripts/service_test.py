@@ -21,9 +21,9 @@ rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
 
 import rospy
-def handle_add_two_ints(req):
+def handle(req):
      print("Requested Region ID: "+ str(req.regionID))
-     h, cloud = detector.get_region_entropy()
+     h, cloud = detector.get_region_entropy(req.regionID)
      msg = get_pc_msg(cloud)
      return PointCloudWithEntropyResponse(msg)
  
@@ -52,7 +52,7 @@ def get_pc_msg(cloud):
  
 def pointcloud_server():
      rospy.init_node('reference_cloud_server')
-     s = rospy.Service('get_reference_cloud_region', PointCloudWithEntropy, handle_add_two_ints)
+     s = rospy.Service('get_reference_cloud_region', PointCloudWithEntropy, handle)
      print("PointCloud server online")
      rospy.spin()
  
