@@ -24,6 +24,7 @@ import rospy
 def handle(req):
      print("Requested Region ID: "+ str(req.regionID))
      h, cloud = detector.get_region_entropy(req.regionID)
+     cloud = cloud.paint_uniform_color([0,0,0])
      msg = get_pc_msg(cloud)
      return PointCloudWithEntropyResponse(msg)
  
