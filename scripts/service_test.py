@@ -31,7 +31,7 @@ def handle(req):
 def get_pc_msg(cloud):
     points = np.array(cloud.points)
     colors =  np.array(cloud.colors)
-    
+    h = np.zeros(len(points))
     pc_array = np.zeros(len(points), dtype=[
     ('x', np.float32),
     ('y', np.float32),
@@ -39,6 +39,7 @@ def get_pc_msg(cloud):
     ('r', np.uint32),
     ('g', np.uint32),
     ('b', np.uint32),
+    ('h', np.float32),
     ])
     pc_array['x'] = points[:,0]
     pc_array['y'] = points[:, 1]
@@ -46,6 +47,7 @@ def get_pc_msg(cloud):
     pc_array['r'] = (colors[:,0]*255).astype(np.uint32)
     pc_array['g'] = (colors[:, 1]*255).astype(np.uint32)
     pc_array['b'] = (colors[:, 2]*255).astype(np.uint32)
+    pc_array['h'] = h
     pc_array= ros_numpy.point_cloud2.merge_rgb_fields(pc_array)
     pc_msg = ros_numpy.msgify(PointCloud2, pc_array, stamp=rospy.Time.now(), frame_id="map")
     
