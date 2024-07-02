@@ -22,6 +22,7 @@ import numpy as np
 from numpy.linalg import  inv
 from  math import sqrt
 from copy import deepcopy
+from scipy.stats import bernoulli 
 
 np.float = np.float64
 np.set_printoptions(precision=2)
@@ -153,11 +154,11 @@ class Anomaly_Detector:
         self.md_ref = np.zeros((num_points, 2))
         self.chi2 = np.zeros((num_points, 2))
         self.region_bounds =  region_bounds
-        self.get_regions()
+        self.partition()
         
   #  def detect_thread(self, node):
 
-    def get_regions(self):
+    def partition(self):
         region_bounds=self.region_bounds
         region_idx=[]
         ref  = deepcopy(self.reference)    
@@ -171,6 +172,7 @@ class Anomaly_Detector:
             
         self.region_idx = region_idx
         self.region_bounds =  region_bounds
+        
     def paint_pc(self, pc, mds):
         c = np.array([0.5 if mds[i, 0]+mds[i, 1]==0 else mds[i, 0]/(mds[i, 0]+mds[i, 1]  )
                      for i in range(len(mds))])
@@ -267,6 +269,12 @@ class Anomaly_Detector:
         covs = covs[idx]
         
         return point_cloud, covs
+    def get_region_entropy(self, region_id):
+        idx = self.region_idx[region_id]
+        region = self.reference.select_by_index(idx)
+        p = self.p_anomaly[idx]
+        h= bernoulli.entropy(p)
+        return h, deepcopy(region)
         
     def detect(self, node, features):
         print("estimating anomaly: node " + str(node.id))

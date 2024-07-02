@@ -14,14 +14,41 @@ from ergodic_inspection.srv import PointCloudWithEntropy, PointCloudWithEntropyR
 from sensor_msgs.msg import PointCloud2
 import rospkg
 import yaml
+import numpy as np
+import ros_numpy
+
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
 
 import rospy
 def handle_add_two_ints(req):
      print("Requested Region ID: "+ str(req.regionID))
-     msg = PointCloud2()
+     h, cloud = detector.get_region_entropy()
+     msg = get_pc_msg(cloud)
      return PointCloudWithEntropyResponse(msg)
+ 
+def get_pc_msg(cloud):
+    points = np.array(cloud.points)
+    colors =  np.array(cloud.colors)
+    
+    pc_array = np.zeros(len(points), dtype=[
+    ('x', np.float32),
+    ('y', np.float32),
+    ('z', np.float32),
+    ('r', np.uint32),
+    ('g', np.uint32),
+    ('b', np.uint32),
+    ])
+    pc_array['x'] = points[:,0]
+    pc_array['y'] = points[:, 1]
+    pc_array['z'] = points[:, 2]
+    pc_array['r'] = (colors[:,0]*255).astype(np.uint32)
+    pc_array['g'] = (colors[:, 1]*255).astype(np.uint32)
+    pc_array['b'] = (colors[:, 2]*255).astype(np.uint32)
+    pc_array= ros_numpy.point_cloud2.merge_rgb_fields(pc_array)
+    pc_msg = ros_numpy.msgify(PointCloud2, pc_array, stamp=rospy.Time.now(), frame_id="map")
+    
+    return pc_msg
  
 def pointcloud_server():
      rospy.init_node('reference_cloud_server')
