@@ -31,7 +31,7 @@ def handle(req):
 def get_pc_msg(cloud):
     points = np.array(cloud.points)
     colors =  np.array(cloud.colors)
-    h = np.zeros(len(points))
+    h = np.ones(len(points))*0.465
     pc_array = np.zeros(len(points), dtype=[
     ('x', np.float32),
     ('y', np.float32),
