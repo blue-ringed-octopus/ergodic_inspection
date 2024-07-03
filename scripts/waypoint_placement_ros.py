@@ -11,33 +11,29 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import PoseArray, Pose
 import ros_numpy
 import numpy as np
-
+from ergodic_inspection.srv import PointCloudWithEntropy
+import open3d as o3d
 def msg2pc(msg):
     pc=ros_numpy.numpify(msg)
     m,n = pc['x'].shape
-    depth = pc['z']
     x=pc['x'].reshape(-1)
     points=np.zeros((len(x),3))
     points[:,0]=x
     points[:,1]=pc['y'].reshape(-1)
     points[:,2]=pc['z'].reshape(-1)
     pc=ros_numpy.point_cloud2.split_rgb_field(pc)
-    img = np.zeros((m,n,3))
-    img[:,:,0] = pc['r']
-    img[:,:,1] = pc['g']
-    img[:,:,2] = pc['b']
-
 
     rgb=np.zeros((len(x),3))
     rgb[:,0]=pc['r'].reshape(-1)
     rgb[:,1]=pc['g'].reshape(-1)
     rgb[:,2]=pc['b'].reshape(-1)
+    h = pc["h"]
+    print(h)
     # p=o3d.geometry.PointCloud()
     # p.points=o3d.utility.Vector3dVector(points)
     # p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
     p = {"points": points, "colors": np.asarray(rgb/255)}
-    return p, depth, img.astype('uint8')    
-
+    return p
 def simple_move(x,y,w,z):
 
 
@@ -90,3 +86,14 @@ def navigate2point(coordinates):
         print("goal reached")
     except rospy.ROSInterruptException:
         print ("Keyboard Interrupt")
+
+
+if __name__ == "__main__":
+    rospy.wait_for_service('get_reference_cloud_region')
+    try:
+        get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
+        msg = get_reference(0)
+        msg2pc(msg)
+        
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
