@@ -16,7 +16,6 @@ from ergodic_inspection.srv import PointCloudWithEntropy
 import open3d as o3d
 def msg2pc(msg):
     pc=ros_numpy.numpify(msg)
-    m,n = pc['x'].shape
     x=pc['x'].reshape(-1)
     points=np.zeros((len(x),3))
     points[:,0]=x
