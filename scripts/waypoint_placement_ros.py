@@ -94,7 +94,7 @@ if __name__ == "__main__":
     try:
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         msg = get_reference(0)
-        msg2pc(msg)
+        msg2pc(msg.ref)
         
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
