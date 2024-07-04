@@ -18,6 +18,7 @@ from waypoint_placement import Waypoint_Planner
 import rospkg 
 import pickle
 import yaml
+import colorsys
 
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
@@ -112,6 +113,6 @@ if __name__ == "__main__":
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         msg = get_reference(0)
         p = decode_msg(msg.ref)
-        
+    pc = o3d.PointCloud() 
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
