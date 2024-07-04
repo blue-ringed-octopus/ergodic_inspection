@@ -50,7 +50,7 @@ def get_pc_msg(cloud, h):
     pc_array['h'] = h
     pc_array= ros_numpy.point_cloud2.merge_rgb_fields(pc_array)
     pc_msg = ros_numpy.msgify(PointCloud2, pc_array, stamp=rospy.Time.now(), frame_id="map")
-    
+    print(h)
     return pc_msg
  
 def pointcloud_server():

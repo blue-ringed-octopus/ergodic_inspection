@@ -119,7 +119,7 @@ if __name__ == "__main__":
         if (np.max(h)-np.min(h)):
             hue = (h-np.min(h))/(np.max(h)-np.min(h))
         else:
-            hue = 1
+            hue = np.ones(len(h))
             
         rgb = [colorsys.hsv_to_rgb(h, 1, 1) for h in hue]
         pc.colors=o3d.utility.Vector3dVector(np.asarray(rgb))
