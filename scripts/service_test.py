@@ -61,7 +61,7 @@ def pointcloud_server():
      rospy.spin()
  
 if __name__ == "__main__":
-    with open(path + '/test/graph.pickle', 'rb') as f:
+    with open(path + '/scripts/tests/graph.pickle', 'rb') as f:
         graph = pickle.load(f)
     mesh = o3d.io.read_triangle_mesh(path+"/resources/ballast.STL")
     with open(path+"/resources/region_bounds.yaml") as stream:
