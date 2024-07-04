@@ -39,6 +39,7 @@ def decode_msg(msg):
     h = pc["h"]
 
     p = {"points": points, "colors": np.asarray(rgb/255), "h": h}
+    print(h)
     return p
 
 def simple_move(x,y,w,z):
