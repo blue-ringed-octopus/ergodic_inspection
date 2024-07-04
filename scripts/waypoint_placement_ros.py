@@ -116,7 +116,11 @@ if __name__ == "__main__":
         pc = o3d.geometry.PointCloud()
         pc.points=o3d.utility.Vector3dVector(p["points"])
         h = p["h"]
-        hue = (h-min(h))/(max(h)-min(h))
+        if (np.max(h)-np.min(h)):
+            hue = (h-np.min(h))/(np.max(h)-np.min(h))
+        else:
+            hue = 1
+            
         rgb = [colorsys.hsv_to_rgb(h, 1, 1) for h in hue]
         pc.colors=o3d.utility.Vector3dVector(np.asarray(rgb))
         o3d.visualization.draw_geometries([pc])

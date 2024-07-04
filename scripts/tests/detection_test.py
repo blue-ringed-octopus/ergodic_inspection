@@ -23,6 +23,7 @@ import colorsys as cs
 from scipy.stats import bernoulli 
 from ergodic_planner import Ergodic_Planner
 import cv2 
+import yaml 
 
 np.set_printoptions(precision=2)
 with open('graph.pickle', 'rb') as f:
@@ -38,8 +39,13 @@ mesh = o3d.io.read_triangle_mesh("ballast.STL")
 box = mesh.get_axis_aligned_bounding_box()
 bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
 box.max_bound = bound
+with open("region_bounds.yaml") as stream:
+    try:
+        region_bounds = yaml.safe_load(stream)
+    except yaml.YAMLError as exc:
+        print(exc)
+detector = Anomaly_Detector(mesh, box,region_bounds,0.02)
 
-detector = Anomaly_Detector(mesh, box,0.02)
 p=[]
 for node in graph.pose_nodes.values():
     if not node.local_map == None:
@@ -50,7 +56,7 @@ for node in graph.pose_nodes.values():
 
 # o3d.visualization.draw_geometries(p+[ref])
 o3d.visualization.draw_geometries([ref])
-o3d.visualization.draw_geometries(frames+p)
+# o3d.visualization.draw_geometries(frames+p)
 #%%
 hue = 0      
 ref  = deepcopy(detector.reference)    
@@ -80,6 +86,7 @@ region, P = region_planner.get_next_region(entropy, 0)
 
 #%%
 from waypoint_placement import Waypoint_Planner
+region = 1
 
 with open('../costmap.pickle', 'rb') as handle:
     costmap = pickle.load(handle)   
@@ -91,7 +98,7 @@ costmap=costmap.astype(np.uint8)
 costmap = cv2.cvtColor(costmap, cv2.COLOR_GRAY2BGR) 
 idxs = [waypoint_planner.get_index(x) for x in candidates]
 
-#%%
+import colorsys
 T_camera = np.eye(4)
 T_camera[0:3,3]= [0.077, -0.000, 0.218]
 T_camera[0:3,0:3] =  [[0.0019938, -0.1555174, 0.9878311],
@@ -104,7 +111,11 @@ w, h = 1208, 720
 
 t = time.time()
 reward=np.zeros(len(candidates))
-region_cloud = detector.reference.select_by_index(detector.region_idx[region])
+# region_cloud = detector.reference.select_by_index(detector.region_idx[region])
+entropies, region_cloud = detector.get_region_entropy(region)
+hue = (entropies-np.min(entropies))/(np.max(entropies)-np.min(entropies))
+rgb = [colorsys.hsv_to_rgb(x, 1, 1) for x in hue]
+region_cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
 tank_cloud = deepcopy((detector.reference)).paint_uniform_color([0,0,0])
 frames = []
 candidate_idx=[]
@@ -131,7 +142,8 @@ for i,candidate in enumerate(candidates):
     else:
         points = points[idx]
         global_idx = detector.region_idx[region][idx]
-        entropy = bernoulli.entropy(detector.p_anomaly[global_idx])
+        # entropy = bernoulli.entropy(detector.p_anomaly[global_idx])
+        entropy = entropies[idx]
         reward[i] =  np.sum(entropy)
     candidate_idx.append(global_idx)
     
