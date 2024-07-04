@@ -100,7 +100,7 @@ if __name__ == "__main__":
     with open(path+'/resources/costmap.pickle', 'rb') as handle:
         costmap = pickle.load(handle)  
         
-    with open("tests/region_bounds.yaml") as stream:
+    with open(path+"/resources/region_bounds.yaml") as stream:
         try:
             region_bounds = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
