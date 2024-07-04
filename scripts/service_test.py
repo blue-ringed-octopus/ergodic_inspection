@@ -16,6 +16,7 @@ import rospkg
 import yaml
 import numpy as np
 import ros_numpy
+improt pickle 
 
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
@@ -60,6 +61,8 @@ def pointcloud_server():
      rospy.spin()
  
 if __name__ == "__main__":
+    with open(path + '/test/graph.pickle', 'rb') as f:
+        graph = pickle.load(f)
     mesh = o3d.io.read_triangle_mesh(path+"/resources/ballast.STL")
     with open(path+"/resources/region_bounds.yaml") as stream:
         try:
@@ -72,4 +75,7 @@ if __name__ == "__main__":
 
     global detector
     detector = Anomaly_Detector(mesh, box,region_bounds,0.02)
+    for node in graph.pose_nodes.values():
+        if not node.local_map == None:
+            pc, ref = detector.detect(node, graph.feature_nodes)
     pointcloud_server()

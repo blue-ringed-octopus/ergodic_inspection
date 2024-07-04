@@ -14,7 +14,16 @@ import ros_numpy
 import numpy as np
 from ergodic_inspection.srv import PointCloudWithEntropy
 import open3d as o3d
-def msg2pc(msg):
+from waypoint_placement import Waypoint_Planner
+import rospkg 
+import pickle
+import yaml
+
+rospack=rospkg.RosPack()
+path = rospack.get_path("ergodic_inspection")
+
+
+def decode_msg(msg):
     pc=ros_numpy.numpify(msg)
     x=pc['x'].reshape(-1)
     points=np.zeros((len(x),3))
@@ -28,12 +37,10 @@ def msg2pc(msg):
     rgb[:,1]=pc['g'].reshape(-1)
     rgb[:,2]=pc['b'].reshape(-1)
     h = pc["h"]
-    print(h)
-    # p=o3d.geometry.PointCloud()
-    # p.points=o3d.utility.Vector3dVector(points)
-    # p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
-    p = {"points": points, "colors": np.asarray(rgb/255)}
+
+    p = {"points": points, "colors": np.asarray(rgb/255), "h": h}
     return p
+
 def simple_move(x,y,w,z):
 
 
@@ -90,10 +97,20 @@ def navigate2point(coordinates):
 
 if __name__ == "__main__":
     rospy.wait_for_service('get_reference_cloud_region')
+    with open(path+'/resources/costmap.pickle', 'rb') as handle:
+        costmap = pickle.load(handle)  
+        
+    with open("tests/region_bounds.yaml") as stream:
+        try:
+            region_bounds = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)    
+            
+    planner = Waypoint_Planner(costmap, region_bounds)
     try:
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         msg = get_reference(0)
-        msg2pc(msg.ref)
+        p = decode_msg(msg.ref)
         
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
