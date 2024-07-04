@@ -26,13 +26,12 @@ def handle(req):
      print("Requested Region ID: "+ str(req.regionID))
      h, cloud = detector.get_region_entropy(req.regionID)
      cloud = cloud.paint_uniform_color([0,0,0])
-     msg = get_pc_msg(cloud)
+     msg = get_pc_msg(cloud, h)
      return PointCloudWithEntropyResponse(msg)
  
-def get_pc_msg(cloud):
+def get_pc_msg(cloud, h):
     points = np.array(cloud.points)
     colors =  np.array(cloud.colors)
-    h = np.ones(len(points))*0.465
     pc_array = np.zeros(len(points), dtype=[
     ('x', np.float32),
     ('y', np.float32),
