@@ -111,7 +111,7 @@ if __name__ == "__main__":
     planner = Waypoint_Planner(costmap, region_bounds)
     try:
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
-        msg = get_reference(0)
+        msg = get_reference(1)
         p = decode_msg(msg.ref)
         pc = o3d.geometry.PointCloud()
         pc.points=o3d.utility.Vector3dVector(p["points"])
