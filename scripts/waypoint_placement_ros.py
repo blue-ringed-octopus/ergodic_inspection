@@ -113,6 +113,13 @@ if __name__ == "__main__":
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         msg = get_reference(0)
         p = decode_msg(msg.ref)
-    pc = o3d.PointCloud() 
+        pc = o3d.geometry.PointCloud()
+        pc.points=o3d.utility.Vector3dVector(p["points"])
+        h = p["h"]
+        hue = (h-min(h))/(max(h)-min(h))
+        rgb = [colorsys.hsv_to_rgb(h, 1, 1) for h in hue]
+        pc.colors=o3d.utility.Vector3dVector(np.asarray(rgb))
+        o3d.visualization.draw_geometries([pc])
+
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
