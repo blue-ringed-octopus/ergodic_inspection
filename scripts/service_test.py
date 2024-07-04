@@ -16,7 +16,7 @@ import rospkg
 import yaml
 import numpy as np
 import ros_numpy
-improt pickle 
+import pickle 
 
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
