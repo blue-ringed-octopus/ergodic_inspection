@@ -86,19 +86,10 @@ region, P = region_planner.get_next_region(entropy, 0)
 
 #%%
 from waypoint_placement import Waypoint_Planner
-region = 1
-
-with open('../costmap.pickle', 'rb') as handle:
-    costmap = pickle.load(handle)   
-waypoint_planner = Waypoint_Planner(costmap, detector.region_bounds)
-
-candidates = waypoint_planner.get_waypoint(None, region, 50)    
-costmap = waypoint_planner.costmap["costmap"].copy().T
-costmap=costmap.astype(np.uint8)
-costmap = cv2.cvtColor(costmap, cv2.COLOR_GRAY2BGR) 
-idxs = [waypoint_planner.get_index(x) for x in candidates]
-
 import colorsys
+
+region = 0
+
 T_camera = np.eye(4)
 T_camera[0:3,3]= [0.077, -0.000, 0.218]
 T_camera[0:3,0:3] =  [[0.0019938, -0.1555174, 0.9878311],
@@ -109,58 +100,41 @@ K = np.array([[872.2853801540007, 0.0, 604.5],
              [ 0.0, 0.0, 1.0]])
 w, h = 1208, 720
 
+with open('../costmap.pickle', 'rb') as handle:
+    costmap = pickle.load(handle)   
+waypoint_planner = Waypoint_Planner(costmap, detector.region_bounds, T_camera, K, (w,h))
+
+candidates = waypoint_planner.get_waypoints(region, 50)    
+costmap = waypoint_planner.costmap["costmap"].copy().T
+costmap=costmap.astype(np.uint8)
+costmap = cv2.cvtColor(costmap, cv2.COLOR_GRAY2BGR) 
+idxs = [waypoint_planner.get_index(x) for x in candidates]
+
+
+
 t = time.time()
-reward=np.zeros(len(candidates))
-# region_cloud = detector.reference.select_by_index(detector.region_idx[region])
 entropies, region_cloud = detector.get_region_entropy(region)
 hue = (entropies-np.min(entropies))/(np.max(entropies)-np.min(entropies))
 rgb = [colorsys.hsv_to_rgb(x, 1, 1) for x in hue]
 region_cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
+o3d.visualization.draw_geometries([region_cloud])
+
 tank_cloud = deepcopy((detector.reference)).paint_uniform_color([0,0,0])
-frames = []
-candidate_idx=[]
-for i,candidate in enumerate(candidates):
-    T_robot = np.eye(4)
-    T_robot[0:2,3] = candidate[0:2]
-    T_robot[0:2,0:2] = [[np.cos(candidate[2]), -np.sin(candidate[2])],
-                        [np.sin(candidate[2]), np.cos(candidate[2])]]
-    T = T_robot@T_camera
-    frame = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
-    frame.transform(T)
-    frames.append(frame)
-    cloud = deepcopy(region_cloud).transform(np.linalg.inv(T))
-    points = np.asarray(cloud.points)
-    pixel = (K@points.T).T
-    pixel_x = pixel[:,0]/pixel[:,2]
-    pixel_y = pixel[:,1]/pixel[:,2]
-    idx = np.where((points[:,2]<1) & (points[:,2]>0.05) & 
-                    (pixel_x>=0) & (pixel_x<w) &
-                    (pixel_y>=0) & (pixel_y<h))[0]
-    if len(idx) == 0:
-        reward[i] = 0
-        global_idx=[]
-    else:
-        points = points[idx]
-        global_idx = detector.region_idx[region][idx]
-        # entropy = bernoulli.entropy(detector.p_anomaly[global_idx])
-        entropy = entropies[idx]
-        reward[i] =  np.sum(entropy)
-    candidate_idx.append(global_idx)
-    
-for i, idx in enumerate(idxs):
-    color = reward[i]/max(reward)*255
-    costmap = cv2.circle(costmap, (idx[0], idx[1]), 2, [color,0,0], -1)
-plt.imshow(costmap, origin="lower")
-        
-print(time.time()-t)
-idx = np.argmax(reward)
-colors = np.asarray(tank_cloud.colors)
-colors[np.asarray(candidate_idx[idx])] = [255,0,0]
-tank_cloud.colors=o3d.utility.Vector3dVector(colors)
-tank_cloud = tank_cloud.crop(detector.bounding_box)
-o3d.visualization.draw_geometries([tank_cloud, frames[idx]])
+
+waypoint = waypoint_planner.get_optimal_waypoint(region, 50, region_cloud, entropies)
+T_robot = np.eye(4)
+T_robot[0:2,3] = waypoint[0:2]
+T_robot[0:2,0:2] = [[np.cos(waypoint[2]), -np.sin(waypoint[2])],
+                   [np.sin(waypoint[2]), np.cos(waypoint[2])]]
+robot_frame  = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
+robot_frame = robot_frame.transform(T_robot)
+# colors = np.asarray(tank_cloud.colors)
+# colors[np.asarray(candidate_idx[idx])] = [255,0,0]
+# tank_cloud.colors=o3d.utility.Vector3dVector(colors)
+# tank_cloud = tank_cloud.crop(detector.bounding_box)
+# o3d.visualization.draw_geometries([tank_cloud, frames[idx]])
 
 # p=o3d.geometry.PointCloud()
 # p.points=o3d.utility.Vector3dVector(points)
-# o3d.visualization.draw_geometries([test, o3d.geometry.TriangleMesh.create_coordinate_frame(1)]+frames)
+o3d.visualization.draw_geometries([region_cloud, robot_frame])
 

@@ -39,9 +39,12 @@ def decode_msg(msg):
     rgb[:,2]=pc['b'].reshape(-1)
     h = pc["h"]
 
-    p = {"points": points, "colors": np.asarray(rgb/255), "h": h}
-    print(h)
-    return p
+    # p = {"points": points, "colors": np.asarray(rgb/255), "h": h}
+    # print(h)
+    p=o3d.geometry.PointCloud()
+    p.points=o3d.utility.Vector3dVector(points)
+    p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
+    return h, p
 
 def simple_move(x,y,w,z):
 
@@ -110,20 +113,19 @@ if __name__ == "__main__":
             
     planner = Waypoint_Planner(costmap, region_bounds)
     try:
+        region = 1 
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
-        msg = get_reference(1)
-        p = decode_msg(msg.ref)
-        pc = o3d.geometry.PointCloud()
-        pc.points=o3d.utility.Vector3dVector(p["points"])
-        h = p["h"]
-        if (np.max(h)-np.min(h)):
-            hue = (h-np.min(h))/(np.max(h)-np.min(h))
-        else:
-            hue = np.ones(len(h))
+        msg = get_reference(region)
+        h, region_cloud = decode_msg(msg.ref)
+        # if (np.max(h)-np.min(h)):
+        #     hue = (h-np.min(h))/(np.max(h)-np.min(h))
+        # else:
+        #     hue = np.ones(len(h))
             
-        rgb = [colorsys.hsv_to_rgb(h, 1, 1) for h in hue]
-        pc.colors=o3d.utility.Vector3dVector(np.asarray(rgb))
-        o3d.visualization.draw_geometries([pc])
+        # rgb = [colorsys.hsv_to_rgb(h, 1, 1) for h in hue]
+        # pc.colors=o3d.utility.Vector3dVector(np.asarray(rgb))
+        # o3d.visualization.draw_geometries([pc])
+        waypoint = planner.get_optimal_waypoint(region, 50, region_cloud, h)
 
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)

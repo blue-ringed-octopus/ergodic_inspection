@@ -9,13 +9,45 @@ import pickle
 import yaml 
 import cv2 
 import matplotlib.pyplot as plt
-
+from copy import deepcopy
 class Waypoint_Planner:
-    def __init__(self, costmap, region_bounds):
+    def __init__(self, costmap, region_bounds, T_camera, cam_param, img_shape):
         self.costmap = costmap
         self.region_bounds = region_bounds
+        self.T_camera = T_camera
+        self.K = cam_param
+        self.img_shape = img_shape
         
-    def get_waypoint(self, pointcloud, region, n):
+    def get_optimal_waypoint(self,region, num_candidates, region_cloud, entropies):
+        candidates = self.get_waypoints( region, num_candidates)    
+        reward=np.zeros(len(candidates))
+        w, h = self.img_shape
+        for i,candidate in enumerate(candidates):
+            T_robot = np.eye(4)
+            T_robot[0:2,3] = candidate[0:2]
+            T_robot[0:2,0:2] = [[np.cos(candidate[2]), -np.sin(candidate[2])],
+                                [np.sin(candidate[2]), np.cos(candidate[2])]]
+            T = T_robot@self.T_camera
+            cloud = deepcopy(region_cloud).transform(np.linalg.inv(T))
+            points = np.asarray(cloud.points)
+            pixel = (self.K@points.T).T
+            pixel_x = pixel[:,0]/pixel[:,2]
+            pixel_y = pixel[:,1]/pixel[:,2]
+            idx = np.where((points[:,2]<1) & (points[:,2]>0.05) & 
+                            (pixel_x>=0) & (pixel_x<w) &
+                            (pixel_y>=0) & (pixel_y<h))[0]
+            if len(idx) == 0:
+                reward[i] = 0
+            else:
+                points = points[idx]
+                # entropy = bernoulli.entropy(detector.p_anomaly[global_idx])
+                entropy = entropies[idx]
+                reward[i] =  np.sum(entropy)
+        idx = np.argmax(reward)
+        waypoint = candidates[idx]
+        
+        return waypoint
+    def get_waypoints(self, region, n):
         bound = self.region_bounds[region]
         coords = []
         while len(coords)< n:
