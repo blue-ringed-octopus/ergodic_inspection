@@ -135,6 +135,6 @@ if __name__ == "__main__":
         # pc.colors=o3d.utility.Vector3dVector(np.asarray(rgb))
         # o3d.visualization.draw_geometries([pc])
         waypoint = planner.get_optimal_waypoint(region, 50, region_cloud, h)
-
+        print(waypoint)
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
