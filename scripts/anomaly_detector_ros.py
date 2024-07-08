@@ -143,7 +143,10 @@ if __name__ == "__main__":
             pc, ref = detector.detect(graph_slam.front_end.pose_nodes[node_id], graph_slam.front_end.feature_nodes)
             msg = Float32MultiArray()
             msg.data = detector.p_anomaly 
-            set_h(msg)
+            try:
+                set_h(msg)
+            except:
+                print("failed to send entropy")
             pc_msg=pc_to_msg(graph_slam.global_map)
             pc_pub.publish(pc_msg)
 
