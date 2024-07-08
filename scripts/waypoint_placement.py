@@ -82,17 +82,20 @@ class Waypoint_Planner:
     
 
 if __name__ == '__main__':
+    from map_manager import Map_Manager
+    
+    manager = Map_Manager("../")
     with open('tests/ref_cloud_detected.pickle', 'rb') as handle:
         ref_cloud = pickle.load(handle)
      
-    with open("tests/region_bounds.yaml") as stream:
-        try:
-            region_bounds = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)    
-            
-    with open('costmap.pickle', 'rb') as handle:
-        costmap = pickle.load(handle)      
+    T_camera = np.eye(4)
+    T_camera[0:3,3]= [0.077, -0.000, 0.218]
+    T_camera[0:3,0:3] =  [[0.0019938, -0.1555174, 0.9878311],
+                          [-0.999998, -0.000156, 0.0019938],
+                          [-0.000156, -0.9878331, -0.1555174]]
+    K = np.array([[872.2853801540007, 0.0, 604.5],
+                 [0.0, 872.2853801540007, 360.5],
+                 [ 0.0, 0.0, 1.0]])
+    w, h = 1208, 720
         
-    planner = Waypoint_Planner(costmap)
-    region_bounds[0]
+    planner = Waypoint_Planner(manager.costmap, manager.region_bounds, T_camera, K, (w,h))    

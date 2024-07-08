@@ -126,52 +126,33 @@ def get_global_cov_SE3(points, T_global, point_cov, T_cov):
     return cov
 
 class Anomaly_Detector:
-    def __init__(self, mesh, bounding_box,region_bounds, thres=1):
-        self.mesh = mesh
-        num_points = 100000
-        self.num_points = num_points
-        pc = mesh.sample_points_uniformly(
-            number_of_points=num_points, use_triangle_normal=True)
-
+    def __init__(self, pc, bounding_box, thres=1):
         self.bounding_box = bounding_box
-        self.reference = deepcopy(pc)
-        self.ref_normal = np.asarray(pc.normals)
-        self.ref_points = np.asarray(pc.points)
+        self.get_ref_pc(pc)
+        n = len(self.ref_points)
         self.ref_tree = KDTree(self.ref_points)
         
-        crop_pc = pc.crop(self.bounding_box)
+        crop_pc = self.reference.crop(self.bounding_box)
+
         _, self.crop_index = self.ref_tree.query(np.asarray(crop_pc.points),1)
         
 
         
         self.neighbor_count = 20
         _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
-        self.p_anomaly = np.ones(len(pc.points))*0.5
+        self.p_anomaly = np.ones(len(self.reference.points))*0.5
 
         self.self_neighbor = corr
         self.thres = thres
-        self.n_sample = np.zeros(num_points)
-        self.md_ref = np.zeros((num_points, 2))
-        self.chi2 = np.zeros((num_points, 2))
-        self.region_bounds =  region_bounds
-        self.partition()
+        self.n_sample = np.zeros(n)
+        self.md_ref = np.zeros((n, 2))
+        self.chi2 = np.zeros((n, 2))
         
-  #  def detect_thread(self, node):
-
-    def partition(self):
-        region_bounds=self.region_bounds
-        region_idx=[]
-        ref  = deepcopy(self.reference)    
-        for bound in region_bounds.values():     
-            box = ref.get_axis_aligned_bounding_box()
-            box.max_bound = bound["max_bound"]
-            box.min_bound = bound["min_bound"]
-            region = ref.crop(box)
-            _, idx = self.ref_tree.query(region.points)
-            region_idx.append(idx)
-            
-        self.region_idx = region_idx
-        self.region_bounds =  region_bounds
+    def get_ref_pc(self, pc):
+        self.reference = deepcopy(pc)
+        self.ref_normal = np.asarray(pc.normals)
+        self.ref_points = np.asarray(pc.points)
+        self.num_points = len(self.ref_points)
         
     def paint_pc(self, pc, mds):
         c = np.array([0.5 if mds[i, 0]+mds[i, 1]==0 else mds[i, 0]/(mds[i, 0]+mds[i, 1]  )
@@ -269,12 +250,6 @@ class Anomaly_Detector:
         covs = covs[idx]
         
         return point_cloud, covs
-    def get_region_entropy(self, region_id):
-        idx = self.region_idx[region_id]
-        region = self.reference.select_by_index(idx)
-        p = self.p_anomaly[idx]
-        h= bernoulli.entropy(p)
-        return h, deepcopy(region)
         
     def detect(self, node, features):
         print("estimating anomaly: node " + str(node.id))

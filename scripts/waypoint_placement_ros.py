@@ -126,14 +126,6 @@ if __name__ == "__main__":
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         msg = get_reference(region)
         h, region_cloud = decode_msg(msg.ref)
-        # if (np.max(h)-np.min(h)):
-        #     hue = (h-np.min(h))/(np.max(h)-np.min(h))
-        # else:
-        #     hue = np.ones(len(h))
-            
-        # rgb = [colorsys.hsv_to_rgb(h, 1, 1) for h in hue]
-        # pc.colors=o3d.utility.Vector3dVector(np.asarray(rgb))
-        # o3d.visualization.draw_geometries([pc])
         waypoint = planner.get_optimal_waypoint(region, 50, region_cloud, h)
         print(waypoint)
     except rospy.ServiceException as e:

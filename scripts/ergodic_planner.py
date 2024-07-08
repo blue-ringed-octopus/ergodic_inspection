@@ -6,6 +6,8 @@ Created on Mon May  6 14:52:53 2024
 """
 import numpy as np
 import cvxpy as cp
+import cv2
+
 
 def outer(a, b):
     a = cp.Expression.cast_to_const(a)  # if a is an Expression, return it unchanged.
@@ -18,33 +20,10 @@ def outer(a, b):
     return expr
 
 class Ergodic_Planner:
-    def __init__(self, region_graph, region_init):
-        self.num_regions = 7
-        self.edges=[[0,0],
-               [1,1],
-               [2,2],
-               [3,3],
-               [4,4],
-               [5,5],
-               [6,6],
-               
-               [0,1],
-               [0,3],
-               [1,0], 
-               [1,2],
-               [1,4],
-               [2,1],
-               [2,3],
-               [3,0],
-               [3,2],
-               [3,5],
-               [4,1],
-               [4,5],
-               [5,3],
-               [5,4],
-               [5,6],
-               [6,5]]
-    
+    def __init__(self, region_graph):
+        self.num_regions = len(region_graph.nodes)
+        self.edges = region_graph.get_edges()
+        
     def UBFMMC(self, weight, edges, transform=True):
         weight=weight/sum(weight)
         n=len(weight)
@@ -88,3 +67,9 @@ class Ergodic_Planner:
         P = self.UBFMMC(weight, self.edges)
         region=np.random.choice(range(self.num_regions),p=P[:,current_region])
         return region, P
+    
+
+
+
+# if __name__ == '__main__':
+
