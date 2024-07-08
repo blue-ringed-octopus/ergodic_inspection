@@ -39,11 +39,10 @@ class Server:
     def send_pc(self, req):
         if req.regionID == -1:
             print("Requested full workspace")
-            msg = self.get_pc_msg(self.map_manager.reference, self.map_manager.h)
         else:
             print("Requested Region ID: "+ str(req.regionID))
-            h, cloud = self.map_manager.get_region_entropy(req.regionID)
-            msg = self.get_pc_msg(cloud,h)
+        h, cloud = self.map_manager.get_region_entropy(req.regionID)
+        msg = self.get_pc_msg(cloud,h)
         return PointCloudWithEntropyResponse(msg)
     
     def get_pc_msg(self, cloud, h):

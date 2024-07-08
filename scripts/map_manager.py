@@ -25,6 +25,7 @@ class Map_Manager:
         self.build_reference_pointcloud()
         self.partition()
         self.set_entropy(np.ones(self.num_points)*0.5)
+        
     def build_reference_pointcloud(self):
         mesh = o3d.io.read_triangle_mesh(self.path + "/resources/ballast.STL")
 
@@ -33,6 +34,7 @@ class Map_Manager:
         self.num_points = num_points
         pc = mesh.sample_points_uniformly(
             number_of_points=num_points, use_triangle_normal=True)
+        pc.paint_uniform_color([0,0,0])
         self.reference = deepcopy(pc)
         self.ref_normal = np.asarray(pc.normals)
         self.ref_points = np.asarray(pc.points)
@@ -105,11 +107,13 @@ class Map_Manager:
         self.h = bernoulli.entropy(p)
         
     def get_region_entropy(self, region_id):
-        idx = self.region_idx[region_id]
-        region = self.reference.select_by_index(idx)
-        h = self.h[idx]
-        
-        return h, deepcopy(region)    
+        if region_id==-1:
+            return self.h, deepcopy(self.reference)    
+        else:
+            idx = self.region_idx[region_id]
+            region = self.reference.select_by_index(idx)
+            h = self.h[idx]
+            return h, deepcopy(region)    
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     manager = Map_Manager("../")
