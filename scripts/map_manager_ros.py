@@ -37,7 +37,7 @@ class Server:
         
     def send_pc(self, req):
         if req.regionID == -1:
-            print("Requested full workspace: "+ str(req.regionID))
+            print("Requested full workspace")
             msg = self.get_pc_msg(self.map_manager.reference, self.map_manager.h)
         else:
             print("Requested Region ID: "+ str(req.regionID))

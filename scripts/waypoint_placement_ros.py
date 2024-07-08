@@ -131,7 +131,7 @@ if __name__ == "__main__":
         msg = get_reference(-1)
         h, region_cloud = decode_msg(msg.ref)
         set_h = rospy.ServiceProxy('get_reference_cloud_region', SetBelief)
-        set_h(np.ones(h.shape)*0.1)
+        set_h(np.ones(len(h))*0.1)
         msg = get_reference(region)
         h, region_cloud = decode_msg(msg.ref)
         waypoint = planner.get_optimal_waypoint(region, 50, region_cloud, h)
