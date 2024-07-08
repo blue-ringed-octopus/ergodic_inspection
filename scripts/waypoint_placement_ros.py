@@ -70,14 +70,14 @@ def simple_move(x,y,w,z):
     #print result
     print (sac.get_result())
 
-def talker(pose):
+def talker(waypoint):
     array = PoseArray()
     array.header.frame_id = 'map'
     array.header.stamp = rospy.Time.now()
-    theta = pose[2]
+    theta = waypoint[2]
     pose = Pose()
-    pose.position.x = float(pose[0])
-    pose.position.y = float(pose[1])
+    pose.position.x = float(waypoint[0])
+    pose.position.y = float(waypoint[1])
     pose.orientation.w = float(np.cos(theta/2))
     pose.orientation.z = float(np.sin(theta/2))
     array.poses.append(pose)
