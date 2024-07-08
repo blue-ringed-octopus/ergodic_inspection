@@ -79,8 +79,13 @@ def msg_2_pc(msg):
     points[:,0]=x
     points[:,1]=pc['y'].reshape(-1)
     points[:,2]=pc['z'].reshape(-1)
+    
+    normals = np.zeros(points.shape)
+    normals[:,0]=pc['i']
+    normals[:,1]=pc['j']
+    normals[:,2]=pc['k']
+    
     pc=ros_numpy.point_cloud2.split_rgb_field(pc)
-
     rgb=np.zeros((len(x),3))
     rgb[:,0]=pc['r'].reshape(-1)
     rgb[:,1]=pc['g'].reshape(-1)
@@ -89,8 +94,9 @@ def msg_2_pc(msg):
     # p = {"points": points, "colors": np.asarray(rgb/255), "h": h}
     # print(h)
     p=o3d.geometry.PointCloud()
-    p.points=o3d.utility.Vector3dVector(points)
-    p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
+    p.points = o3d.utility.Vector3dVector(points)
+    p.colors = o3d.utility.Vector3dVector(np.asarray(rgb/255))
+    p.normals = o3d.utility.Vector3dVector(normals)
     return p
     
 if __name__ == "__main__":

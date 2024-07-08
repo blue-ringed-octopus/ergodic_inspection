@@ -49,10 +49,14 @@ class Server:
     def get_pc_msg(self, cloud, h):
         points = np.array(cloud.points)
         colors =  np.array(cloud.colors)
+        normals = np.array(cloud.normals)
         pc_array = np.zeros(len(points), dtype=[
         ('x', np.float32),
         ('y', np.float32),
         ('z', np.float32),
+        ('i', np.float32),
+        ('j', np.float32),
+        ('k', np.float32),
         ('r', np.uint32),
         ('g', np.uint32),
         ('b', np.uint32),
@@ -61,6 +65,9 @@ class Server:
         pc_array['x'] = points[:,0]
         pc_array['y'] = points[:, 1]
         pc_array['z'] = points[:, 2]
+        pc_array['i'] = normals[:,0]
+        pc_array['j'] = normals[:, 1]
+        pc_array['k'] = normals[:, 2]
         pc_array['r'] = (colors[:,0]*255).astype(np.uint32)
         pc_array['g'] = (colors[:, 1]*255).astype(np.uint32)
         pc_array['b'] = (colors[:, 2]*255).astype(np.uint32)
