@@ -14,6 +14,7 @@ from scipy.stats import bernoulli
 import open3d as o3d 
 from copy import deepcopy 
 from scipy.spatial import KDTree
+import colorsys
 
 class Map_Manager:
     def __init__(self, path):
@@ -113,7 +114,15 @@ class Map_Manager:
             idx = self.region_idx[region_id]
             region = self.reference.select_by_index(idx)
             h = self.h[idx]
-            return h, deepcopy(region)    
+            return h, deepcopy(region) 
+        
+    def visualize_entropy(self):
+        cloud = deepcopy(self.reference)
+        hue = (self.h-np.min(self.h))/(np.max(self.h)-np.min(self.h))
+        rgb = [colorsys.hsv_to_rgb(x, 1, 1) for x in hue]
+        cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
+        return cloud
+        
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     manager = Map_Manager("../")
