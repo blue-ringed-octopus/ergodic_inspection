@@ -87,11 +87,12 @@ def talker(waypoint):
 
         #To not have to deal with threading, Im gonna publish just a couple times in the begging, and then continue with telling the robot to go to the points
     count = 0
-    while count<1:
+    while 1:
         rate.sleep()	
         print("sending rviz arrow")
         pub.publish(array)
-        count +=1
+        # count +=1
+        
 def navigate2point(coordinates):
     try:
         simple_move((coordinates[0]),(coordinates[1]),(coordinates[2]),(coordinates[3]))
