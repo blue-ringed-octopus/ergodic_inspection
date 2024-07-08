@@ -121,7 +121,7 @@ class Map_Manager:
         
     def visualize_entropy(self):
         cloud = deepcopy(self.reference)
-        v = self.h/bernoulli.entropy(0.5)
+        v = 1 - self.h/bernoulli.entropy(0.5)
         rgb = [colorsys.hsv_to_rgb(0, 0, x) for x in v]
         cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
         return cloud.crop(self.bound)
