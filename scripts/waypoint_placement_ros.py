@@ -70,15 +70,16 @@ def simple_move(x,y,w,z):
     #print result
     print (sac.get_result())
 
-def talker(coordinates):
+def talker(pose):
     array = PoseArray()
     array.header.frame_id = 'map'
     array.header.stamp = rospy.Time.now()
+    theta = pose[2]
     pose = Pose()
-    pose.position.x = float(coordinates[0])
-    pose.position.y = float(coordinates[1])
-    pose.orientation.w = float(coordinates[2])
-    pose.orientation.z = float(coordinates[3])
+    pose.position.x = float(pose[0])
+    pose.position.y = float(pose[1])
+    pose.orientation.w = float(np.cos(theta/2))
+    pose.orientation.z = float(np.sin(theta/2))
     array.poses.append(pose)
 
     pub = rospy.Publisher('simpleNavPoses', PoseArray, queue_size=100)
@@ -101,6 +102,7 @@ def navigate2point(coordinates):
 
 
 if __name__ == "__main__":
+    rospy.init_node('waypoint_planner',anonymous=False)
     rospy.wait_for_service('get_reference_cloud_region')
 
     with open(path+'/resources/costmap.pickle', 'rb') as handle:
@@ -111,6 +113,7 @@ if __name__ == "__main__":
             region_bounds = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)    
+            
     T_camera = np.eye(4)
     T_camera[0:3,3]= [0.077, -0.000, 0.218]
     T_camera[0:3,0:3] =  [[0.0019938, -0.1555174, 0.9878311],
@@ -129,5 +132,6 @@ if __name__ == "__main__":
         h, region_cloud = decode_msg(msg.ref)
         waypoint = planner.get_optimal_waypoint(region, 50, region_cloud, h)
         print(waypoint)
+        talker(waypoint)
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
