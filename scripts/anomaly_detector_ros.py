@@ -23,8 +23,10 @@ import tf
 import cv2
 import pickle
 import yaml
+from ergodic_inspection.srv import PointCloudWithEntropy
 
 rospack=rospkg.RosPack()
+path = rospack.get_path("ergodic_inspection")
 
             
 def get_mesh_marker(mesh_resource):
@@ -47,7 +49,7 @@ def get_mesh_marker(mesh_resource):
     marker.scale.z = 1
     return marker
 
-def get_ref_pc(cloud):
+def pc_2_msg(cloud):
     points = np.array(cloud.points)
     colors =  np.array(cloud.colors)
     
@@ -70,26 +72,47 @@ def get_ref_pc(cloud):
     
     return pc_msg
 
+def msg_2_pc(msg):
+    pc=ros_numpy.numpify(msg)
+    x=pc['x'].reshape(-1)
+    points=np.zeros((len(x),3))
+    points[:,0]=x
+    points[:,1]=pc['y'].reshape(-1)
+    points[:,2]=pc['z'].reshape(-1)
+    pc=ros_numpy.point_cloud2.split_rgb_field(pc)
+
+    rgb=np.zeros((len(x),3))
+    rgb[:,0]=pc['r'].reshape(-1)
+    rgb[:,1]=pc['g'].reshape(-1)
+    rgb[:,2]=pc['b'].reshape(-1)
+
+    # p = {"points": points, "colors": np.asarray(rgb/255), "h": h}
+    # print(h)
+    p=o3d.geometry.PointCloud()
+    p.points=o3d.utility.Vector3dVector(points)
+    p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
+    return p
     
 if __name__ == "__main__":
-    thres = 0.02
-    path = rospack.get_path("ergodic_inspection")
-    mesh_resource = "file:///" + path + "/resources/ballast.STL"
+    rospy.wait_for_service('get_reference_cloud_region')
+    get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
+    msg = get_reference(-1)
+    reference_cloud = msg_2_pc(msg.ref)
     
-    mesh = o3d.io.read_triangle_mesh(path+"/resources/ballast.STL")
-
-   
+    thres = 0.02
+    mesh_resource = "file:///" + path + "/resources/ballast.STL"
+     
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
     ekf=apriltag_EKF_SE3.EKF(0)
     graph_slam = initialize_graph_slam(ekf, localize_mode = True)
-    box = mesh.get_axis_aligned_bounding_box()
+    box = reference_cloud.get_axis_aligned_bounding_box()
     bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
     box.max_bound = bound
 
-    detector = Anomaly_Detector(mesh, box,0.02)
+    detector = Anomaly_Detector(reference_cloud, box,0.02)
     marker = get_mesh_marker(mesh_resource)
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
@@ -121,7 +144,7 @@ if __name__ == "__main__":
             pc, ref = detector.detect(graph_slam.front_end.pose_nodes[node_id], graph_slam.front_end.feature_nodes)
             pc_msg=pc_to_msg(graph_slam.global_map)
             pc_pub.publish(pc_msg)
-            ref_pc = get_ref_pc(ref)
+            ref_pc = pc_2_msg(ref)
             ref_pc_pub.publish(ref_pc)
 
         rate.sleep()
