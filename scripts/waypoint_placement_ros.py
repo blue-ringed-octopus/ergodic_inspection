@@ -102,6 +102,7 @@ def navigate2point(coordinates):
 
 if __name__ == "__main__":
     from ergodic_inspection.srv import SetBelief
+    from std_msgs.msg import Float32MultiArray 
 
     rospy.wait_for_service('get_reference_cloud_region')
     rospy.wait_for_service('set_entropy')
@@ -131,7 +132,9 @@ if __name__ == "__main__":
         msg = get_reference(-1)
         h, region_cloud = decode_msg(msg.ref)
         set_h = rospy.ServiceProxy('get_reference_cloud_region', SetBelief)
-        set_h(np.ones(len(h))*0.1)
+        msg = Float32MultiArray()
+        msg.data = np.ones(len(h))*0.1
+        set_h(msg)
         msg = get_reference(region)
         h, region_cloud = decode_msg(msg.ref)
         waypoint = planner.get_optimal_waypoint(region, 50, region_cloud, h)
