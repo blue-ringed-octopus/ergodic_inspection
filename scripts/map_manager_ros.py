@@ -8,7 +8,7 @@ Created on Sun Jul  7 15:52:00 2024
 from map_manager import Map_Manager
 import open3d as o3d
 from ergodic_inspection.srv import PointCloudWithEntropy, PointCloudWithEntropyResponse
-from ergodic_inspection.srv import SetBelief
+from ergodic_inspection.srv import SetBelief, SetBeliefResponse
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Float32MultiArray 
 import rospkg
@@ -35,7 +35,8 @@ class Server:
         p = req.p.data
         self.map_manager.set_entropy(p)
         print(self.map_manager.h)
-        
+        return SetBeliefResponse(True)
+    
     def send_pc(self, req):
         if req.regionID == -1:
             print("Requested full workspace")
