@@ -131,7 +131,8 @@ if __name__ == "__main__":
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         msg = get_reference(-1)
         h, region_cloud = decode_msg(msg.ref)
-        set_h = rospy.ServiceProxy('get_reference_cloud_region', SetBelief)
+        set_h = rospy.ServiceProxy('set_entropy', SetBelief)
+        print("here")
         msg = Float32MultiArray()
         msg.data = np.ones(len(h))*0.1
         set_h(msg)
