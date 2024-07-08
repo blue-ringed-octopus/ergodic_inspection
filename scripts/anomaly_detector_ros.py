@@ -21,8 +21,9 @@ import apriltag_EKF_SE3
 import tf
 import pickle
 import yaml
-from ergodic_inspection.srv import PointCloudWithEntropy
-
+from ergodic_inspection.srv import PointCloudWithEntropy, SetBelief
+from std_msgs.msg import Float32MultiArray 
+    
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
 
@@ -99,6 +100,8 @@ def msg_2_pc(msg):
     
 if __name__ == "__main__":
     rospy.wait_for_service('get_reference_cloud_region')
+    rospy.wait_for_service('set_entropy')
+    set_h = rospy.ServiceProxy('set_entropy', SetBelief)
     get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
     msg = get_reference(-1)
     reference_cloud = msg_2_pc(msg.ref)
@@ -119,6 +122,7 @@ if __name__ == "__main__":
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
+        
 
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
@@ -137,6 +141,9 @@ if __name__ == "__main__":
             graph_slam.global_map_assemble()
             node_id  = list(graph_slam.front_end.pose_nodes.keys())[-2]
             pc, ref = detector.detect(graph_slam.front_end.pose_nodes[node_id], graph_slam.front_end.feature_nodes)
+            msg = Float32MultiArray()
+            msg.data = detector.p_anomaly 
+            set_h(msg)
             pc_msg=pc_to_msg(graph_slam.global_map)
             pc_pub.publish(pc_msg)
 
