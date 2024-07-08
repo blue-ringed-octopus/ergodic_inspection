@@ -29,7 +29,6 @@ class Map_Manager:
         
     def build_reference_pointcloud(self):
         mesh = o3d.io.read_triangle_mesh(self.path + "/resources/ballast.STL")
-
         self.mesh = mesh
         num_points = 100000
         self.num_points = num_points
@@ -40,6 +39,10 @@ class Map_Manager:
         self.ref_normal = np.asarray(pc.normals)
         self.ref_points = np.asarray(pc.points)
         self.ref_tree = KDTree(self.ref_points)
+        box = pc.get_axis_aligned_bounding_box()
+        bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
+        box.max_bound = bound
+        self.bound = box
         
     def partition(self):
         region_bounds=self.region_bounds
@@ -121,7 +124,7 @@ class Map_Manager:
         hue = self.h/bernoulli.entropy(0.5)
         rgb = [colorsys.hsv_to_rgb(x, 1, 1) for x in hue]
         cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
-        return cloud
+        return cloud.crop(self.bound)
         
 if __name__ == '__main__':
     import matplotlib.pyplot as plt

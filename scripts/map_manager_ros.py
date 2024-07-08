@@ -117,6 +117,7 @@ if __name__ == "__main__":
     mesh_resource = "file:///" + path + "/resources/ballast.STL"
     mesh_marker = get_mesh_marker(mesh_resource)
     mesh_marker.header.stamp = rospy.Time.now()
+
     map_manager = Map_Manager(path)
     server = Server(map_manager)
     
