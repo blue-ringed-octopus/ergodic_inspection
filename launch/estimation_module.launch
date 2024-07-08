@@ -1,0 +1,4 @@
+<launch>
+<node pkg="ergodic_inspection" name="anomaly_detector_ros.py" type="anomaly_detector_ros.py" output="screen">
+  </node> 
+</launch>
