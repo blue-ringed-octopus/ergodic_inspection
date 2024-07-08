@@ -101,7 +101,11 @@ def navigate2point(coordinates):
 
 
 if __name__ == "__main__":
+    from ergodic_inspection.srv import SetBelief
+
     rospy.wait_for_service('get_reference_cloud_region')
+    rospy.wait_for_service('set_entropy')
+
     with open(path+'/resources/costmap.pickle', 'rb') as handle:
         costmap = pickle.load(handle)  
         
@@ -124,6 +128,10 @@ if __name__ == "__main__":
     try:
         region = 1 
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
+        msg = get_reference(-1)
+        h, region_cloud = decode_msg(msg.ref)
+        set_h = rospy.ServiceProxy('get_reference_cloud_region', SetBelief)
+        set_h(np.ones(h.shape)*0.1)
         msg = get_reference(region)
         h, region_cloud = decode_msg(msg.ref)
         waypoint = planner.get_optimal_waypoint(region, 50, region_cloud, h)
