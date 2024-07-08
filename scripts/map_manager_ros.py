@@ -114,6 +114,7 @@ def get_mesh_marker(mesh_resource):
     return marker
  
 if __name__ == "__main__":
+    rospy.init_node('map_manager',anonymous=False)
     mesh_resource = "file:///" + path + "/resources/ballast.STL"
     mesh_marker = get_mesh_marker(mesh_resource)
     mesh_marker.header.stamp = rospy.Time.now()
