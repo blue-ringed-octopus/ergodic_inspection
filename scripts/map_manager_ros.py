@@ -118,7 +118,7 @@ if __name__ == "__main__":
     mesh_marker = get_mesh_marker(mesh_resource)
     mesh_marker.header.stamp = rospy.Time.now()
     map_manager = Map_Manager(path)
-    Server(map_manager)
+    server = Server(map_manager)
     
     ref_pc_pub=rospy.Publisher("/pc_ref", PointCloud2, queue_size = 2)
     cad_pub = rospy.Publisher("/ref", Marker, queue_size = 2)
@@ -127,6 +127,6 @@ if __name__ == "__main__":
     rate = rospy.Rate(1) 
     while not rospy.is_shutdown():
         ref_pc = map_manager.visualize_entropy()
-        ref_pc_msg = map_manager.get_pc_msg(ref_pc)
+        ref_pc_msg = server.get_pc_msg(ref_pc)
         cad_pub.publish(mesh_marker)
         ref_pc_pub.publish(ref_pc)
