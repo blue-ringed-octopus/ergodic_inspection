@@ -1,4 +1,7 @@
 <launch>
-<node pkg="ergodic_inspection" name="anomaly_detector_ros.py" type="anomaly_detector_ros.py" output="screen">
+<node pkg="ergodic_inspection" name="anomaly_detector_ros" type="anomaly_detector_ros.py" output="screen">
+  </node> 
+
+<node pkg="ergodic_inspection" name="map_manager" type="map_manager_ros.py" output="screen">
   </node> 
 </launch>
