@@ -48,7 +48,7 @@ class Server:
     
         
         
-    def get_pc_msg(self, cloud, h=None):
+    def get_pc_msg(self, cloud, h=[]):
         points = np.array(cloud.points)
         colors =  np.array(cloud.colors)
         normals = np.array(cloud.normals)
