@@ -25,7 +25,6 @@ path = rospack.get_path("ergodic_inspection")
 class Server:
     def __init__(self, map_manager):
         self.map_manager = map_manager
-        rospy.init_node('reference_cloud_server')
         rospy.Service('get_reference_cloud_region', PointCloudWithEntropy, self.send_pc)
         rospy.Service('set_entropy', SetBelief, self.set_entropy)
 
