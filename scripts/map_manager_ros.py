@@ -129,4 +129,4 @@ if __name__ == "__main__":
         ref_pc = map_manager.visualize_entropy()
         ref_pc_msg = server.get_pc_msg(ref_pc)
         cad_pub.publish(mesh_marker)
-        ref_pc_pub.publish(ref_pc)
+        ref_pc_pub.publish(ref_pc_msg)
