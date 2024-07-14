@@ -125,9 +125,15 @@ class Map_Manager:
         rgb = [colorsys.hsv_to_rgb(0, 0, x) for x in v]
         cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
         return cloud.crop(self.bound)
-        
+    
+    def get_graph(self, level):
+        ids = list(self.hierarchical_graph.levels[level].nodes.keys())
+        edges = self.hierarchical_graph.get_edges(level)
+        return ids, edges
+    
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     manager = Map_Manager("../")
     img = manager.get_region_graph_img()
     plt.imshow(img)    
+    ids, edges = manager.get_graph(1)

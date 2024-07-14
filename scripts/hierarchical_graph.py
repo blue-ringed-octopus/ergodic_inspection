@@ -79,17 +79,20 @@ class Hierarchical_Graph:
     def level_to_graph(level):
         pass 
     
+    def compute_edges(self, level):
+        edges=[]
+        for i, node in self.levels[level].nodes.items():
+            edges.append([i,i])
+            for j in node.neighbor_nodes.keys():
+                edges.append([i,j])
+        self.levels[level].edges = edges
+        
     def get_edges(self, level):
         if len(self.levels[level].edges):
             return self.levels[level].edges
         else:
-            edges=[]
-            for i, node in self.levels[level].nodes.items():
-                edges.append([i,i])
-                for j in node.neighbor_nodes.keys():
-                    edges.append([i,j])
-            self.levels[level].edges = edges
-            return edges
+            self.compute_edges(level)
+            return self.levels[level].edges
         
     def grid2graph(self, stencil, level):
         parent_level = self.levels[level-1]

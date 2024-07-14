@@ -9,9 +9,13 @@ from map_manager import Map_Manager
 import open3d as o3d
 from ergodic_inspection.srv import PointCloudWithEntropy, PointCloudWithEntropyResponse
 from ergodic_inspection.srv import SetBelief, SetBeliefResponse
+from ergodic_inspection.srv import GetGraphStructure, GetGraphStructureResponse
+
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Float32MultiArray 
 from visualization_msgs.msg import Marker
+from ergodic_inspection.msg import Graph
+
 import rospkg
 import yaml
 import numpy as np
@@ -27,6 +31,7 @@ class Server:
         self.map_manager = map_manager
         rospy.Service('get_reference_cloud_region', PointCloudWithEntropy, self.send_pc)
         rospy.Service('set_entropy', SetBelief, self.set_entropy)
+        rospy.Service('GetGraphStructure', GetGraphStructure, self.send_graph)
 
         print("PointCloud server online")
         
@@ -46,7 +51,16 @@ class Server:
         msg = self.get_pc_msg(cloud,h)
         return PointCloudWithEntropyResponse(msg)
     
-        
+    def send_graph(self, req):
+        ids, edges = self.map_manager.get_graph(req.level) 
+        edge_arr = [ str(edge[0])+"," + str(edge[1]) for edge in edges]
+            
+        msg = Graph()
+        msg.level = req.level
+        msg.node_ids = ids
+        msg.edges = edge_arr
+        return GetGraphStructureResponse(msg)
+
         
     def get_pc_msg(self, cloud, h=[]):
         points = np.array(cloud.points)
