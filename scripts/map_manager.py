@@ -126,10 +126,19 @@ class Map_Manager:
         cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
         return cloud.crop(self.bound)
     
+    def get_entropy(self):
+        entropy=np.zeros()
+        for i, idx in enumerate(self.region_idx):
+            h = self.h[idx]
+            entropy[i] = np.quantile(h,0.5)
+            # entropy[i] = np.mean(h)
+        return entropy 
+    
     def get_graph(self, level):
         ids = list(self.hierarchical_graph.levels[level].nodes.keys())
         edges = self.hierarchical_graph.get_edges(level)
-        return ids, edges
+        h = self.get_entropy()
+        return ids, edges, h
     
 if __name__ == '__main__':
     import matplotlib.pyplot as plt

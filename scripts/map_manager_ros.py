@@ -52,13 +52,13 @@ class Server:
         return PointCloudWithEntropyResponse(msg)
     
     def send_graph(self, req):
-        ids, edges = self.map_manager.get_graph(req.level) 
+        ids, edges, h = self.map_manager.get_graph(req.level) 
         edge_arr = [ str(edge[0])+"," + str(edge[1]) for edge in edges]
-            
         msg = Graph()
         msg.level = req.level
         msg.node_ids = ids
         msg.edges = edge_arr
+        msg.entropy = h
         return GetGraphStructureResponse(msg)
 
         
