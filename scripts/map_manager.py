@@ -127,7 +127,7 @@ class Map_Manager:
         return cloud.crop(self.bound)
     
     def get_entropy(self):
-        entropy=np.zeros()
+        entropy=np.zeros(len(self.region_idx))
         for i, idx in enumerate(self.region_idx):
             h = self.h[idx]
             entropy[i] = np.quantile(h,0.5)
