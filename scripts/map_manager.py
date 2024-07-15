@@ -145,4 +145,4 @@ if __name__ == '__main__':
     manager = Map_Manager("../")
     img = manager.get_region_graph_img()
     plt.imshow(img)    
-    ids, edges = manager.get_graph(1)
+    ids, edges, h = manager.get_graph(1)
