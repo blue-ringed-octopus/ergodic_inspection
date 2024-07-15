@@ -55,11 +55,15 @@ class Server:
         ids, edges, h = self.map_manager.get_graph(req.level) 
         edge_arr = [ str(edge[0])+"," + str(edge[1]) for edge in edges]
         id_arr = [str(id_) for id_ in ids]
+        
+        h_msg = Float32MultiArray()
+        h_msg.data = h 
+        
         msg = Graph()
         msg.level = req.level
         msg.node_ids = id_arr
         msg.edges = edge_arr
-        msg.entropy = h
+        msg.entropy = h_msg
         return GetGraphStructureResponse(msg)
 
         
