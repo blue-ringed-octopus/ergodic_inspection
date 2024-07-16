@@ -45,7 +45,7 @@ class Server:
         h,w = im.shape
         msg = OccupancyGrid()
         msg.data = im.reshape(-1)
-        msg.info.map_load_time = rospy.time.now
+        msg.info.map_load_time = rospy.Time.now()
         msg.info.resolution = costmap['resolution'][0]
         msg.info.height = h
         msg.info.width = w
