@@ -42,10 +42,13 @@ class Server:
         costmap = self.map_manager.costmap
         im = costmap['costmap']
         im = (im/255*100).astype(np.int8)
+        time = rospy.Time.now()
         h,w = im.shape
         msg = OccupancyGrid()
+        msg.header.stamp = time
+        msg.header.frame_id = "map"
         msg.data = im.reshape(-1)
-        msg.info.map_load_time = rospy.Time.now()
+        msg.info.map_load_time = time
         msg.info.resolution = costmap['resolution'][0]
         msg.info.height = h
         msg.info.width = w
