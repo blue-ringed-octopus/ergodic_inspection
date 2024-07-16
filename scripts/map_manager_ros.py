@@ -63,7 +63,7 @@ class Server:
         msg.level = req.level
         msg.node_ids = id_arr
         msg.edges = edge_arr
-        msg.entropy = h_msg
+        msg.weights = h_msg
         return GetGraphStructureResponse(msg)
 
         
