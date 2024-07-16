@@ -9,6 +9,7 @@ Created on Mon Jul  8 17:49:39 2024
 from ergodic_planner import Ergodic_Planner
 import rospy
 from ergodic_inspection.srv import GetGraphStructure
+import numpy as np 
 
 def parse_graph_msg(msg):
     graph=msg.graph
@@ -21,7 +22,7 @@ def parse_graph_msg(msg):
     for edge in graph.edges:
         node1, node2 = edge.split(',')
         edges.append([id_map[node1], id_map[node2]])
-    w = graph.weights.data    
+    w = np.asarray(graph.weights.data)  
     return nodes, edges, w
 
 if __name__ == '__main__':
