@@ -10,7 +10,7 @@ import open3d as o3d
 from ergodic_inspection.srv import PointCloudWithEntropy, PointCloudWithEntropyResponse
 from ergodic_inspection.srv import SetBelief, SetBeliefResponse
 from ergodic_inspection.srv import GetGraphStructure, GetGraphStructureResponse
-
+from nav_msgs.srv import GetMap, GetMapResponse
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Float32MultiArray 
 from visualization_msgs.msg import Marker
