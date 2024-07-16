@@ -16,7 +16,7 @@ from std_msgs.msg import Float32MultiArray
 from visualization_msgs.msg import Marker
 from ergodic_inspection.msg import Graph
 from nav_msgs.msg import OccupancyGrid
-
+from geometry_msgs.msg import Pose 
 import rospkg
 import open3d as o3d
 import yaml
