@@ -176,7 +176,7 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         ref_pc = map_manager.visualize_entropy()
         ref_pc_msg = server.get_pc_msg(ref_pc)
-        costmap_msg = map_manager.get_map_msg()
+        costmap_msg = server.get_map_msg()
         
         costmap_pub.publish(costmap_msg)
         cad_pub.publish(mesh_marker)
