@@ -11,7 +11,7 @@ import rospy
 from ergodic_inspection.srv import GetGraphStructure
 
 def parse_graph_msg(msg):
-    nodes = msg.ids
+    nodes = msg.node_ids
     id_map = {}
     for i, node in enumerate(nodes):
         id_map[node] = i
