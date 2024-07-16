@@ -38,7 +38,7 @@ class Server:
 
         print("Map server online")
     
-    def send_costmap(self, req):
+    def get_map_msg(self):
         costmap = self.map_manager.costmap
         im = costmap['costmap']
         im = (im/255*100).astype(np.int8)
@@ -55,6 +55,10 @@ class Server:
         msg.info.origin.position.x = 0
         msg.info.origin.position.y = 0 
         msg.info.origin.orientation.w = 1
+        
+        return msg
+    def send_costmap(self, req):
+        msg = self.get_map_msg()
         return GetMapResponse(msg)
         
     def set_entropy(self, req):
@@ -164,12 +168,17 @@ if __name__ == "__main__":
     
     ref_pc_pub=rospy.Publisher("/pc_ref", PointCloud2, queue_size = 2)
     cad_pub = rospy.Publisher("/ref", Marker, queue_size = 2)
+    ref_pc_pub=rospy.Publisher("/pc_map", PointCloud2, queue_size = 2)
+    costmap_pub=rospy.Publisher("/map", OccupancyGrid, queue_size = 2)
 
     
-    rate = rospy.Rate(1) 
+    rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
         ref_pc = map_manager.visualize_entropy()
         ref_pc_msg = server.get_pc_msg(ref_pc)
+        costmap_msg = map_manager.get_map_msg()
+        
+        costmap_pub.publish(costmap_msg)
         cad_pub.publish(mesh_marker)
         ref_pc_pub.publish(ref_pc_msg)
         rate.sleep()
