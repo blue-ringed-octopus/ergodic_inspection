@@ -29,7 +29,7 @@ if __name__ == '__main__':
     get_graph = rospy.ServiceProxy('GetGraphStructure', GetGraphStructure)
     msg = get_graph(1)
     nodes, edges, w = parse_graph_msg(msg)
-    print(nodes)
-    print(edges)
-    print(w)
-    # region_planner = Ergodic_Planner(map_manager.hierarchical_graph.levels[1])
+
+    planner = Ergodic_Planner(nodes, edges)
+    region = planner.get_next_region(w, 0)
+    print(region)

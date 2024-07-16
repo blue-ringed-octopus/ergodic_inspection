@@ -20,11 +20,11 @@ def outer(a, b):
     return expr
 
 class Ergodic_Planner:
-    def __init__(self, region_graph):
-        self.num_regions = len(region_graph.nodes)
-        self.edges = region_graph.get_edges()
+    def __init__(self, nodes, edges):
+        self.num_regions = len(nodes)
+        self.edges = edges
         
-    def UBFMMC(self, weight, edges, transform=True):
+    def UBFMMC(self, weight, transform=True):
         weight=weight/sum(weight)
         n=len(weight)
         P= cp.Variable((n,n))
@@ -39,7 +39,7 @@ class Ergodic_Planner:
         
         for i in range(n):
             for j in range(n):
-                if ([i,j] not in edges):
+                if ([i,j] not in self.edges):
                     constrains.append(P[j,i]==0)
 
         if transform:
@@ -57,7 +57,7 @@ class Ergodic_Planner:
         P[P<0]=0
         for i in range(n):
             for j in range(n):
-                if ([i,j] not in edges):
+                if ([i,j] not in self.edges):
                     P[j,i]=0
         P=P/sum(P, 0)
 
