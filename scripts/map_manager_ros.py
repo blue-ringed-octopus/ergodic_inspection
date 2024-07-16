@@ -6,17 +6,19 @@ Created on Sun Jul  7 15:52:00 2024
 @author: hibad
 """
 from map_manager import Map_Manager
-import open3d as o3d
 from ergodic_inspection.srv import PointCloudWithEntropy, PointCloudWithEntropyResponse
 from ergodic_inspection.srv import SetBelief, SetBeliefResponse
 from ergodic_inspection.srv import GetGraphStructure, GetGraphStructureResponse
 from nav_msgs.srv import GetMap, GetMapResponse
+
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Float32MultiArray 
 from visualization_msgs.msg import Marker
 from ergodic_inspection.msg import Graph
+from nav_msgs.msg import OccupancyGrid
 
 import rospkg
+import open3d as o3d
 import yaml
 import numpy as np
 import ros_numpy
@@ -32,8 +34,13 @@ class Server:
         rospy.Service('get_reference_cloud_region', PointCloudWithEntropy, self.send_pc)
         rospy.Service('set_entropy', SetBelief, self.set_entropy)
         rospy.Service('GetGraphStructure', GetGraphStructure, self.send_graph)
+        rospy.Service('/map', GetMap, self.send_costmap)
 
-        print("PointCloud server online")
+        print("Map server online")
+    
+    def send_costmap(self):
+        msg = OccupancyGrid()
+        return GetMapResponse(msg)
         
     def set_entropy(self, req):
         print("receiving anomaly belief")
