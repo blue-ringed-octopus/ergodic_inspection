@@ -11,16 +11,17 @@ import rospy
 from ergodic_inspection.srv import GetGraphStructure
 
 def parse_graph_msg(msg):
-    nodes = msg.node_ids
+    graph=msg.graph
+    nodes = graph.node_ids
     id_map = {}
     for i, node in enumerate(nodes):
         id_map[node] = i
         
     edges=[]
-    for edge in msg.edges:
+    for edge in graph.edges:
         node1, node2 = edge.split(',')
         edges.append([id_map[node1], id_map[node2]])
-    w = msg.weights.data    
+    w = graph.weights.data    
     return nodes, edges, w
 
 if __name__ == '__main__':
