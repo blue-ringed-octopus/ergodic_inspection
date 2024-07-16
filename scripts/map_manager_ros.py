@@ -38,7 +38,7 @@ class Server:
 
         print("Map server online")
     
-    def send_costmap(self):
+    def send_costmap(self, req):
         msg = OccupancyGrid()
         return GetMapResponse(msg)
         
