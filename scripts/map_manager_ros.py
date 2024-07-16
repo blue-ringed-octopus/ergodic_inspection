@@ -15,8 +15,7 @@ from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Float32MultiArray 
 from visualization_msgs.msg import Marker
 from ergodic_inspection.msg import Graph
-from nav_msgs.msg import OccupancyGrid, MapMetaData 
-from geometry_msgs.msg import Pose 
+from nav_msgs.msg import OccupancyGrid 
 
 import rospkg
 import open3d as o3d
@@ -43,8 +42,15 @@ class Server:
         costmap = self.map_manager.costmap
         im = costmap['costmap']
         im = (im/255*100).astype(np.int8)
+        h,w = im.shape
         msg = OccupancyGrid()
         msg.data = im.reshape(-1)
+        msg.info.resolution = costmap['resolution'][0]
+        msg.info.height = h
+        msg.info.width = w
+        msg.info.origin.position.x = 0
+        msg.info.origin.position.y = 0 
+        msg.info.origin.orientation.w = 1
         return GetMapResponse(msg)
         
     def set_entropy(self, req):
