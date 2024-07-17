@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
-    tf_listener = tf.TransformListener()
+    # tf_listener = tf.TransformListener()
     
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
@@ -130,8 +130,8 @@ if __name__ == "__main__":
         plot_graph(graph_slam.front_end, factor_graph_marker_pub)
         
         M=graph_slam.M.copy() 
-        (trans,rot) = tf_listener.lookupTransform('odom', 'base_footprint', rospy.Time(0))
-        print(trans, rot)
+        odom = ekf.odom_prev
+        M = M@np.linalg.inv(odom)
         br.sendTransform([M[0,3], M[1,3], M[2,3]],
                         tf.transformations.quaternion_from_matrix(M),
                         rospy.Time.now(),
