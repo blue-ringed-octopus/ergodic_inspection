@@ -130,7 +130,7 @@ if __name__ == "__main__":
         plot_graph(graph_slam.front_end, factor_graph_marker_pub)
         
         M=graph_slam.M.copy() 
-        (trans,rot) = tf_listener.lookupTransform('/odom', '/base_footprint', rospy.Time(0))
+        (trans,rot) = tf_listener.lookupTransform('odom', 'base_footprint', rospy.Time(0))
         print(trans, rot)
         br.sendTransform([M[0,3], M[1,3], M[2,3]],
                         tf.transformations.quaternion_from_matrix(M),
