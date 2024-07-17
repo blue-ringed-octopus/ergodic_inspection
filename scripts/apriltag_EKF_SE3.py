@@ -5,26 +5,15 @@ Created on Tue Nov  7 18:40:13 2023
 
 @author: barc
 """
-import rospy 
-import rospkg
-from sensor_msgs.msg import Image, CameraInfo, PointCloud2
-from nav_msgs.msg import Odometry
-from cv_bridge import CvBridge
 import cv2
 from pupil_apriltags import Detector
 import numpy as np
 from numpy.linalg import inv
-import message_filters
-import tf
 import time
-from visualization_msgs.msg import Marker, MarkerArray
-from geometry_msgs.msg import Pose, PoseWithCovarianceStamped 
 np.float = np.float64 
-import ros_numpy
-import threading
-import open3d as o3d 
 from numba import cuda
 from Lie import SE3
+import open3d as o3d
 
 TPB=32
 # @cuda.jit()
@@ -101,42 +90,8 @@ def get_cloud_covariance_par(depth, Q, K_inv, T):
     cov=d_out.copy_to_host()
     return cov
 
-rospack=rospkg.RosPack()
+
 np.set_printoptions(precision=2)
-
-def get_camera_to_robot_tf():
-    listener=tf.TransformListener()
-    listener.waitForTransform('/base_footprint','/camera_rgb_optical_frame',rospy.Time(), rospy.Duration(4.0))
-    (trans, rot) = listener.lookupTransform('/base_footprint', '/camera_rgb_optical_frame', rospy.Time(0))
-    T_c_to_r=listener.fromTranslationRotation(trans, rot)
-    T_r_to_c=np.linalg.inv(T_c_to_r)
-    return T_c_to_r, T_r_to_c
-
-def msg2pc(msg):
-    pc=ros_numpy.numpify(msg)
-    m,n = pc['x'].shape
-    depth = pc['z']
-    x=pc['x'].reshape(-1)
-    points=np.zeros((len(x),3))
-    points[:,0]=x
-    points[:,1]=pc['y'].reshape(-1)
-    points[:,2]=pc['z'].reshape(-1)
-    pc=ros_numpy.point_cloud2.split_rgb_field(pc)
-    img = np.zeros((m,n,3))
-    img[:,:,0] = pc['r']
-    img[:,:,1] = pc['g']
-    img[:,:,2] = pc['b']
-
-
-    rgb=np.zeros((len(x),3))
-    rgb[:,0]=pc['r'].reshape(-1)
-    rgb[:,1]=pc['g'].reshape(-1)
-    rgb[:,2]=pc['b'].reshape(-1)
-    # p=o3d.geometry.PointCloud()
-    # p.points=o3d.utility.Vector3dVector(points)
-    # p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
-    p = {"points": points, "colors": np.asarray(rgb/255)}
-    return p, depth, img.astype('uint8')    
 
 def draw_frame(img, tag, K):
     img=cv2.circle(img, (int(tag["xp"]), int(tag["yp"])), 5, (0, 0, 255), -1)
@@ -151,22 +106,15 @@ def draw_frame(img, tag, K):
 
 
 class EKF:
-    def __init__(self, node_id):
+    def __init__(self, node_id, T_c_to_r, K, odom):
         self.landmarks={}
-        self.bridge = CvBridge()
-
-        T_c_to_r, T_r_to_c = get_camera_to_robot_tf()
 
         self.T_c_to_r=T_c_to_r
-        self.T_r_to_c=T_r_to_c
-        self.lock=threading.Lock()
-        camera_info = self.get_message("/camera/rgb/camera_info", CameraInfo)
-        self.K = np.reshape(camera_info.K, (3,3))
+        self.T_r_to_c=inv(T_c_to_r)
+        self.K = K
         self.K_inv=np.linalg.inv(self.K)
         self.t=time.time()
-        self.marker_pub = rospy.Publisher("/apriltags", Marker, queue_size = 2)
-        self.image_pub = rospy.Publisher("/camera/rgb/rgb_detected", Image, queue_size = 2)
-        
+
         #motion covariance
         self.R=np.eye(6)
         self.R[0,0]=0.01 #x
@@ -194,47 +142,20 @@ class EKF:
                     refine_edges=1,
                     decode_sharpening=0.25,
                     debug=0
-                    )
-     #   odom=rospy.wait_for_message("/robot_pose_ekf/odom_combined",PoseWithCovarianceStamped)
-        odom=rospy.wait_for_message("/odom",Odometry)
-        R=tf.transformations.quaternion_matrix([odom.pose.pose.orientation.x,
-                                                   odom.pose.pose.orientation.y,
-                                                   odom.pose.pose.orientation.z,
-                                                   odom.pose.pose.orientation.w])[0:3,0:3]
-        M=np.eye(4)
-        M[0:3,0:3] = R
-        M[0:3,3]=[odom.pose.pose.position.x,
-                  odom.pose.pose.position.y,
-                  odom.pose.pose.position.z]
+                    )        
+        self.odom_prev = odom   
         
-        self.odom_prev = M    
-        self.reset(node_id)
-
-
-       # rospy.Subscriber("/robot_pose_ekf/odom_combined", PoseWithCovarianceStamped, self.odom_callback)
-        rospy.Subscriber("/odom", Odometry, self.odom_callback)
-        rgbsub=message_filters.Subscriber("/camera/rgb/image_rect_color", Image)
-        depthsub=message_filters.Subscriber("/camera/depth_registered/image_raw", Image)
-
-        ts = message_filters.ApproximateTimeSynchronizer([rgbsub, depthsub], 10, 0.1, allow_headerless=True)
-        ts.registerCallback(self.camera_callback)
-
-        
-    def reset(self, node_id):
+    def reset(self, node_id, pc_info):
         print("reseting EKF")
-        with self.lock:
-            self.get_point_cloud()
-            self.id = node_id
-            self.mu=[np.eye(4)]
-            self.sigma=np.zeros((6,6))
-            self.landmarks={}
-
+        self.id = node_id
+        self.mu=[np.eye(4)]
+        self.sigma=np.zeros((6,6))
+        self.landmarks={}
+        self._process_pointcloud(pc_info)
         print("EKF initialized")
-        
     
-    def get_point_cloud(self):
-        pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
-        cloud, depth, pc_img = msg2pc(pc_msg)
+    def _process_pointcloud(self, pc_info):
+        cloud, depth, pc_img = pc_info
         K_inv = np.ascontiguousarray(self.K_inv.copy())
         T = np.ascontiguousarray(self.T_c_to_r[0:3,0:3].copy()) #world coordinate
         cloud_cov = get_cloud_covariance_par(np.ascontiguousarray(depth),  np.ascontiguousarray(self.Q_img), K_inv, T)
@@ -249,72 +170,11 @@ class EKF:
         cloud["points"]=np.asarray(p.points)
         
         cloud_cov = cloud_cov[indx]
-        features = self.detect_apriltag(pc_img, depth, np.inf)
+        features = self._detect_apriltag(pc_img, depth, np.inf)
         self.cloud = {"pc": cloud,"cov": cloud_cov, "depth": depth, "rgb": pc_img, "features": features ,"cam_param": self.K.copy(), "cam_transform": self.T_c_to_r.copy()}
   
-    # def get_cloud_covariance(self, depth):
-    #     n, m = depth.shape
-    #     T=self.T_c_to_r[0:3,0:3].copy()@inv(self.K.copy())
-    #     J=[T@np.array([[depth[i,j],0,i],
-    #                 [0,depth[i,j],j],
-    #                 [0,0,1]]) for i in range(n) for j in range(m)]
-    
-    #     cov=np.asarray([j@self.Q[0:3,0:3]@j for j in J])
-    #     return cov
         
-    def get_message(self, topic, msgtype):
-        	try:
-        		data=rospy.wait_for_message(topic,msgtype)
-        		return data 
-        	except rospy.ServiceException as e:
-        		print("Service all failed: %s"%e)
-
-    def odom_callback(self, data):
-        with self.lock:
-
-            R=tf.transformations.quaternion_matrix([data.pose.pose.orientation.x,
-                                                        data.pose.pose.orientation.y,
-                                                        data.pose.pose.orientation.z,
-                                                        data.pose.pose.orientation.w])[0:3,0:3]
-
-            odom = np.eye(4)
-            odom[0:3,0:3] = R
-            odom[0:3,3]=[data.pose.pose.position.x,
-                              data.pose.pose.position.y,
-                              data.pose.pose.position.z]
-            
-            Rv = np.eye(6)
-            Rv[0,0] = data.twist.twist.linear.x**2
-            Rv[1,1] = data.twist.twist.linear.y**2
-            Rv[2,2] =  data.twist.twist.linear.z**2 
-            Rv[3,3] =  data.twist.twist.angular.x**2 
-            Rv[4,4] =  data.twist.twist.angular.y**2
-            Rv[5,5] =  data.twist.twist.angular.z**2
-            
-            #get relative transformation
-            U = np.linalg.inv(self.odom_prev)@odom
-            u = SE3.Log(U)
-            
-            #apply transformation
-            mu=self.mu.copy()
-            M_prev=mu[0]
-            M = M_prev@U
-            mu[0] = M
-            
-            F=np.zeros((6,6*len(mu)))
-            F[0:6,0:6]=np.eye(6)
-            
-            
-            Jx= SE3.Ad(inv(U))
-            
-            Jx = F.T@Jx@F
-            Jx[6:,6:]=np.eye(Jx[6:,6:].shape[0])
-            Ju=SE3.Jr(u)
-            self.mu = mu
-            self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@(self.R+self.R@Rv)@(Ju.T)@F
-            self.odom_prev=odom
-        
-    def detect_apriltag(self,rgb, depth, max_depth = 1):
+    def _detect_apriltag(self,rgb, depth, max_depth = 1):
         gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
         result=self.at_detector.detect(gray, estimate_tag_pose=True, tag_size=0.16, 
         				camera_params=[self.K[0,0], self.K[1,1], self.K[0,2], self.K[1,2]])
@@ -337,8 +197,6 @@ class EKF:
                 features[r.tag_id]= {"xp": xp, "yp": yp, "z":z, "M":self.T_c_to_r@M }
         return features
     
-        
-
     def _initialize_new_landmarks(self, landmarks):
         mu=self.mu.copy()       #current point estimates 
         sigma=self.sigma.copy() #current covariance
@@ -408,82 +266,57 @@ class EKF:
             self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
         
         self.sigma=(sigma+sigma.T)/2
-        
-    def camera_callback(self, rgb_msg, depth_msg):
-        with self.lock:
-            rgb = self.bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
-            depth = self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
-            features=self.detect_apriltag(rgb, depth, 2)
-            for feature in features.values():
-                rgb=draw_frame(rgb, feature, self.K)
-            self._initialize_new_landmarks(features)
-            self._correction(features)
-            #self.image_pub.publish(self.bridge.cv2_to_imgmsg(rgb))
-            
-def get_pose_marker(tags, mu):
-    markers=[]
-    for tag_id, idx in tags.items():
-        marker=Marker()
-        M=mu[idx]
-        p=Pose()
-        p.position.x = M[0,3]
-        p.position.y = M[1,3]
-        p.position.z = M[2,3]
-        q=tf.transformations.quaternion_from_matrix(M)
-        p.orientation.x = q[0]
-        p.orientation.y = q[1]
-        p.orientation.z = q[2]
-        p.orientation.w = q[3]
-
     
-        marker = Marker()
-        marker.type = 0
-        marker.id = tag_id
+    def camera_update(self, rgb, depth):    
+        features=self._detect_apriltag(rgb, depth, 2)
+        for feature in features.values():
+            rgb=draw_frame(rgb, feature, self.K)
+        self._initialize_new_landmarks(features)
+        self._correction(features)
+            
+    def motion_update(self, odom, Rv):
+        #get relative transformation
+        U = np.linalg.inv(self.odom_prev)@odom
+        u = SE3.Log(U)
         
-        marker.header.frame_id = "map"
-        marker.header.stamp = rospy.Time.now()
+        #apply transformation
+        mu=self.mu.copy()
+        M_prev=mu[0]
+        M = M_prev@U
+        mu[0] = M
         
-        marker.pose.orientation.x=0
-        marker.pose.orientation.y=0
-        marker.pose.orientation.z=0
-        marker.pose.orientation.w=1
+        F=np.zeros((6,6*len(mu)))
+        F[0:6,0:6]=np.eye(6)
         
         
-        marker.scale.x = 0.5
-        marker.scale.y = 0.05
-        marker.scale.z = 0.05
+        Jx= SE3.Ad(inv(U))
         
-        # Set the color
-        marker.color.r = 1.0
-        marker.color.g = 0.0
-        marker.color.b = 0.0
-        marker.color.a = 1.0
-        
-        marker.pose = p
-        markers.append(marker)
-    markerArray=MarkerArray()
-    markerArray.markers=markers
-    return markerArray
+        Jx = F.T@Jx@F
+        Jx[6:,6:]=np.eye(Jx[6:,6:].shape[0])
+        Ju=SE3.Jr(u)
+        self.mu = mu
+        self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@(self.R+self.R@Rv)@(Ju.T)@F
+        self.odom_prev=odom
 
-if __name__ == "__main__":
-    rospy.init_node('EKF',anonymous=False)
-    pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
-    factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
+# if __name__ == "__main__":
+#     rospy.init_node('EKF',anonymous=False)
+#     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
+#     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
 
-    ekf=EKF(0)
-    br = tf.TransformBroadcaster()
-    rate = rospy.Rate(30) # 10hz
-    while not rospy.is_shutdown():
-        # pc_pub.publish(ekf.cloud)
-        markers=get_pose_marker(ekf.landmarks, ekf.mu)
-        factor_graph_marker_pub.publish(markers)
-        M = ekf.mu[0]
-        M = M@inv(ekf.odom_prev)
-        br.sendTransform((M[0,3], M[1,3] , M[2,3]),
-                        tf.transformations.quaternion_from_matrix(M),
-                        rospy.Time.now(),
-                        "odom",
-                        "map")
+#     ekf=EKF(0)
+#     br = tf.TransformBroadcaster()
+#     rate = rospy.Rate(30) # 10hz
+#     while not rospy.is_shutdown():
+#         # pc_pub.publish(ekf.cloud)
+#         markers=get_pose_marker(ekf.landmarks, ekf.mu)
+#         factor_graph_marker_pub.publish(markers)
+#         M = ekf.mu[0]
+#         M = M@inv(ekf.odom_prev)
+#         br.sendTransform((M[0,3], M[1,3] , M[2,3]),
+#                         tf.transformations.quaternion_from_matrix(M),
+#                         rospy.Time.now(),
+#                         "odom",
+#                         "map")
      
-        print("here")
-        rate.sleep()
+#         print("here")
+#         rate.sleep()
