@@ -122,21 +122,22 @@ if __name__ == "__main__":
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
-        
-
+    tf_listener = tf.TransformListener()
+    
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
         optimized=graph_slam.update()
         plot_graph(graph_slam.front_end, factor_graph_marker_pub)
         
         M=graph_slam.M.copy() 
+        (trans,rot) = tf_listener.lookupTransform('/odom', '/base_footprint', rospy.Time(0))
+        print(trans, rot)
         br.sendTransform([M[0,3], M[1,3], M[2,3]],
                         tf.transformations.quaternion_from_matrix(M),
                         rospy.Time.now(),
-                        "base_footprint",
+                        "odom",
                         "map")
-    
-
+        
         if optimized:
             graph_slam.global_map_assemble()
             node_id  = list(graph_slam.front_end.pose_nodes.keys())[-2]
