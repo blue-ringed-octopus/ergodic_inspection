@@ -40,7 +40,7 @@ class Server:
     
     def get_map_msg(self):
         costmap = self.map_manager.costmap
-        im = costmap['costmap']
+        im = costmap['costmap'].T
         im = (im/255*100).astype(np.int8)
         time = rospy.Time.now()
         h,w = im.shape
