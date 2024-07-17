@@ -168,7 +168,7 @@ if __name__ == "__main__":
     
     ref_pc_pub=rospy.Publisher("/pc_ref", PointCloud2, queue_size = 2)
     cad_pub = rospy.Publisher("/ref", Marker, queue_size = 2)
-    ref_pc_pub=rospy.Publisher("/pc_map", PointCloud2, queue_size = 2)
+    # ref_pc_pub=rospy.Publisher("/pc_map", PointCloud2, queue_size = 2)
     costmap_pub=rospy.Publisher("/map", OccupancyGrid, queue_size = 2)
 
     

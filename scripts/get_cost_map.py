@@ -105,5 +105,5 @@ plt.imshow(cost.T, origin="lower")
 resolution = (max_bound-min_bound)[0:2]
 resolution = resolution/[x_shape, y_shape]
 
-with open('costmap.pickle', 'wb') as handle:
-    pickle.dump({"costmap": cost, "resolution": resolution,"origin": [0,0], "bounds":{"min": min_bound, "max": max_bound} }, handle)
+with open('../resources/costmap.pickle', 'wb') as handle:
+    pickle.dump({"costmap": cost, "resolution": resolution,"origin":voxel_grid.origin, "bounds":{"min": min_bound, "max": max_bound} }, handle)
