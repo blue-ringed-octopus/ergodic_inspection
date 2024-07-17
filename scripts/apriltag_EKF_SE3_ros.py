@@ -154,7 +154,7 @@ class EKF_Wrapper:
         with self.lock:
             rgb = self.bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
             depth = self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
-            self.ekf.camera_update(self, rgb, depth)
+            self.ekf.camera_update(rgb, depth)
             
 def get_pose_marker(tags, mu):
     markers=[]
