@@ -466,7 +466,6 @@ def get_pose_marker(tags, mu):
     return markerArray
 
 if __name__ == "__main__":
-
     rospy.init_node('EKF',anonymous=False)
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
@@ -485,6 +484,6 @@ if __name__ == "__main__":
                         rospy.Time.now(),
                         "odom",
                         "map")
-  
-
+     
+        print("here")
         rate.sleep()
