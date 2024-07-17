@@ -52,8 +52,8 @@ class Server:
         msg.info.resolution = costmap['resolution'][0]
         msg.info.height = h
         msg.info.width = w
-        msg.info.origin.position.x = 0
-        msg.info.origin.position.y = 0 
+        msg.info.origin.position.x = costmap['origin'][0]
+        msg.info.origin.position.y = costmap['origin'][1] 
         msg.info.origin.orientation.w = 1
         
         return msg
