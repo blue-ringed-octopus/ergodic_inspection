@@ -450,7 +450,7 @@ class Graph_SLAM:
                 M=M_node@Z
                 self.front_end.add_node(M,"feature", feature_id)
     
-    def get_current_node_est(self, node_id=-1):
+    def get_node_est(self, node_id=-1):
         if node_id==-1:
             node_id = self.current_node_id
         return self.front_end.pose_nodes[node_id].M.copy()
