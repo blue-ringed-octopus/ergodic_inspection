@@ -24,7 +24,8 @@ np.set_printoptions(precision=2)
 
 
 class EKF_Wrapper:
-    def __init__(self, node_id):
+    def __init__(self, node_id, tf_br):
+        self.tf_br = tf_br
         self.bridge = CvBridge()
 
         T_c_to_r = self.get_camera_to_robot_tf()
@@ -131,7 +132,15 @@ class EKF_Wrapper:
             Rv[4,4] =  data.twist.twist.angular.y**2
             Rv[5,5] =  data.twist.twist.angular.z**2
             self.ekf.motion_update(odom, Rv)
-               
+            
+            M = self.ekf.mu[0]
+            M = M@inv(self.ekf.odom_prev)
+            self.tf_br.sendTransform((M[0,3], M[1,3] , M[2,3]),
+                            tf.transformations.quaternion_from_matrix(M),
+                            rospy.Time.now(),
+                            "odom",
+                            "ekf")
+            
     def camera_callback(self, rgb_msg, depth_msg):
         with self.lock:
             rgb = self.bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
@@ -188,20 +197,20 @@ if __name__ == "__main__":
     rospy.init_node('EKF',anonymous=False)
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
-
-    wrapper = EKF_Wrapper(0)
     br = tf.TransformBroadcaster()
+
+    wrapper = EKF_Wrapper(0, br)
     rate = rospy.Rate(30) # 10hz
     while not rospy.is_shutdown():
         # pc_pub.publish(ekf.cloud)
         markers=get_pose_marker(wrapper.ekf.landmarks, wrapper.ekf.mu)
         factor_graph_marker_pub.publish(markers)
-        M = wrapper.ekf.mu[0]
-        M = M@inv(wrapper.ekf.odom_prev)
-        br.sendTransform((M[0,3], M[1,3] , M[2,3]),
-                        tf.transformations.quaternion_from_matrix(M),
+        # M = wrapper.ekf.mu[0]
+        # M = M@inv(wrapper.ekf.odom_prev)
+        br.sendTransform((0,0 , 0),
+                        tf.transformations.quaternion_from_matrix(np.eye(4)),
                         rospy.Time.now(),
-                        "odom",
+                        "ekf",
                         "map")
      
         print("here")
