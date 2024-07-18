@@ -204,7 +204,7 @@ def initialize_graph_slam(ekf, localize_mode  = False):
     M_feature = ekf.mu[ekf.landmarks[feature_id]]
     M_prior = prior["children"][feature_id]
     M_init = M_prior@np.linalg.inv(M_feature)
-    graph_slam=Graph_SLAM(M_init, ekf, localize_mode)
+    graph_slam=Graph_SLAM(M_init, localize_mode)
     for id_, M_prior in prior["children"].items():
         graph_slam.front_end.add_node(M_prior,"feature", id_)
         
