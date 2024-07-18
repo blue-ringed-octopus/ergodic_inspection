@@ -13,7 +13,7 @@ from geometry_msgs.msg import Point, Pose
 from visualization_msgs.msg import Marker, MarkerArray
 import ros_numpy
 import numpy as np
-from hierarchical_SLAM_SE3 import Graph_SLAM
+from graph_SLAM_SE3 import Graph_SLAM
 from Lie import SE3, SO3
 import yaml
 import rospkg
