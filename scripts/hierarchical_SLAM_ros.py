@@ -246,7 +246,7 @@ if __name__ == "__main__":
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
-    ekf_wrapper=apriltag_EKF_ros.EKF_Wrapper(0)
+    ekf_wrapper=apriltag_EKF_ros.EKF_Wrapper(0, br)
     
     graph_slam = initialize_graph_slam(ekf_wrapper.ekf, localization_mode)
     
