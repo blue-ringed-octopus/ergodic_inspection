@@ -272,12 +272,11 @@ if __name__ == "__main__":
             
         plot_graph(graph_slam.front_end, factor_graph_marker_pub)
         
-        M=graph_slam.M.copy() 
-        M = M@np.linalg.inv(ekf_wrapper.ekf.odom_prev)
+        M = graph_slam.get_node_est()
         br.sendTransform([M[0,3], M[1,3], M[2,3]],
                         tf.transformations.quaternion_from_matrix(M),
                         rospy.Time.now(),
-                        "odom",
+                        "ekf",
                         "map")
     
             
