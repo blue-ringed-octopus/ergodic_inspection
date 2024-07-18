@@ -259,7 +259,7 @@ if __name__ == "__main__":
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
         posterior = ekf_wrapper.ekf.get_posterior()
-        M_r = graph_slam.update()
+        M_r = graph_slam.update(posterior)
         delta = np.linalg.norm(SE3.Log(posterior["mu"][0]))
                 
         if delta >= thres:
