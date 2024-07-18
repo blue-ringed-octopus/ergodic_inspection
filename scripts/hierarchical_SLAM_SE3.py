@@ -374,12 +374,11 @@ class Graph_SLAM:
             #     pickle.dump(graph_test, handle)
             return H
             
-    def __init__(self, M_init, ekf, localize_mode = False):
+    def __init__(self, M_init, localize_mode = False):
         self.localize_mode = localize_mode
         self.global_map=None
         self.optimized = False
         self.M=M_init.copy()
-        self.ekf=ekf
         self.reset()
 
     def reset(self):
@@ -391,12 +390,14 @@ class Graph_SLAM:
         
         # self.costmap=self.anomaly_detector.costmap
     
-    def _posterior_to_factor(self, mu, sigma):
-        self.front_end.pose_nodes[self.current_node_id].local_map=deepcopy(self.ekf.cloud)
+    def _posterior_to_factor(self, posterior, local_cloud):
+        mu = posterior["mu"]
+        sigma = posterior["sigma"]
+        idx_map = posterior["features"]
+
+        self.front_end.pose_nodes[self.current_node_id].local_map=local_cloud
         new_node_id=self.front_end.add_node(self.M.copy(),"pose")
 
-        
-        idx_map=self.ekf.landmarks.copy()
         feature_node_id = idx_map.keys()
         z= np.zeros(6*len(mu))
         J = np.zeros((6*len(mu), 6*len(mu)))
@@ -408,11 +409,6 @@ class Graph_SLAM:
         self.front_end.add_factor(self.current_node_id,new_node_id,feature_node_id, z,sigma, idx_map)
         self.current_node_id=new_node_id      
 
-        
-        
-    def occupancy_map(self, pointcloud):
-        return 
-    
     def global_map_assemble(self):
         points=[]
         colors=[]
@@ -441,52 +437,35 @@ class Graph_SLAM:
     
             self.global_map = np2pc(points, colors)
             self.global_map = self.global_map.voxel_down_sample(0.05)
-        
-    def update_costmap(self):
-        # image = cv2.flip(cv2.imread("map_actual.png"),0)
-        # w=int(image.shape[1]*10)
-        # h=int(image.shape[0]*10)
-        # image= cv2.resize(image, (w,h), interpolation=cv2.INTER_NEAREST)
-        # robot_radius=self.robot.radius * 10
-        # inflation_radius= 99999999999999999
-        # cost_scaling_factor = 0.00001
-        # self.costmap.make_cost_map(image,robot_radius, inflation_radius,cost_scaling_factor, self.robot.world.bound)
-        # cv2.imshow('test', cv2.flip(self.costmap.cost, 0))
-        # cv2.waitKey()
-        # cv2.destroyAllWindows()
+            
+        return self.global_map
+    
+    def update_costmap(self, costmap):
         pass 
     
-    def init_new_features(self, mu, Mr, features):
+    def init_new_features(self, M_node, mu, features):
         for feature_id, idx in features.items():
             if not feature_id in self.front_end.feature_nodes.keys():
                 Z=mu[idx]
-                M=Mr@Z
+                M=M_node@Z
                 self.front_end.add_node(M,"feature", feature_id)
     
-    def update(self): 
+    def update(self, posterior): 
         if self.optimized:
             self.optimized=False
             
-        mu=self.ekf.mu.copy()
-        sigma=self.ekf.sigma.copy()
-        features = self.ekf.landmarks.copy()
-        M=self.front_end.pose_nodes[self.current_node_id].M.copy()
-        U=mu[0]
-        
-        pose_global = M@U
-        self.M = pose_global
-        self.init_new_features(mu, M, features)
-        delta=norm(SE3.Log(mu[0]))
-        if delta>=1.5:
-            self._posterior_to_factor(mu, sigma)
-            self.ekf.reset(self.current_node_id)
-            H=self.back_end.optimize(self.front_end, self.localize_mode)
-            with open('graph.pickle', 'wb') as handle:
-                pickle.dump(self.front_end, handle)
-            self.omega=H
-            # self.global_map_assemble()
-            self.optimized=True
-            self.front_end.prune(10, self.localize_mode)
-
-        return self.optimized
-
+        M = self.front_end.pose_nodes[self.current_node_id].M.copy()
+        U = posterior["mu"][0]        
+        self.M = M@U
+        self.init_new_features(M, posterior["mu"], posterior["features"])        
+        return self.M.copy()
+    
+    def place_node(self, posterior, local_cloud):
+        self._posterior_to_factor(posterior, local_cloud)
+        H = self.back_end.optimize(self.front_end, self.localize_mode)
+        with open('graph.pickle', 'wb') as handle:
+            pickle.dump(self.front_end, handle)
+        self.omega = H
+        # self.global_map_assemble()
+        self.optimized = True
+        self.front_end.prune(10, self.localize_mode)

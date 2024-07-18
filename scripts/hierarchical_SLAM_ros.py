@@ -241,13 +241,14 @@ def read_prior():
     return prior
 
 if __name__ == "__main__":
+    thres = 1.5
     localization_mode = True
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
-    ekf=apriltag_EKF_ros.EKF_Wrapper(0)
+    ekf_wrapper=apriltag_EKF_ros.EKF_Wrapper(0)
     
-    graph_slam = initialize_graph_slam(ekf, localization_mode)
+    graph_slam = initialize_graph_slam(ekf_wrapper.ekf, localization_mode)
     
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     
@@ -257,19 +258,27 @@ if __name__ == "__main__":
 
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
-        optimized=graph_slam.update()
-    
+        posterior = ekf_wrapper.ekf.get_posterior()
+        M_r = graph_slam.update()
+        delta = np.linalg.norm(SE3.Log(posterior["mu"][0]))
+                
+        if delta >= thres:
+            cloud = ekf_wrapper.ekf.cloud.copy()
+            ekf_wrapper.reset(graph_slam.current_node_id)
+            graph_slam.place_node(posterior, cloud)
+            global_map = graph_slam.global_map_assemble()
+            pc_msg=pc_to_msg(global_map)
+            pc_pub.publish(pc_msg)
+            
         plot_graph(graph_slam.front_end, factor_graph_marker_pub)
         
         M=graph_slam.M.copy() 
+        M = M@np.linalg.inv(ekf_wrapper.ekf.odom_prev)
         br.sendTransform([M[0,3], M[1,3], M[2,3]],
                         tf.transformations.quaternion_from_matrix(M),
                         rospy.Time.now(),
-                        "base_footprint",
+                        "odom",
                         "map")
     
-        if optimized:
-            graph_slam.global_map_assemble()
-            pc_msg=pc_to_msg(graph_slam.global_map)
-            pc_pub.publish(pc_msg)
+            
         rate.sleep()

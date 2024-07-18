@@ -296,6 +296,10 @@ class EKF:
         self.mu = mu
         self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@(self.R+self.R@Rv)@(Ju.T)@F
         self.odom_prev=odom
-
+        
+    def get_posterior(self):
+        pos = {"mu":  self.mu.copy(), "sigma":self.sigma.copy(),  "features": self.landmarks.copy()}
+        return pos 
+    
 # if __name__ == "__main__":
 
