@@ -108,8 +108,8 @@ if __name__ == "__main__":
     msg = get_reference(-1)
     reference_cloud = msg_2_pc(msg.ref)
     
-    thres = 0.02
-   
+    anomaly_thres = 0.02
+    graph_thres = 1.5
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
     box.max_bound = bound
 
-    detector = Anomaly_Detector(reference_cloud, box,0.02)
+    detector = Anomaly_Detector(reference_cloud, box,anomaly_thres)
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
@@ -132,7 +132,7 @@ if __name__ == "__main__":
         M_r = graph_slam.update(posterior)
         delta = np.linalg.norm(SE3.Log(posterior["mu"][0]))
                 
-        if delta >= thres:
+        if delta >= graph_thres:
             cloud = ekf_wrapper.ekf.cloud.copy()
             ekf_wrapper.reset(graph_slam.current_node_id)
             graph_slam.place_node(posterior, cloud)
