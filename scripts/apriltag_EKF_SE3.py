@@ -10,7 +10,6 @@ from pupil_apriltags import Detector
 import numpy as np
 from numpy.linalg import inv
 import time
-np.float = np.float64 
 from numba import cuda
 from Lie import SE3
 import open3d as o3d
@@ -299,24 +298,4 @@ class EKF:
         self.odom_prev=odom
 
 # if __name__ == "__main__":
-#     rospy.init_node('EKF',anonymous=False)
-#     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
-#     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
 
-#     ekf=EKF(0)
-#     br = tf.TransformBroadcaster()
-#     rate = rospy.Rate(30) # 10hz
-#     while not rospy.is_shutdown():
-#         # pc_pub.publish(ekf.cloud)
-#         markers=get_pose_marker(ekf.landmarks, ekf.mu)
-#         factor_graph_marker_pub.publish(markers)
-#         M = ekf.mu[0]
-#         M = M@inv(ekf.odom_prev)
-#         br.sendTransform((M[0,3], M[1,3] , M[2,3]),
-#                         tf.transformations.quaternion_from_matrix(M),
-#                         rospy.Time.now(),
-#                         "odom",
-#                         "map")
-     
-#         print("here")
-#         rate.sleep()

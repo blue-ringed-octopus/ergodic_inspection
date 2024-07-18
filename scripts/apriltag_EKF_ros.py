@@ -10,7 +10,6 @@ import rospkg
 from sensor_msgs.msg import Image, CameraInfo, PointCloud2
 from nav_msgs.msg import Odometry
 from cv_bridge import CvBridge
-import cv2
 import numpy as np
 from numpy.linalg import inv
 import message_filters
@@ -21,61 +20,14 @@ np.float = np.float64
 import ros_numpy
 import threading
 from apriltag_EKF_SE3 import EKF
-
-
-rospack=rospkg.RosPack()
 np.set_printoptions(precision=2)
-
-def get_camera_to_robot_tf():
-    listener=tf.TransformListener()
-    listener.waitForTransform('/base_footprint','/camera_rgb_optical_frame',rospy.Time(), rospy.Duration(4.0))
-    (trans, rot) = listener.lookupTransform('/base_footprint', '/camera_rgb_optical_frame', rospy.Time(0))
-    T_c_to_r=listener.fromTranslationRotation(trans, rot)
-    return T_c_to_r
-
-def msg2pc(msg):
-    pc=ros_numpy.numpify(msg)
-    m,n = pc['x'].shape
-    depth = pc['z']
-    x=pc['x'].reshape(-1)
-    points=np.zeros((len(x),3))
-    points[:,0]=x
-    points[:,1]=pc['y'].reshape(-1)
-    points[:,2]=pc['z'].reshape(-1)
-    pc=ros_numpy.point_cloud2.split_rgb_field(pc)
-    img = np.zeros((m,n,3))
-    img[:,:,0] = pc['r']
-    img[:,:,1] = pc['g']
-    img[:,:,2] = pc['b']
-
-
-    rgb=np.zeros((len(x),3))
-    rgb[:,0]=pc['r'].reshape(-1)
-    rgb[:,1]=pc['g'].reshape(-1)
-    rgb[:,2]=pc['b'].reshape(-1)
-    # p=o3d.geometry.PointCloud()
-    # p.points=o3d.utility.Vector3dVector(points)
-    # p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
-    p = {"points": points, "colors": np.asarray(rgb/255)}
-    return p, depth, img.astype('uint8')    
-
-def draw_frame(img, tag, K):
-    img=cv2.circle(img, (int(tag["xp"]), int(tag["yp"])), 5, (0, 0, 255), -1)
-    M=tag["M"].copy()
-    
-    x_axis=K@M[0:3,:]@np.array([0.06,0,0,1])
-    x_axis=x_axis/(x_axis[2])
-    
-    img=cv2.arrowedLine(img, (int(tag["xp"]), int(tag["yp"])), (int(x_axis[0]), int(x_axis[1])), 
-                                     (0,0,255), 5)  
-    return img
 
 
 class EKF_Wrapper:
     def __init__(self, node_id):
         self.bridge = CvBridge()
 
-        T_c_to_r = get_camera_to_robot_tf()
+        T_c_to_r = self.get_camera_to_robot_tf()
         self.lock=threading.Lock()
         camera_info = self.get_message("/camera/rgb/camera_info", CameraInfo)
         K = np.reshape(camera_info.K, (3,3))
@@ -107,7 +59,13 @@ class EKF_Wrapper:
         ts = message_filters.ApproximateTimeSynchronizer([rgbsub, depthsub], 10, 0.1, allow_headerless=True)
         ts.registerCallback(self.camera_callback)
 
-        
+    def get_camera_to_robot_tf(self):
+        listener=tf.TransformListener()
+        listener.waitForTransform('/base_footprint','/camera_rgb_optical_frame',rospy.Time(), rospy.Duration(4.0))
+        (trans, rot) = listener.lookupTransform('/base_footprint', '/camera_rgb_optical_frame', rospy.Time(0))
+        T_c_to_r=listener.fromTranslationRotation(trans, rot)
+        return T_c_to_r
+    
     def reset(self, node_id):
         print("reseting EKF")
         with self.lock:
@@ -118,8 +76,32 @@ class EKF_Wrapper:
     
     def get_point_cloud(self):
         pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
-        pc_info = msg2pc(pc_msg)
+        pc_info = self.msg2pc(pc_msg)
         return pc_info
+    
+    def msg2pc(self, msg):
+        pc=ros_numpy.numpify(msg)
+        m,n = pc['x'].shape
+        depth = pc['z']
+        x=pc['x'].reshape(-1)
+        points=np.zeros((len(x),3))
+        points[:,0]=x
+        points[:,1]=pc['y'].reshape(-1)
+        points[:,2]=pc['z'].reshape(-1)
+        pc=ros_numpy.point_cloud2.split_rgb_field(pc)
+        img = np.zeros((m,n,3))
+        img[:,:,0] = pc['r']
+        img[:,:,1] = pc['g']
+        img[:,:,2] = pc['b']
+
+
+        rgb=np.zeros((len(x),3))
+        rgb[:,0]=pc['r'].reshape(-1)
+        rgb[:,1]=pc['g'].reshape(-1)
+        rgb[:,2]=pc['b'].reshape(-1)
+
+        p = {"points": points, "colors": np.asarray(rgb/255)}
+        return p, depth, img.astype('uint8')    
     
     def get_message(self, topic, msgtype):
         	try:
@@ -202,6 +184,7 @@ def get_pose_marker(tags, mu):
     return markerArray
 
 if __name__ == "__main__":
+    rospack=rospkg.RosPack()
     rospy.init_node('EKF',anonymous=False)
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)

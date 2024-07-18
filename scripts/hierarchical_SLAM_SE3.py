@@ -9,12 +9,10 @@ Created on Tue Nov 21 15:41:45 2023
 import numpy as np
 
 from common_functions import np2pc
-from scipy.linalg import solve_triangular
-from scipy.spatial import KDTree
-from numpy import sin, cos, arctan2
+# from scipy.linalg import solve_triangular
 from numpy.linalg import inv, norm, lstsq
 from copy import deepcopy
-from Lie import SE3, SO3
+from Lie import SE3
 import open3d as o3d
 import pickle
 

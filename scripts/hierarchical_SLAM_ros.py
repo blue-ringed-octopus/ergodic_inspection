@@ -8,7 +8,7 @@ Created on Sun Mar 31 15:27:33 2024
 import rospy
 from sensor_msgs.msg import PointCloud2
 import tf
-import apriltag_EKF_SE3
+import apriltag_EKF_ros
 from geometry_msgs.msg import Point, Pose
 from visualization_msgs.msg import Marker, MarkerArray
 import ros_numpy
@@ -245,7 +245,7 @@ if __name__ == "__main__":
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
-    ekf=apriltag_EKF_SE3.EKF(0)
+    ekf=apriltag_EKF_ros.EKF_Wrapper(0)
     
     graph_slam = initialize_graph_slam(ekf, localization_mode)
     
