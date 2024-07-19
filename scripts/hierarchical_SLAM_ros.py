@@ -25,7 +25,9 @@ rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
 
 class Graph_SLAM_wrapper:
-    def __init__(self, ekf, localize_mode  = False):
+    def __init__(self, ekf_wrapper, localize_mode  = False):
+        self.ekf_wrapper = ekf_wrapper
+        ekf = ekf_wrapper.ekf
         self.thres = 1.5
         #prior_feature 
         prior = read_prior()
@@ -45,13 +47,14 @@ class Graph_SLAM_wrapper:
             graph_slam.front_end.add_prior_factor([], list(prior["children"].keys()),prior['z'], prior["cov"] , {} , {"features": prior["idx_map"]})
         self.graph_slam=graph_slam
         
-    def update(self, ekf_wrapper):
-        posterior = ekf_wrapper.ekf.get_posterior()         
+    def update(self):
+        
+        posterior = self.ekf_wrapper.ekf.get_posterior()         
         _ = self.graph_slam.update(posterior)
         delta = np.linalg.norm(SE3.Log(posterior["mu"][0]))
         if delta >= self.thres:
-            cloud = ekf_wrapper.ekf.cloud.copy()
-            ekf_wrapper.reset(self.graph_slam.current_node_id)
+            cloud = self.ekf_wrapper.ekf.cloud.copy()
+            self.ekf_wrapper.reset(self.graph_slam.current_node_id)
             self.graph_slam.place_node(posterior, cloud)
             global_map = self.graph_slam.global_map_assemble()
             pc_msg=pc_to_msg(global_map)
@@ -270,7 +273,7 @@ if __name__ == "__main__":
     rospy.init_node('estimator',anonymous=False)
     
     ekf_wrapper=EKF_Wrapper(0, br)
-    graph_slam_wrapper = Graph_SLAM_wrapper(ekf_wrapper.ekf, localization_mode)
+    graph_slam_wrapper = Graph_SLAM_wrapper(ekf_wrapper, localization_mode)
 
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     
