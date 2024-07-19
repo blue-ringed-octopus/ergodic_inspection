@@ -27,6 +27,7 @@ path = rospack.get_path("ergodic_inspection")
 
 class Graph_SLAM_wrapper:
     def __init__(self, ekf_wrapper, tf_br, localize_mode  = False):
+        self.tf_br = tf_br
         self.ekf_wrapper = ekf_wrapper
         self.factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
         self.pc_pub = rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
