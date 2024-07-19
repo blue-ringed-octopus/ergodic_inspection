@@ -7,6 +7,7 @@ Created on Tue Nov  7 18:40:13 2023
 """
 import rospy 
 import rospkg
+import yaml
 from sensor_msgs.msg import Image, CameraInfo, PointCloud2
 from nav_msgs.msg import Odometry
 from cv_bridge import CvBridge
@@ -22,6 +23,11 @@ import threading
 from apriltag_EKF_SE3 import EKF
 np.set_printoptions(precision=2)
 
+rospack=rospkg.RosPack()
+path = rospack.get_path("ergodic_inspection")
+
+with open(path+'param/estimation_param.yaml', 'r') as file:
+    params = yaml.safe_load(file)
 
 class EKF_Wrapper:
     def __init__(self, node_id, tf_br):
@@ -30,13 +36,13 @@ class EKF_Wrapper:
 
         T_c_to_r = self.get_camera_to_robot_tf()
         self.lock=threading.Lock()
-        camera_info = self.get_message("/camera/rgb/camera_info", CameraInfo)
+        camera_info = self.get_message(params["EKF"]["camera_info"], CameraInfo)
         K = np.reshape(camera_info.K, (3,3))
-        self.marker_pub = rospy.Publisher("/apriltags", Marker, queue_size = 2)
-        self.image_pub = rospy.Publisher("/camera/rgb/rgb_detected", Image, queue_size = 2)
+        self.marker_pub = rospy.Publisher(params["EKF"]["apriltag_marker_topic"], Marker, queue_size = 2)
+        self.image_pub = rospy.Publisher(params["EKF"]["rgb_detected"], Image, queue_size = 2)
         
        
-        odom=rospy.wait_for_message("/odom",Odometry)
+        odom=rospy.wait_for_message(params["EKF"]["odom_topic"],Odometry)
         R=tf.transformations.quaternion_matrix([odom.pose.pose.orientation.x,
                                                    odom.pose.pose.orientation.y,
                                                    odom.pose.pose.orientation.z,
@@ -53,17 +59,17 @@ class EKF_Wrapper:
 
 
        # rospy.Subscriber("/robot_pose_ekf/odom_combined", PoseWithCovarianceStamped, self.odom_callback)
-        rospy.Subscriber("/odom", Odometry, self.odom_callback)
-        rgbsub=message_filters.Subscriber("/camera/rgb/image_rect_color", Image)
-        depthsub=message_filters.Subscriber("/camera/depth_registered/image_raw", Image)
+        rospy.Subscriber(params["EKF"]["odom_topic"], Odometry, self.odom_callback)
+        rgbsub=message_filters.Subscriber(params["EKF"]["rgb_topic"], Image)
+        depthsub=message_filters.Subscriber(params["EKF"]["depth_aligned_topic"], Image)
 
         ts = message_filters.ApproximateTimeSynchronizer([rgbsub, depthsub], 10, 0.1, allow_headerless=True)
         ts.registerCallback(self.camera_callback)
 
     def get_camera_to_robot_tf(self):
         listener=tf.TransformListener()
-        listener.waitForTransform('/base_footprint','/camera_rgb_optical_frame',rospy.Time(), rospy.Duration(4.0))
-        (trans, rot) = listener.lookupTransform('/base_footprint', '/camera_rgb_optical_frame', rospy.Time(0))
+        listener.waitForTransform(params["EKF"]["robot_frame"],params["EKF"]["optical_frame"],rospy.Time(), rospy.Duration(4.0))
+        (trans, rot) = listener.lookupTransform(params["EKF"]["robot_frame"], params["EKF"]["optical_frame"], rospy.Time(0))
         T_c_to_r=listener.fromTranslationRotation(trans, rot)
         return T_c_to_r
     
@@ -76,7 +82,7 @@ class EKF_Wrapper:
         print("EKF initialized") 
     
     def get_point_cloud(self):
-        pc_msg=rospy.wait_for_message("/depth_registered/points",PointCloud2)
+        pc_msg=rospy.wait_for_message(params["EKF"]["depth_pointcloud_topic"],PointCloud2)
         pc_info = self.msg2pc(pc_msg)
         return pc_info
     
@@ -205,8 +211,6 @@ if __name__ == "__main__":
         # pc_pub.publish(ekf.cloud)
         markers=get_pose_marker(wrapper.ekf.landmarks, wrapper.ekf.mu)
         factor_graph_marker_pub.publish(markers)
-        # M = wrapper.ekf.mu[0]
-        # M = M@inv(wrapper.ekf.odom_prev)
         br.sendTransform((0,0 , 0),
                         tf.transformations.quaternion_from_matrix(np.eye(4)),
                         rospy.Time.now(),

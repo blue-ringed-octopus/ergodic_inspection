@@ -22,6 +22,7 @@ from scipy.spatial.transform import Rotation as Rot
 np.float = np.float64 
 np.set_printoptions(precision=2)
 rospack=rospkg.RosPack()
+path = rospack.get_path("ergodic_inspection")
 
 def pc_to_msg(pc):
     points=np.asarray(pc.points)
@@ -215,7 +216,6 @@ def initialize_graph_slam(ekf, localize_mode  = False):
 
 def read_prior():
     prior={}
-    path = rospack.get_path("ergodic_inspection")
     file = path + "/resources/prior_features.yaml"
     with open(file) as stream:
         try:
