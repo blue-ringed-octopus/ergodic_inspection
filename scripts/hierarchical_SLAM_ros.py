@@ -14,7 +14,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 import ros_numpy
 import numpy as np
 from graph_SLAM_SE3 import Graph_SLAM
-from Lie import SE3, SO3
+from Lie import SE3
 import yaml
 import rospkg
 from scipy.spatial.transform import Rotation as Rot
@@ -24,6 +24,47 @@ np.set_printoptions(precision=2)
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
 
+class Graph_SLAM_wrapper:
+    def __init__(self, ekf, localize_mode  = False):
+        self.thres = 1.5
+        #prior_feature 
+        prior = read_prior()
+        intersection = [id_  for id_ in ekf.landmarks.keys() if id_ in prior["children"]]
+        while not len(intersection) and not rospy.is_shutdown():
+            intersection = [id_  for id_ in ekf.landmarks.keys() if id_ in prior["children"]]
+        
+        feature_id = intersection[0]
+        M_feature = ekf.mu[ekf.landmarks[feature_id]]
+        M_prior = prior["children"][feature_id]
+        M_init = M_prior@np.linalg.inv(M_feature)
+        graph_slam=Graph_SLAM(M_init, localize_mode)
+        for id_, M_prior in prior["children"].items():
+            graph_slam.front_end.add_node(M_prior,"feature", id_)
+            
+        if not localize_mode:
+            graph_slam.front_end.add_prior_factor([], list(prior["children"].keys()),prior['z'], prior["cov"] , {} , {"features": prior["idx_map"]})
+        self.graph_slam=graph_slam
+        
+    def update(self, ekf_wrapper):
+        posterior = ekf_wrapper.ekf.get_posterior()         
+        _ = self.graph_slam.update(posterior)
+        delta = np.linalg.norm(SE3.Log(posterior["mu"][0]))
+        if delta >= self.thres:
+            cloud = ekf_wrapper.ekf.cloud.copy()
+            ekf_wrapper.reset(self.graph_slam.current_node_id)
+            self.graph_slam.place_node(posterior, cloud)
+            global_map = self.graph_slam.global_map_assemble()
+            pc_msg=pc_to_msg(global_map)
+            pc_pub.publish(pc_msg)
+            
+        plot_graph(self.graph_slam.front_end, factor_graph_marker_pub)
+        
+        M = self.graph_slam.get_node_est()
+        br.sendTransform([M[0,3], M[1,3], M[2,3]],
+                        tf.transformations.quaternion_from_matrix(M),
+                        rospy.Time.now(),
+                        "ekf",
+                        "map")               
 def pc_to_msg(pc):
     points=np.asarray(pc.points)
     colors=np.asarray(pc.colors)
@@ -194,25 +235,7 @@ def plot_graph(graph, pub):
     markerArray.markers=markers
     pub.publish(markerArray)
     
-def initialize_graph_slam(ekf, localize_mode  = False):
-    #prior_feature 
-    prior = read_prior()
-    intersection = [id_  for id_ in ekf.landmarks.keys() if id_ in prior["children"]]
-    while not len(intersection) and not rospy.is_shutdown():
-        intersection = [id_  for id_ in ekf.landmarks.keys() if id_ in prior["children"]]
     
-    feature_id = intersection[0]
-    M_feature = ekf.mu[ekf.landmarks[feature_id]]
-    M_prior = prior["children"][feature_id]
-    M_init = M_prior@np.linalg.inv(M_feature)
-    graph_slam=Graph_SLAM(M_init, localize_mode)
-    for id_, M_prior in prior["children"].items():
-        graph_slam.front_end.add_node(M_prior,"feature", id_)
-        
-    if not localize_mode:
-        graph_slam.front_end.add_prior_factor([], list(prior["children"].keys()),prior['z'], prior["cov"] , {} , {"features": prior["idx_map"]})
-
-    return graph_slam
 
 def read_prior():
     prior={}
@@ -241,43 +264,19 @@ def read_prior():
     return prior
 
 if __name__ == "__main__":
-    thres = 1.5
+   
     localization_mode = True
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
     ekf_wrapper=EKF_Wrapper(0, br)
-    
-    graph_slam = initialize_graph_slam(ekf_wrapper.ekf, localization_mode)
-    
+    graph_slam_wrapper = Graph_SLAM_wrapper(ekf_wrapper.ekf, localization_mode)
+
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
-    
-   
     
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
 
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
-        posterior = ekf_wrapper.ekf.get_posterior()
-        M_r = graph_slam.update(posterior)
-        delta = np.linalg.norm(SE3.Log(posterior["mu"][0]))
-                
-        if delta >= thres:
-            cloud = ekf_wrapper.ekf.cloud.copy()
-            ekf_wrapper.reset(graph_slam.current_node_id)
-            graph_slam.place_node(posterior, cloud)
-            global_map = graph_slam.global_map_assemble()
-            pc_msg=pc_to_msg(global_map)
-            pc_pub.publish(pc_msg)
-            
-        plot_graph(graph_slam.front_end, factor_graph_marker_pub)
-        
-        M = graph_slam.get_node_est()
-        br.sendTransform([M[0,3], M[1,3], M[2,3]],
-                        tf.transformations.quaternion_from_matrix(M),
-                        rospy.Time.now(),
-                        "ekf",
-                        "map")
-    
-            
+        graph_slam_wrapper.update()           
         rate.sleep()

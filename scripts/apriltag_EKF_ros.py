@@ -216,6 +216,4 @@ if __name__ == "__main__":
                         rospy.Time.now(),
                         "ekf",
                         "map")
-     
-        print("here")
         rate.sleep()
