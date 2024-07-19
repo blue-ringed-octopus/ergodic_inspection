@@ -64,6 +64,7 @@ add_message_files(
     PointCloudWithEntropy.srv
     SetBelief.srv
     GetGraphStructure.srv
+    PlaceNode.srv
  )
 
 ## Generate actions in the 'action' folder

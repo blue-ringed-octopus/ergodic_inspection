@@ -15,7 +15,7 @@ import rospkg
 from visualization_msgs.msg import Marker, MarkerArray
 import ros_numpy
 from sensor_msgs.msg import PointCloud2
-from hierarchical_SLAM_ros import plot_graph, pc_to_msg, initialize_graph_slam
+from hierarchical_SLAM_ros import Graph_SLAM_wrapper
 from anomaly_detector import Anomaly_Detector
 from apriltag_EKF_ros import EKF_Wrapper
 import tf
@@ -109,56 +109,36 @@ if __name__ == "__main__":
     reference_cloud = msg_2_pc(msg.ref)
     
     anomaly_thres = 0.02
-    graph_thres = 1.5
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
     ekf_wrapper=EKF_Wrapper(0, br)
-    graph_slam = initialize_graph_slam(ekf_wrapper.ekf, localization_mode)
+    graph_slam_wrapper = Graph_SLAM_wrapper(ekf_wrapper, br, localization_mode)
     box = reference_cloud.get_axis_aligned_bounding_box()
     bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
     box.max_bound = bound
 
     detector = Anomaly_Detector(reference_cloud, box,anomaly_thres)
 
-    factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
-    pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
+    # factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
+    # pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
     # tf_listener = tf.TransformListener()
     
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
-        posterior = ekf_wrapper.ekf.get_posterior()
-        M_r = graph_slam.update(posterior)
-        delta = np.linalg.norm(SE3.Log(posterior["mu"][0]))
+        placed_node = graph_slam_wrapper.update()    
+        
+        if placed_node:            
+            node_id  = list(graph_slam_wrapper.graph_slam.front_end.pose_nodes.keys())[-2]
                 
-        if delta >= graph_thres:
-            cloud = ekf_wrapper.ekf.cloud.copy()
-            ekf_wrapper.reset(graph_slam.current_node_id)
-            graph_slam.place_node(posterior, cloud)
-            global_map = graph_slam.global_map_assemble()
-            pc_msg=pc_to_msg(global_map)
-            pc_pub.publish(pc_msg)
-            node_id  = list(graph_slam.front_end.pose_nodes.keys())[-2]
-            
-            pc, ref = detector.detect(graph_slam.front_end.pose_nodes[node_id], graph_slam.front_end.feature_nodes)
+            pc, ref = detector.detect(graph_slam_wrapper.graph_slam.front_end.pose_nodes[node_id], graph_slam_wrapper.graph_slam.front_end.feature_nodes)
             msg = Float32MultiArray()
             msg.data = detector.p_anomaly 
             try:
                 set_h(msg)
             except:
                 print("failed to send entropy")
-            pc_msg=pc_to_msg(graph_slam.global_map)
-            pc_pub.publish(pc_msg)
-            
-        plot_graph(graph_slam.front_end, factor_graph_marker_pub)
-        
-        M = graph_slam.get_node_est()
-        br.sendTransform([M[0,3], M[1,3], M[2,3]],
-                        tf.transformations.quaternion_from_matrix(M),
-                        rospy.Time.now(),
-                        "ekf",
-                        "map")
            
 
         rate.sleep()

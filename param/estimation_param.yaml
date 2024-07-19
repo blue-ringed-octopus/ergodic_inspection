@@ -8,3 +8,7 @@ EKF:
   rgb_detected: "/camera/color/image_detected"
   odom_topic: "/odom" 
   apriltag_marker_topic: "/apriltags" 
+
+Graph_SLAM:
+  node_threshold: 1.5
+  

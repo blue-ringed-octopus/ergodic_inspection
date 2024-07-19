@@ -408,7 +408,8 @@ class Graph_SLAM:
         sigma = J@sigma@J.T
         self.front_end.add_factor(self.current_node_id,new_node_id,feature_node_id, z,sigma, idx_map)
         self.current_node_id=new_node_id      
-
+        return new_node_id
+    
     def global_map_assemble(self):
         points=[]
         colors=[]
@@ -465,8 +466,8 @@ class Graph_SLAM:
         self.init_new_features(M, posterior["mu"], posterior["features"])        
         return self.M.copy()
     
-    def place_node(self, posterior, local_cloud):
-        self._posterior_to_factor(posterior, local_cloud)
+    def place_node(self, posterior, local_cloud, key_node = False):
+        node_id = self._posterior_to_factor(posterior, local_cloud)
         H = self.back_end.optimize(self.front_end, self.localize_mode)
         with open('graph.pickle', 'wb') as handle:
             pickle.dump(self.front_end, handle)
@@ -474,3 +475,4 @@ class Graph_SLAM:
         # self.global_map_assemble()
         self.optimized = True
         self.front_end.prune(10, self.localize_mode)
+        return node_id
