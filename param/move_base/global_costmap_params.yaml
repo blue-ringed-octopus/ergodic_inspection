@@ -5,5 +5,4 @@ global_costmap:
   update_frequency: 10.0
   publish_frequency: 10.0
   transform_tolerance: 0.5
-  observation_sources: rgbd
   static_map: true
