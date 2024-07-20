@@ -12,5 +12,3 @@ local_costmap:
   height: 3
   resolution: 0.05
 
-  obstacle_laser:
-    observation_sources: rgbd
