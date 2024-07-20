@@ -5,6 +5,5 @@ global_costmap:
   update_frequency: 10.0
   publish_frequency: 10.0
   transform_tolerance: 0.5
-  obstacle_layer:
-    observation_sources: rgbd
+  observation_sources: rgbd
   static_map: true
