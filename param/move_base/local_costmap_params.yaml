@@ -11,5 +11,6 @@ local_costmap:
   width: 3
   height: 3
   resolution: 0.05
-  observation_sources: rgbd
+  obstacle_layer:
+    observation_sources: rgbd
   
