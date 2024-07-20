@@ -1,3 +1,6 @@
 <launch>
 	<include file="$(find ergodic_inspection)/launch/move_base.launch" />
+
+	<node pkg="ergodic_inspection" name="ergodic_planner_server" type="ergodic_planner_server.py" output="screen">
+  	</node> 
 </launch>

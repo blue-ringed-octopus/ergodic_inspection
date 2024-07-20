@@ -17,6 +17,10 @@ import pickle
 resolution=0.05
 kernel_size=(5,5)
 
+robot_radius=0.175/resolution
+inflation_radius= 0.5/resolution
+cost_scaling_factor = 10.0* resolution
+
 #%% Import FOD clouds
 mesh = o3d.io.read_triangle_mesh("tests/ballast.STL")
 frame = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
@@ -95,9 +99,7 @@ def inflation_par(image, inflation_radius, cost_scaling_factor,robot_radius):
     inflation_kernel[blocks, threads](d_out,d_image, inflation_radius, cost_scaling_factor,robot_radius)
     return d_out.copy_to_host()
 
-robot_radius=0.175/resolution
-inflation_radius= 0.5/resolution
-cost_scaling_factor = 10.0* resolution
+
 
 cost = inflation_par(masked_map, inflation_radius, cost_scaling_factor,robot_radius)
 plt.imshow(cost.T, origin="lower")
