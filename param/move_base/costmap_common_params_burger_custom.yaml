@@ -11,4 +11,4 @@ cost_scaling_factor: 0
 map_type: costmap
 
 observation_sources: rgbd
-rgbd: {sensor_frame: camera_color_optical_frame, data_type: PointCloud2, topic: /camera/depth_points, marking: true, clearing: true }
+rgbd: {data_type: PointCloud2, topic: /camera/depth_points, marking: true, clearing: true }
