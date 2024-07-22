@@ -111,7 +111,7 @@ def process_costmap_msg(msg):
     w,h = map_.info.width, map_.info.height
     cost = np.array(map_.data).reshape((h,w))
     resolution = map_.info.resolution
-    origin =  [msg.info.origin.position.x, msg.info.origin.position.y]
+    origin =  [map_.info.origin.position.x, map_.info.origin.position.y]
     return {"costmap": cost, "resolution": resolution,"origin":origin}
     
     
