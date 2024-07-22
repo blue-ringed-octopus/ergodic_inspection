@@ -73,49 +73,49 @@ def simple_move(x,y,w,z):
     #print result
     print (sac.get_result())
 
-# def talker(waypoint):
-#     array = PoseArray()
-#     array.header.frame_id = 'map'
-#     array.header.stamp = rospy.Time.now()
-#     theta = waypoint[2]
-#     pose = Pose()
-#     pose.position.x = float(waypoint[0])
-#     pose.position.y = float(waypoint[1])
-#     pose.orientation.w = float(np.cos(theta/2))
-#     pose.orientation.z = float(np.sin(theta/2))
-#     array.poses.append(pose)
-
-#     pub = rospy.Publisher('simpleNavPoses', PoseArray, queue_size=100)
-#     rate = rospy.Rate(1) # 1hz
-
-#         #To not have to deal with threading, Im gonna publish just a couple times in the begging, and then continue with telling the robot to go to the points
-#     count = 0
-#     pub.publish(array)
-#     # while 1:
-#     #     rate.sleep()	
-#     #     print("sending rviz arrow")
-#         # pub.publish(array)
-#     #     # count +=1
 def talker(waypoint):
+    array = PoseArray()
+    array.header.frame_id = 'map'
+    array.header.stamp = rospy.Time.now()
     pose = Pose()
-    # pose.header.frame_id = 'map'
-    # pose.header.stamp = rospy.Time.now()
     pose.position.x = float(waypoint[0])
     pose.position.y = float(waypoint[1])
     pose.orientation.w = float(waypoint[2])
     pose.orientation.z = float(waypoint[3])
+    array.poses.append(pose)
 
-    pub = rospy.Publisher('/move_base_simple/goal', Pose, queue_size=100)
+    pub = rospy.Publisher('simpleNavPoses', PoseArray, queue_size=100)
     rate = rospy.Rate(1) # 1hz
 
         #To not have to deal with threading, Im gonna publish just a couple times in the begging, and then continue with telling the robot to go to the points
     count = 0
-    pub.publish(pose)
+    pub.publish(array)
     while count<10:
         rate.sleep()	
         print("sending rviz arrow")
-        pub.publish(pose)
-        count +=1    
+        pub.publish(array)
+        count +=1
+        
+# def talker(waypoint):
+#     pose = Pose()
+#     # pose.header.frame_id = 'map'
+#     # pose.header.stamp = rospy.Time.now()
+#     pose.position.x = float(waypoint[0])
+#     pose.position.y = float(waypoint[1])
+#     pose.orientation.w = float(waypoint[2])
+#     pose.orientation.z = float(waypoint[3])
+
+#     pub = rospy.Publisher('/move_base_simple/goal', Pose, queue_size=100)
+#     rate = rospy.Rate(1) # 1hz
+
+#         #To not have to deal with threading, Im gonna publish just a couple times in the begging, and then continue with telling the robot to go to the points
+#     count = 0
+#     pub.publish(pose)
+#     while count<10:
+#         rate.sleep()	
+#         print("sending rviz arrow")
+#         pub.publish(pose)
+#         count +=1    
     
 def navigate2point(waypoint):
     try:
