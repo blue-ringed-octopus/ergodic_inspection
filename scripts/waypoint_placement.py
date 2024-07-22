@@ -64,7 +64,7 @@ class Waypoint_Planner:
         return coords
     
     def get_index(self, coord):
-        idx = (coord[0:2]-self.costmap["bounds"]["min"][0:2])/self.costmap["resolution"]
+        idx = (coord[0:2]-self.costmap["origin"]["min"][0:2])/self.costmap["resolution"]
         idx = np.array([round(idx[0]), round(idx[1])])
         return idx
         

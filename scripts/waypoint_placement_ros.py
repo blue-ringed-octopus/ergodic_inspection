@@ -106,14 +106,22 @@ def navigate2point(coordinates):
     except rospy.ROSInterruptException:
         print ("Keyboard Interrupt")
 
-
+def process_costmap_msg(msg):
+    w,h = msg.info.width, msg.info.height
+    cost = msg.data.reshape((h,w))
+    resolution = msg.info.resolution
+    origin =  msg.info.origin
+    return {"costmap": cost, "resolution": resolution,"origin":origin}
+    
+    
 if __name__ == "__main__":
     rospy.init_node('waypoint_planner',anonymous=False)
     rospy.wait_for_service('get_reference_cloud_region')
     rospy.wait_for_service('static_map')
     get_cost_map = rospy.ServiceProxy('static_map', GetMap)
-    costmap = get_cost_map()
-        
+    costmap_msg = get_cost_map()
+    costmap = process_costmap_msg(costmap_msg)
+    
     with open(path+"/resources/region_bounds.yaml") as stream:
         try:
             region_bounds = yaml.safe_load(stream)
