@@ -20,10 +20,10 @@ class Ergodic_Planner_Server:
         msg = get_graph(1)
         nodes, edges, w = self.parse_graph_msg(msg)
         self.planner = Ergodic_Planner(nodes, edges)
-        rospy.Service('plan_region', PlanRegion, self.get_region_handler)
+        rospy.Service('plan_region', PlanRegion, self.plan_region_handler)
 
 
-    def get_region_handler(self, req):
+    def plan_region_handler(self, req):
         w = req.h.data
         region = req.h.current_region
         next_region = self.planner.get_next_region(w, region)
@@ -44,5 +44,6 @@ class Ergodic_Planner_Server:
         return nodes, edges, w
 
 if __name__ == '__main__':
+    rospy.init_node('ergodic_planner',anonymous=False)
     Ergodic_Planner_Server()
     rospy.spin()
