@@ -20,6 +20,8 @@ class Ergodic_Planner_Server:
         msg = get_graph(1)
         nodes, edges, w = self.parse_graph_msg(msg)
         self.planner = Ergodic_Planner(nodes, edges)
+        rospy.Service('plan_region', PlanRegion, self.get_region_handler)
+
 
     def get_region_handler(self, req):
         w = req.h.data
