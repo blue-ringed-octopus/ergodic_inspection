@@ -45,4 +45,4 @@ class Ergodic_Planner_Server:
 
 if __name__ == '__main__':
     Ergodic_Planner_Server()
-    
+    rospy.spin()
