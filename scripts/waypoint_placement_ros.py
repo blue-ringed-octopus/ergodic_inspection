@@ -13,6 +13,8 @@ from geometry_msgs.msg import PoseArray, Pose
 import ros_numpy
 import numpy as np
 from ergodic_inspection.srv import PointCloudWithEntropy
+from nav_msgs.srv import GetMap
+
 import open3d as o3d
 from waypoint_placement import Waypoint_Planner
 import rospkg 
@@ -23,7 +25,10 @@ import colorsys
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
 
-
+class Waypoint_Placement_Wrapper:
+    def __init__(self):
+        pass
+    
 def decode_msg(msg):
     pc=ros_numpy.numpify(msg)
     x=pc['x'].reshape(-1)
@@ -105,9 +110,9 @@ def navigate2point(coordinates):
 if __name__ == "__main__":
     rospy.init_node('waypoint_planner',anonymous=False)
     rospy.wait_for_service('get_reference_cloud_region')
-
-    with open(path+'/resources/costmap.pickle', 'rb') as handle:
-        costmap = pickle.load(handle)  
+    rospy.wait_for_service('static_map')
+    get_cost_map = rospy.ServiceProxy('static_map', GetMap)
+    costmap = get_cost_map()
         
     with open(path+"/resources/region_bounds.yaml") as stream:
         try:

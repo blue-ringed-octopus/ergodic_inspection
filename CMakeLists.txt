@@ -65,6 +65,8 @@ add_message_files(
     SetBelief.srv
     GetGraphStructure.srv
     PlaceNode.srv
+    PlanRegion.srv
+    
  )
 
 ## Generate actions in the 'action' folder
