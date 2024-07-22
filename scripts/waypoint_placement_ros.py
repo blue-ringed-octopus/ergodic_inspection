@@ -100,8 +100,8 @@ def simple_move(x,y,w,z):
 #     #     # count +=1
 def talker(waypoint):
     pose = Pose()
-    pose.header.frame_id = 'map'
-    pose.header.stamp = rospy.Time.now()
+    # pose.header.frame_id = 'map'
+    # pose.header.stamp = rospy.Time.now()
     theta = waypoint[2]
     pose.position.x = float(waypoint[0])
     pose.position.y = float(waypoint[1])
