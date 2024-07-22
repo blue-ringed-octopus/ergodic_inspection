@@ -107,10 +107,11 @@ def navigate2point(coordinates):
         print ("Keyboard Interrupt")
 
 def process_costmap_msg(msg):
-    w,h = msg.info.width, msg.info.height
-    cost = msg.data.reshape((h,w))
-    resolution = msg.info.resolution
-    origin =  msg.info.origin
+    map_ = msg.map
+    w,h = map_.info.width, map_.info.height
+    cost = map_.data.reshape((h,w))
+    resolution = map_.info.resolution
+    origin =  map_.info.origin
     return {"costmap": cost, "resolution": resolution,"origin":origin}
     
     
