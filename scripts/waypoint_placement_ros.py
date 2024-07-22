@@ -52,8 +52,6 @@ def decode_msg(msg):
     return h, p
 
 def simple_move(x,y,w,z):
-
-
     sac = actionlib.SimpleActionClient('move_base', MoveBaseAction )
 
     #create goal
@@ -102,11 +100,10 @@ def talker(waypoint):
     pose = Pose()
     # pose.header.frame_id = 'map'
     # pose.header.stamp = rospy.Time.now()
-    theta = waypoint[2]
     pose.position.x = float(waypoint[0])
     pose.position.y = float(waypoint[1])
-    pose.orientation.w = float(np.cos(theta/2))
-    pose.orientation.z = float(np.sin(theta/2))
+    pose.orientation.w = float(waypoint[2])
+    pose.orientation.z = float(waypoint[3])
 
     pub = rospy.Publisher('/move_base_simple/goal', Pose, queue_size=100)
     rate = rospy.Rate(1) # 1hz
@@ -120,10 +117,12 @@ def talker(waypoint):
         # pub.publish(array)
     #     # count +=1    
     
-def navigate2point(coordinates):
+def navigate2point(waypoint):
     try:
-        simple_move((coordinates[0]),(coordinates[1]),(coordinates[2]),(coordinates[3]))
-        talker(coordinates)
+        theta = waypoint[2]
+        x,y,w,z = waypoint[0], waypoint[1], np.cos(theta/2), np.sin(theta/2)
+        simple_move(x,y,w,z)
+        talker([x,y,w,z])
         print("goal reached")
     except rospy.ROSInterruptException:
         print ("Keyboard Interrupt")
@@ -169,6 +168,6 @@ if __name__ == "__main__":
         h, region_cloud = decode_msg(msg.ref)
         waypoint = planner.get_optimal_waypoint(region, 50, region_cloud, h)
         print(waypoint)
-        talker(waypoint)
+        navigate2point(waypoint)
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
