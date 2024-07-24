@@ -53,7 +53,7 @@ class EKF_Wrapper:
                   odom.pose.pose.position.y,
                   odom.pose.pose.position.z]
         
-        self.ekf = EKF(node_id, T_c_to_r, K, M, landmarks)
+        self.ekf = EKF(node_id, T_c_to_r, K, M)
 
         self.reset(node_id, landmarks)
 
