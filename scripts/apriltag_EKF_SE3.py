@@ -144,30 +144,31 @@ class EKF:
                     )        
         self.odom_prev = odom   
         
-    def reset(self, node_id, pc_info, landmark={}):
+    def reset(self, node_id, pc_info, landmarks={}):
         print("reseting EKF")
         self.id = node_id
         self.mu=[np.eye(4)]
         self.sigma=np.zeros((6,6))
         self.features={}
+        self.landmarks=landmarks
         self._process_pointcloud(pc_info)
-        self._initialize_landmarks(landmark)
+        # self._initialize_landmarks(landmark)
         print("EKF initialized")
     
-    def _initialize_landmarks(self, landmarks):
-       mu=self.mu.copy()       #current point estimates 
-       sigma=self.sigma.copy() #current covariance
-       feature_map = self.features.copy()
-       for landmarks_id, M in landmarks.items():         
-            feature_map[landmarks_id]=len(mu)
-            mu.append(M)
-            sigma_new=np.diag(np.ones(sigma.shape[0]+6)*99999999)
-            sigma_new[0:sigma.shape[0], 0:sigma.shape[0]]=sigma.copy()
-            sigma=sigma_new
+    # def _initialize_landmarks(self, landmarks):
+    #    mu=self.mu.copy()       #current point estimates 
+    #    sigma=self.sigma.copy() #current covariance
+    #    feature_map = self.features.copy()
+    #    for landmarks_id, M in landmarks.items():         
+    #         feature_map[landmarks_id]=len(mu)
+    #         mu.append(M)
+    #         sigma_new=np.diag(np.ones(sigma.shape[0]+6)*99999999)
+    #         sigma_new[0:sigma.shape[0], 0:sigma.shape[0]]=sigma.copy()
+    #         sigma=sigma_new
                
-       self.sigma=sigma
-       self.mu=mu
-       self.features = feature_map 
+    #    self.sigma=sigma
+    #    self.mu=mu
+    #    self.features = feature_map 
         
     def _process_pointcloud(self, pc_info):
         cloud, depth, pc_img = pc_info
@@ -218,9 +219,11 @@ class EKF:
         feature_map = self.features.copy()
         for feature_id in features:
             if not feature_id in self.features.keys():
-                feature=features[feature_id]
-                
-                M = mu[0]@feature["M"].copy() #feature orientation in world frame 
+                if feature_id in self.landmarks.keys():
+                    M = self.landmarks[feature_id]
+                else:
+                    feature=features[feature_id]
+                    M = mu[0]@feature["M"].copy() #feature orientation in world frame 
                 
                 feature_map[feature_id]=len(mu)
                 mu.append(M)
