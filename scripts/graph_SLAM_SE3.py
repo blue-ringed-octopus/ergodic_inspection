@@ -455,7 +455,13 @@ class Graph_SLAM:
         if node_id==-1:
             node_id = self.current_node_id
         return self.front_end.pose_nodes[node_id].M.copy()
-        
+    
+    def get_features_est(self):
+        features = {}
+        for id_, node in self.front_end.feature_nodes.items():
+            features[id_] = node.M
+        return features
+    
     def update(self, posterior): 
         if self.optimized:
             self.optimized=False

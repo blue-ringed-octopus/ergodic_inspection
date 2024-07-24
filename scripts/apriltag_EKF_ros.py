@@ -30,7 +30,7 @@ with open(path+'/param/estimation_param.yaml', 'r') as file:
     params = yaml.safe_load(file)
 
 class EKF_Wrapper:
-    def __init__(self, node_id, tf_br):
+    def __init__(self, node_id, tf_br, landmarks={}):
         self.tf_br = tf_br
         self.bridge = CvBridge()
 
@@ -53,9 +53,9 @@ class EKF_Wrapper:
                   odom.pose.pose.position.y,
                   odom.pose.pose.position.z]
         
-        self.ekf = EKF(node_id, T_c_to_r, K, M)
+        self.ekf = EKF(node_id, T_c_to_r, K, M, landmarks)
 
-        self.reset(node_id)
+        self.reset(node_id, landmarks)
 
 
        # rospy.Subscriber("/robot_pose_ekf/odom_combined", PoseWithCovarianceStamped, self.odom_callback)
@@ -73,12 +73,12 @@ class EKF_Wrapper:
         T_c_to_r=listener.fromTranslationRotation(trans, rot)
         return T_c_to_r
     
-    def reset(self, node_id):
+    def reset(self, node_id, landmarks={}):
         print("reseting EKF")
         with self.lock:
             pc_info = self.get_point_cloud()
             self.id = node_id
-            self.ekf.reset(node_id, pc_info)
+            self.ekf.reset(node_id, pc_info, landmarks)
         print("EKF initialized") 
     
     def get_point_cloud(self):
@@ -209,7 +209,7 @@ if __name__ == "__main__":
     rate = rospy.Rate(30) # 10hz
     while not rospy.is_shutdown():
         # pc_pub.publish(ekf.cloud)
-        markers=get_pose_marker(wrapper.ekf.landmarks, wrapper.ekf.mu)
+        markers=get_pose_marker(wrapper.ekf.features, wrapper.ekf.mu)
         factor_graph_marker_pub.publish(markers)
         br.sendTransform((0,0 , 0),
                         tf.transformations.quaternion_from_matrix(np.eye(4)),

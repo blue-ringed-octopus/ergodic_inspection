@@ -26,22 +26,22 @@ rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
 
 class Graph_SLAM_wrapper:
-    def __init__(self, ekf_wrapper, tf_br, localize_mode  = False):
+    def __init__(self, tf_br, localize_mode  = False):
         self.tf_br = tf_br
-        self.ekf_wrapper = ekf_wrapper
         self.factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
         self.pc_pub = rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
         
-        ekf = ekf_wrapper.ekf
         self.thres = 1.5
         #prior_feature 
         prior = read_prior()
-        intersection = [id_  for id_ in ekf.landmarks.keys() if id_ in prior["children"]]
+        self.ekf_wrapper = EKF_Wrapper(0, tf_br, prior.children)
+        ekf = self.ekf_wrapper.ekf
+        intersection = [id_  for id_ in ekf.features.keys() if id_ in prior["children"]]
         while not len(intersection) and not rospy.is_shutdown():
-            intersection = [id_  for id_ in ekf.landmarks.keys() if id_ in prior["children"]]
+            intersection = [id_  for id_ in ekf.features.keys() if id_ in prior["children"]]
         
         feature_id = intersection[0]
-        M_feature = ekf.mu[ekf.landmarks[feature_id]]
+        M_feature = ekf.mu[ekf.features[feature_id]]
         M_prior = prior["children"][feature_id]
         M_init = M_prior@np.linalg.inv(M_feature)
         graph_slam=Graph_SLAM(M_init, localize_mode)
@@ -55,7 +55,10 @@ class Graph_SLAM_wrapper:
 
     def place_node(self, posterior, key_node):
         cloud = self.ekf_wrapper.ekf.cloud.copy()
-        self.ekf_wrapper.reset(self.graph_slam.current_node_id)
+        landmarks = self.graph_slam.get_features_est()
+        for id_, M in landmarks.items():
+            landmarks[id_] = np.linalg.inv(posterior["mu"][0])@M
+        self.ekf_wrapper.reset(self.graph_slam.current_node_id, landmarks)
         self.graph_slam.place_node(posterior, cloud, key_node)
         global_map = self.graph_slam.global_map_assemble()
         pc_msg=pc_to_msg(global_map)
@@ -151,7 +154,7 @@ def get_pose_markers(nodes):
           
       return markers
   
-def get_landmark_markers(nodes):
+def get_feature_markers(nodes):
     markers=[]
     for node in nodes.values():
         marker=Marker()
@@ -245,7 +248,7 @@ def get_landmark_markers(nodes):
 def plot_graph(graph, pub):
     markerArray=MarkerArray()
     pose_marker = get_pose_markers(graph.pose_nodes)
-    feature_markers = get_landmark_markers(graph.feature_nodes)
+    feature_markers = get_feature_markers(graph.feature_nodes)
   #  factor_marker= get_factor_markers(graph)
     
     markers = feature_markers+pose_marker
@@ -287,9 +290,7 @@ if __name__ == "__main__":
     localization_mode = True
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
-    
-    ekf_wrapper=EKF_Wrapper(0, br)
-    graph_slam_wrapper = Graph_SLAM_wrapper(ekf_wrapper, br, localization_mode)
+    graph_slam_wrapper = Graph_SLAM_wrapper(br, localization_mode)
     
 
     rate = rospy.Rate(30) 

@@ -106,7 +106,7 @@ def draw_frame(img, tag, K):
 
 class EKF:
     def __init__(self, node_id, T_c_to_r, K, odom):
-        self.landmarks={}
+        self.features={}
 
         self.T_c_to_r=T_c_to_r
         self.T_r_to_c=inv(T_c_to_r)
@@ -144,15 +144,31 @@ class EKF:
                     )        
         self.odom_prev = odom   
         
-    def reset(self, node_id, pc_info):
+    def reset(self, node_id, pc_info, landmark={}):
         print("reseting EKF")
         self.id = node_id
         self.mu=[np.eye(4)]
         self.sigma=np.zeros((6,6))
-        self.landmarks={}
+        self.features={}
         self._process_pointcloud(pc_info)
+        self._initialize_landmarks(landmark)
         print("EKF initialized")
     
+    def _initialize_landmarks(self, landmarks):
+       mu=self.mu.copy()       #current point estimates 
+       sigma=self.sigma.copy() #current covariance
+       feature_map = self.features.copy()
+       for landmarks_id, x in landmarks:         
+            feature_map[landmarks_id]=len(mu)
+            mu.append(x)
+            sigma_new=np.diag(np.ones(sigma.shape[0]+6)*0.001)
+            sigma_new[0:sigma.shape[0], 0:sigma.shape[0]]=sigma.copy()
+            sigma=sigma_new
+               
+       self.sigma=sigma
+       self.mu=mu
+       self.features = feature_map 
+        
     def _process_pointcloud(self, pc_info):
         cloud, depth, pc_img = pc_info
         K_inv = np.ascontiguousarray(self.K_inv.copy())
@@ -196,17 +212,17 @@ class EKF:
                 features[r.tag_id]= {"xp": xp, "yp": yp, "z":z, "M":self.T_c_to_r@M }
         return features
     
-    def _initialize_new_landmarks(self, landmarks):
+    def _initialize_new_features(self, features):
         mu=self.mu.copy()       #current point estimates 
         sigma=self.sigma.copy() #current covariance
-        landmark_map = self.landmarks.copy()
-        for landmark_id in landmarks:
-            if not landmark_id in self.landmarks.keys():
-                landmark=landmarks[landmark_id]
+        feature_map = self.features.copy()
+        for feature_id in features:
+            if not feature_id in self.features.keys():
+                feature=features[feature_id]
                 
-                M = mu[0]@landmark["M"].copy() #feature orientation in world frame 
+                M = mu[0]@feature["M"].copy() #feature orientation in world frame 
                 
-                landmark_map[landmark_id]=len(mu)
+                feature_map[feature_id]=len(mu)
                 mu.append(M)
                 sigma_new=np.diag(np.ones(sigma.shape[0]+6)*99999999999)
                 sigma_new[0:sigma.shape[0], 0:sigma.shape[0]]=sigma.copy()
@@ -214,7 +230,7 @@ class EKF:
                 
         self.sigma=sigma
         self.mu=mu
-        self.landmarks = landmark_map
+        self.features = feature_map
 
     def _correction(self,features):
         mu=self.mu.copy()
@@ -227,7 +243,7 @@ class EKF:
         
         for i,feature_id in enumerate(features):    
             feature=features[feature_id]
-            idx=self.landmarks[feature_id]
+            idx=self.features[feature_id]
             
             #global feature location
             M_tag_bar = mu[idx].copy() 
@@ -254,8 +270,6 @@ class EKF:
 
             
             H[6*i:6*i+6,:] += h@F
-            # J_z = SE3.Jr_inv(z)
-            # Q[6*i:6*i+6, 6*i:6*i+6] =J_z@self.Q.copy()@J_z.T
             Q[6*i:6*i+6, 6*i:6*i+6] =self.Q.copy()
             
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
@@ -270,7 +284,7 @@ class EKF:
         features=self._detect_apriltag(rgb, depth, 2)
         for feature in features.values():
             rgb=draw_frame(rgb, feature, self.K)
-        self._initialize_new_landmarks(features)
+        self._initialize_new_features(features)
         self._correction(features)
             
     def motion_update(self, odom, Rv):
@@ -298,7 +312,7 @@ class EKF:
         self.odom_prev=odom
         
     def get_posterior(self):
-        pos = {"mu":  self.mu.copy(), "sigma":self.sigma.copy(),  "features": self.landmarks.copy()}
+        pos = {"mu":  self.mu.copy(), "sigma":self.sigma.copy(),  "features": self.features.copy()}
         return pos 
     
 # if __name__ == "__main__":
