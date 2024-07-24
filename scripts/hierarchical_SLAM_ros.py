@@ -56,8 +56,9 @@ class Graph_SLAM_wrapper:
     def place_node(self, posterior, key_node):
         cloud = self.ekf_wrapper.ekf.cloud.copy()
         landmarks = self.graph_slam.get_features_est()
+        T = np.linalg.inv(posterior["mu"][0])
         for id_, M in landmarks.items():
-            landmarks[id_] = np.linalg.inv(posterior["mu"][0])@M
+            landmarks[id_] = T@M
         self.ekf_wrapper.reset(self.graph_slam.current_node_id, landmarks)
         self.graph_slam.place_node(posterior, cloud, key_node)
         global_map = self.graph_slam.global_map_assemble()

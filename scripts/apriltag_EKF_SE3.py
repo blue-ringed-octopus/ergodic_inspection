@@ -158,10 +158,10 @@ class EKF:
        mu=self.mu.copy()       #current point estimates 
        sigma=self.sigma.copy() #current covariance
        feature_map = self.features.copy()
-       for landmarks_id, x in landmarks.items():         
+       for landmarks_id, M in landmarks.items():         
             feature_map[landmarks_id]=len(mu)
-            mu.append(x)
-            sigma_new=np.diag(np.ones(sigma.shape[0]+6)*0.001)
+            mu.append(M)
+            sigma_new=np.diag(np.ones(sigma.shape[0]+6)*99999999)
             sigma_new[0:sigma.shape[0], 0:sigma.shape[0]]=sigma.copy()
             sigma=sigma_new
                
