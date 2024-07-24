@@ -34,7 +34,7 @@ class Graph_SLAM_wrapper:
         self.thres = 1.5
         #prior_feature 
         prior = read_prior()
-        self.ekf_wrapper = EKF_Wrapper(0, tf_br, prior.children)
+        self.ekf_wrapper = EKF_Wrapper(0, tf_br, prior["children"])
         ekf = self.ekf_wrapper.ekf
         intersection = [id_  for id_ in ekf.features.keys() if id_ in prior["children"]]
         while not len(intersection) and not rospy.is_shutdown():
