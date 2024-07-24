@@ -113,8 +113,7 @@ if __name__ == "__main__":
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
-    ekf_wrapper=EKF_Wrapper(0, br)
-    graph_slam_wrapper = Graph_SLAM_wrapper(ekf_wrapper, br, localization_mode)
+    graph_slam_wrapper = Graph_SLAM_wrapper(br, localization_mode)
     box = reference_cloud.get_axis_aligned_bounding_box()
     bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
     box.max_bound = bound
