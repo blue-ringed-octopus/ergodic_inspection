@@ -308,28 +308,28 @@ class EKF:
         self._correction(features)
             
     def motion_update(self, odom, Rv):
-        return 
-        #get relative transformation
-        U = np.linalg.inv(self.odom_prev)@odom
-        u = SE3.Log(U)
+        pass
+        # #get relative transformation
+        # U = np.linalg.inv(self.odom_prev)@odom
+        # u = SE3.Log(U)
         
-        #apply transformation
-        mu=self.mu.copy()
-        M_prev=mu[0]
-        M = M_prev@U
-        mu[0] = M
+        # #apply transformation
+        # mu=self.mu.copy()
+        # M_prev=mu[0]
+        # M = M_prev@U
+        # mu[0] = M
         
-        F=np.zeros((6,6*len(mu)))
-        F[0:6,0:6]=np.eye(6)
+        # F=np.zeros((6,6*len(mu)))
+        # F[0:6,0:6]=np.eye(6)
         
-        Jx= SE3.Ad(inv(U))
+        # Jx= SE3.Ad(inv(U))
         
-        Jx = F.T@Jx@F
-        Jx[6:,6:]=np.eye(Jx[6:,6:].shape[0])
-        Ju=SE3.Jr(u)
-        self.mu = mu
-        self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@(self.R+self.R@Rv)@(Ju.T)@F
-        self.odom_prev=odom
+        # Jx = F.T@Jx@F
+        # Jx[6:,6:]=np.eye(Jx[6:,6:].shape[0])
+        # Ju=SE3.Jr(u)
+        # self.mu = mu
+        # self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@(self.R+self.R@Rv)@(Ju.T)@F
+        # self.odom_prev=odom
         
     def get_posterior(self):
         pos = {"mu":  self.mu.copy(), "sigma":self.sigma.copy(),  "features": self.features.copy()}
