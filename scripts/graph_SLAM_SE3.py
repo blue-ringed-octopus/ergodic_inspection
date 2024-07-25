@@ -402,10 +402,10 @@ class Graph_SLAM:
         z= np.zeros(6*len(mu))
         J = np.zeros((6*len(mu), 6*len(mu)))
         for i, M in enumerate(mu):
-            tau=SE3.Log(M)
-            z[6*i:6*i+6]=tau
+            tau = SE3.Log(M)
+            z[6*i:6*i+6] = tau
             J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(tau)
-        sigma = J@sigma@J.T
+        sigma = J@sigma@J.T 
         self.front_end.add_factor(self.current_node_id,new_node_id,feature_node_id, z,sigma, idx_map)
         self.current_node_id=new_node_id      
         return new_node_id
