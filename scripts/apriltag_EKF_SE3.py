@@ -249,18 +249,7 @@ class EKF:
         H=np.zeros((6*n,6*len(mu)))
         Q=np.zeros((6*n,6*n))
         dz = np.zeros(6*n)
-        dmu = np.zeros(6)
-        for i,feature_id in enumerate(features):    
-            feature=features[feature_id]
-            idx=self.features[feature_id]
-            
-            #global feature location
-            M_tag_bar = mu[idx].copy() 
-            Z_bar = inv(mu[0])@M_tag_bar  #feature location in camera frame
-      
-            Z = feature["M"]
-            dmu += SE3.Log(M_tag_bar@inv(Z))
-        self.mu[0] = SE3.Exp(dmu/n)
+        # dmu = np.zeros(6)
         # for i,feature_id in enumerate(features):    
         #     feature=features[feature_id]
         #     idx=self.features[feature_id]
@@ -268,37 +257,49 @@ class EKF:
         #     #global feature location
         #     M_tag_bar = mu[idx].copy() 
         #     Z_bar = inv(mu[0])@M_tag_bar  #feature location in camera frame
-        #     z_bar = SE3.Log(Z_bar)
       
         #     Z = feature["M"]
-        #     z = SE3.Log(Z)
-            
-        #     dz[6*i:6*i+6] = SE3.Log(SE3.Exp(z - z_bar)) #measurement error 
-
-        #     Jr=-SE3.Jl_inv(z_bar) #jacobian of robot pose
-        #     Jtag=SE3.Jr_inv(z_bar)   #jacobian of tag pose
-            
-        #     #number of obervation: 6, number of local state:12 
-        #     h=np.zeros((6,12))
-        #     h[0:6, 0:6] = Jr
-        #     h[0:6:, 6:12] = Jtag
-            
-        #     #number local state, number of global state 
-        #     F=np.zeros((12,6*len(mu)))
-        #     F[0:6,0:6]=np.eye(6)
-        #     F[6:12, 6*idx:6*idx+6]=np.eye(6) 
-
-            
-        #     H[6*i:6*i+6,:] += h@F
-        #     Q[6*i:6*i+6, 6*i:6*i+6] =self.Q.copy()
-            
-        # K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
-        # sigma=(np.eye(len(mu)*6)-K@H)@(sigma)
-        # dmu=K@(dz)
-        # for i in range(len(mu)):
-        #     self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
+        #     dmu += SE3.Log(M_tag_bar@inv(Z))
+        # self.mu[0] = SE3.Exp(dmu/n)
         
-        # self.sigma=(sigma+sigma.T)/2
+        for i,feature_id in enumerate(features):    
+            feature=features[feature_id]
+            idx=self.features[feature_id]
+            
+            #global feature location
+            M_tag_bar = mu[idx].copy() 
+            Z_bar = inv(mu[0])@M_tag_bar  #feature location in camera frame
+            z_bar = SE3.Log(Z_bar)
+      
+            Z = feature["M"]
+            z = SE3.Log(Z)
+            
+            dz[6*i:6*i+6] = SE3.Log(SE3.Exp(z - z_bar)) #measurement error 
+
+            Jr=-SE3.Jl_inv(z_bar) #jacobian of robot pose
+            Jtag=SE3.Jr_inv(z_bar)   #jacobian of tag pose
+            
+            #number of obervation: 6, number of local state:12 
+            h=np.zeros((6,12))
+            h[0:6, 0:6] = Jr
+            h[0:6:, 6:12] = Jtag
+            
+            #number local state, number of global state 
+            F=np.zeros((12,6*len(mu)))
+            F[0:6,0:6]=np.eye(6)
+            F[6:12, 6*idx:6*idx+6]=np.eye(6) 
+
+            
+            H[6*i:6*i+6,:] += h@F
+            Q[6*i:6*i+6, 6*i:6*i+6] =self.Q.copy()
+            
+        K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
+        sigma=(np.eye(len(mu)*6)-K@H)@(sigma)
+        dmu=K@(dz)
+        for i in range(len(mu)):
+            self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
+        
+        self.sigma=(sigma+sigma.T)/2
     
     def camera_update(self, rgb, depth):    
         features=self._detect_apriltag(rgb, depth, 2)
