@@ -308,7 +308,6 @@ class EKF:
         self._correction(features)
             
     def motion_update(self, odom, Rv):
-        pass
         # #get relative transformation
         # U = np.linalg.inv(self.odom_prev)@odom
         # u = SE3.Log(U)
