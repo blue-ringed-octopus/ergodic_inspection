@@ -140,7 +140,7 @@ class EKF_Wrapper:
             self.ekf.motion_update(odom, Rv)
             
             M = self.ekf.mu[0]
-            M = M@inv(self.ekf.odom_prev)
+            M = M@inv(odom)
             self.tf_br.sendTransform((M[0,3], M[1,3] , M[2,3]),
                             tf.transformations.quaternion_from_matrix(M),
                             rospy.Time.now(),
