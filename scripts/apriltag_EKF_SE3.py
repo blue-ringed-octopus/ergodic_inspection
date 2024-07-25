@@ -115,12 +115,18 @@ class EKF:
         self.t=time.time()
 
         #motion covariance
+        # self.R=np.eye(6)
+        # self.R[0,0]=0.01 #x
+        # self.R[1,1]=0.01 #y
+        # self.R[2,2]=0.0001 #z
+        # self.R[3:5, 3:5] *= 0.0001
+        # self.R[5,5] *= (np.pi/4)**2
         self.R=np.eye(6)
-        self.R[0,0]=0.01 #x
-        self.R[1,1]=0.01 #y
-        self.R[2,2]=0.0001 #z
-        self.R[3:5, 3:5] *= 0.0001
-        self.R[5,5] *= (np.pi/4)**2
+        self.R[0,0]=999 #x
+        self.R[1,1]=999 #y
+        self.R[2,2]=999 #z
+        self.R[3:5, 3:5] *= 999
+        self.R[5,5] *= 999
 
         #observation covariance
         self.Q=np.eye(6)
@@ -303,7 +309,6 @@ class EKF:
         
         F=np.zeros((6,6*len(mu)))
         F[0:6,0:6]=np.eye(6)
-        
         
         Jx= SE3.Ad(inv(U))
         
