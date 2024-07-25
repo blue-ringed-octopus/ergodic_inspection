@@ -19,7 +19,7 @@ kernel_size=(5,5)
 
 robot_radius=0.175/2/resolution
 inflation_radius= 0.5/resolution
-cost_scaling_factor = 15.0* resolution
+cost_scaling_factor = 10.0* resolution
 
 #%% Import FOD clouds
 mesh = o3d.io.read_triangle_mesh("tests/ballast.STL")
