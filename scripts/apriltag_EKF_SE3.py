@@ -260,7 +260,7 @@ class EKF:
       
             Z = feature["M"]
             dmu += SE3.Log(M_tag_bar@inv(Z))
-        self.mu[0] = SE3.Exp(dmu)
+        self.mu[0] = SE3.Exp(dmu/n)
         # for i,feature_id in enumerate(features):    
         #     feature=features[feature_id]
         #     idx=self.features[feature_id]
