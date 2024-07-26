@@ -105,9 +105,9 @@ def draw_frame(img, tag, K):
 
 
 class EKF:
-    def __init__(self, node_id, T_c_to_r, K, odom):
+    def __init__(self, node_id, T_c_to_r, K, odom, tag_size, tag_family = "tag36h11"):
         self.features={}
-
+        self.tag_size = tag_size
         self.T_c_to_r=T_c_to_r
         self.T_r_to_c=inv(T_c_to_r)
         self.K = K
@@ -141,7 +141,7 @@ class EKF:
         self.Q_img[2,2]=0.001**2 #depth 
         
         self.at_detector = Detector(
-                    families="tag36h11",
+                    families=tag_family,
                     quad_decimate=1.0,
                     quad_sigma=0.0,
                     refine_edges=1,
@@ -198,7 +198,7 @@ class EKF:
         
     def _detect_apriltag(self,rgb, depth, max_depth = 1):
         gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
-        result=self.at_detector.detect(gray, estimate_tag_pose=True, tag_size=0.16, 
+        result=self.at_detector.detect(gray, estimate_tag_pose=True, tag_size=self.tag_size, 
         				camera_params=[self.K[0,0], self.K[1,1], self.K[0,2], self.K[1,2]])
         features={}
         for r in result:

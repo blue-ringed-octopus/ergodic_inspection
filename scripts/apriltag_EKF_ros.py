@@ -53,8 +53,9 @@ class EKF_Wrapper:
                   odom.pose.pose.position.y,
                   odom.pose.pose.position.z]
         
-        self.ekf = EKF(node_id, T_c_to_r, K, M)
-
+        self.ekf = EKF(node_id, T_c_to_r, K, M, 
+                       params["EKF"]["tag_size"],
+                       params["EKF"]["tag_families"])
         self.reset(node_id, landmarks)
 
 

@@ -8,6 +8,10 @@ EKF:
   rgb_detected: "/camera/color/image_detected"
   odom_topic: "/odom" 
   apriltag_marker_topic: "/apriltags" 
+  #tag_size: 0.1
+  tag_size: 0.16
+  tag_families: tag36h11
+  
 
 Graph_SLAM:
   node_threshold: 1.5
