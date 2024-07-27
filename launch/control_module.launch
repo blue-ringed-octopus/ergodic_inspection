@@ -3,4 +3,11 @@
 
 	<node pkg="ergodic_inspection" name="ergodic_planner_server" type="ergodic_planner_server.py" output="screen">
   	</node> 
+  	
+  	<node pkg="pointcloud_to_laserscan" name="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" output="screen">
+  	    <remap from="cloud_in" to="/camera/depth_points"/>
+      	    <param name="target_frame " type="str" value="base_footprint" />
+  	    <param name="min_height " type="double" value="0.05" />
+  	    <param name="max_height " type="double" value="0.2" />
+  	</node> 
 </launch>

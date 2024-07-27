@@ -1,5 +1,9 @@
 # ergodic_inspection
 ```
+sudo apt-get install ros-noetic-pointcloud-to-laserscan
+```
+
+```
 pip install -r requirements.txt
 ```
 ```
