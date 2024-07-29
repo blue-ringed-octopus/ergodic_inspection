@@ -167,9 +167,8 @@ if __name__ == "__main__":
         (trans, rot) = listener.lookupTransform("map", params["EKF"]["robot_frame"], rospy.Time(0))
         pose.position.x = trans[0]
         pose.position.y = trans[1]
-        print(trans)
         region = get_region(pose,1).region
-        region = plan_region(region).next_region
+        region = plan_region(str(region)).next_region
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         msg = get_reference(region)
         h, region_cloud = decode_msg(msg.ref)
