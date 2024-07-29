@@ -46,7 +46,7 @@ class Server:
         y = req.pose.position.y
         region = self.map_manager.coord_to_region([x,y], level)
         
-        return GetRegionResponse(region)
+        return GetRegionResponse(str(region))
         
     def get_map_msg(self):
         costmap = self.map_manager.costmap
