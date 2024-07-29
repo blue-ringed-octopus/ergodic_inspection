@@ -14,6 +14,7 @@ import ros_numpy
 import numpy as np
 from ergodic_inspection.srv import PointCloudWithEntropy, PlanRegion
 from nav_msgs.srv import GetMap
+import tf 
 
 import open3d as o3d
 from waypoint_placement import Waypoint_Planner
@@ -24,7 +25,9 @@ import colorsys
 
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
-
+with open(path+'/param/estimation_param.yaml', 'r') as file:
+    params = yaml.safe_load(file)
+    
 class Waypoint_Placement_Wrapper:
     def __init__(self):
         pass
@@ -141,17 +144,16 @@ if __name__ == "__main__":
     rospy.wait_for_service('get_reference_cloud_region')
     rospy.wait_for_service('static_map')
     rospy.wait_for_service('plan_region')
-
+   
     get_cost_map = rospy.ServiceProxy('static_map', GetMap)
     costmap_msg = get_cost_map()
     costmap = process_costmap_msg(costmap_msg)
+    listener=tf.TransformListener()
+    listener.waitForTransform(params["EKF"]["optical_frame"],params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
+    (trans, rot) = listener.lookupTransform(params["EKF"]["optical_frame"], params["EKF"]["robot_frame"], rospy.Time(0))
+    T_camera = listener.fromTranslationRotation(trans, rot)
 
     get_region = rospy.ServiceProxy('plan_region', PlanRegion)
-    T_camera = np.eye(4)
-    T_camera[0:3,3]= [0.077, -0.000, 0.218]
-    T_camera[0:3,0:3] =  [[0.0019938, -0.1555174, 0.9878311],
-                          [-0.999998, -0.000156, 0.0019938],
-                          [-0.000156, -0.9878331, -0.1555174]]
     K = np.array([[872.2853801540007, 0.0, 604.5],
                  [0.0, 872.2853801540007, 360.5],
                  [ 0.0, 0.0, 1.0]])
@@ -160,7 +162,12 @@ if __name__ == "__main__":
     planner = Waypoint_Planner(costmap, T_camera, K, (w,h))
     
     while not rospy.is_shutdown():
-        region = get_region()
+        pose = Pose()
+        listener.waitForTransform(params["EKF"]["robot_frame"],"map",rospy.Time(), rospy.Duration(4.0))
+        (trans, rot) = listener.lookupTransform(params["EKF"]["robot_frame"], "map", rospy.Time(0))
+        pose.position.x = trans[0]
+        pose.position.y = trans[1]
+        region = get_region(pose, 1)
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         msg = get_reference(region)
         h, region_cloud = decode_msg(msg.ref)
