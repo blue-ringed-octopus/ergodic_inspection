@@ -144,9 +144,12 @@ if __name__ == "__main__":
     rospy.wait_for_service('get_reference_cloud_region')
     rospy.wait_for_service('static_map')
     rospy.wait_for_service('plan_region')
+    
+    get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
     plan_region = rospy.ServiceProxy('plan_region', PlanRegion)
     get_region = rospy.ServiceProxy('get_region', GetRegion)
     get_cost_map = rospy.ServiceProxy('static_map', GetMap)
+    
     costmap_msg = get_cost_map()
     costmap = process_costmap_msg(costmap_msg)
     listener=tf.TransformListener()
@@ -168,10 +171,9 @@ if __name__ == "__main__":
         pose.position.x = trans[0]
         pose.position.y = trans[1]
         region = get_region(pose,1).region
-        print(region)
-        region = plan_region(region).next_region
-        get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
-        msg = get_reference(region)
+        next_region = plan_region(region).next_region
+        print(next_region)
+        msg = get_reference(next_region)
         h, region_cloud = decode_msg(msg.ref)
         waypoint = planner.get_optimal_waypoint(50, region_cloud, h)
         navigate2point(waypoint)
