@@ -163,7 +163,7 @@ if __name__ == "__main__":
     w, h = 1208, 720
         
     planner = Waypoint_Planner(costmap, T_camera, K, (w,h))
-    
+    next_region = 0
     while not rospy.is_shutdown():
         pose = Pose()
         listener.waitForTransform("map",params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
@@ -171,8 +171,9 @@ if __name__ == "__main__":
         pose.position.x = trans[0]
         pose.position.y = trans[1]
         region = get_region(pose,1).region
+        if region==-1:
+            region = next_region
         next_region = plan_region(region).next_region
-        print(next_region)
         msg = get_reference(next_region)
         h, region_cloud = decode_msg(msg.ref)
         waypoint = planner.get_optimal_waypoint(50, region_cloud, h)
