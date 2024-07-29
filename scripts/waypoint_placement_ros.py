@@ -145,7 +145,7 @@ if __name__ == "__main__":
     rospy.wait_for_service('static_map')
     rospy.wait_for_service('plan_region')
     plan_region = rospy.ServiceProxy('plan_region', PlanRegion)
-    get_region = rospy.ServiceProxy('get_region', PlanRegion)
+    get_region = rospy.ServiceProxy('get_region', GetRegion)
     get_cost_map = rospy.ServiceProxy('static_map', GetMap)
     costmap_msg = get_cost_map()
     costmap = process_costmap_msg(costmap_msg)
