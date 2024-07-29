@@ -12,7 +12,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import PoseArray, Pose
 import ros_numpy
 import numpy as np
-from ergodic_inspection.srv import PointCloudWithEntropy, PlanRegion
+from ergodic_inspection.srv import PointCloudWithEntropy, PlanRegion, GetRegion
 from nav_msgs.srv import GetMap
 import tf 
 
@@ -144,7 +144,8 @@ if __name__ == "__main__":
     rospy.wait_for_service('get_reference_cloud_region')
     rospy.wait_for_service('static_map')
     rospy.wait_for_service('plan_region')
-   
+    plan_region = rospy.ServiceProxy('plan_region', PlanRegion)
+    get_region = rospy.ServiceProxy('get_region', PlanRegion)
     get_cost_map = rospy.ServiceProxy('static_map', GetMap)
     costmap_msg = get_cost_map()
     costmap = process_costmap_msg(costmap_msg)
@@ -153,7 +154,6 @@ if __name__ == "__main__":
     (trans, rot) = listener.lookupTransform(params["EKF"]["optical_frame"], params["EKF"]["robot_frame"], rospy.Time(0))
     T_camera = listener.fromTranslationRotation(trans, rot)
 
-    get_region = rospy.ServiceProxy('plan_region', PlanRegion)
     K = np.array([[872.2853801540007, 0.0, 604.5],
                  [0.0, 872.2853801540007, 360.5],
                  [ 0.0, 0.0, 1.0]])
@@ -167,7 +167,8 @@ if __name__ == "__main__":
         (trans, rot) = listener.lookupTransform(params["EKF"]["robot_frame"], "map", rospy.Time(0))
         pose.position.x = trans[0]
         pose.position.y = trans[1]
-        region = get_region(pose, 1)
+        region = get_region(pose,1)
+        region = plan_region(region)
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         msg = get_reference(region)
         h, region_cloud = decode_msg(msg.ref)
