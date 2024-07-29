@@ -105,7 +105,7 @@ if __name__ == "__main__":
     rospy.wait_for_service('set_entropy')
     set_h = rospy.ServiceProxy('set_entropy', SetBelief)
     get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
-    msg = get_reference(-1)
+    msg = get_reference(str(-1))
     reference_cloud = msg_2_pc(msg.ref)
     
     anomaly_thres = 0.02
