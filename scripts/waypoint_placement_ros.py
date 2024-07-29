@@ -163,8 +163,8 @@ if __name__ == "__main__":
     
     while not rospy.is_shutdown():
         pose = Pose()
-        listener.waitForTransform(params["EKF"]["robot_frame"],"map",rospy.Time(), rospy.Duration(4.0))
-        (trans, rot) = listener.lookupTransform(params["EKF"]["robot_frame"], "map", rospy.Time(0))
+        listener.waitForTransform("map",params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
+        (trans, rot) = listener.lookupTransform("map", params["EKF"]["robot_frame"], rospy.Time(0))
         pose.position.x = trans[0]
         pose.position.y = trans[1]
         region = get_region(pose,1)
