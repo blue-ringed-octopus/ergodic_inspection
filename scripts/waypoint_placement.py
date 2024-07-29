@@ -11,15 +11,17 @@ import cv2
 import matplotlib.pyplot as plt
 from copy import deepcopy
 class Waypoint_Planner:
-    def __init__(self, costmap, region_bounds, T_camera, cam_param, img_shape):
+    def __init__(self, costmap, T_camera, cam_param, img_shape):
         self.costmap = costmap
-        self.region_bounds = region_bounds
         self.T_camera = T_camera
         self.K = cam_param
         self.img_shape = img_shape
         
-    def get_optimal_waypoint(self,region, num_candidates, region_cloud, entropies):
-        candidates = self.get_waypoints( region, num_candidates)    
+    def get_optimal_waypoint(self,num_candidates, region_cloud, entropies):
+        bound={}
+        bound["min_bound"] = region_cloud.get_min_bound()
+        bound["max_bound"] = region_cloud.get_max_bound()
+        candidates = self.get_waypoints( bound, num_candidates)    
         reward=np.zeros(len(candidates))
         w, h = self.img_shape
         for i,candidate in enumerate(candidates):
@@ -47,8 +49,7 @@ class Waypoint_Planner:
         waypoint = candidates[idx]
         
         return waypoint
-    def get_waypoints(self, region, n):
-        bound = self.region_bounds[region]
+    def get_waypoints(self, bound, n):
         coords = []
         while len(coords)< n:
             coord_rand= np.random.uniform(bound["min_bound"], bound["max_bound"], size = 3 )
@@ -97,5 +98,6 @@ if __name__ == '__main__':
                  [0.0, 872.2853801540007, 360.5],
                  [ 0.0, 0.0, 1.0]])
     w, h = 1208, 720
-        
-    planner = Waypoint_Planner(manager.costmap, manager.region_bounds, T_camera, K, (w,h))    
+    entropy, cloud = manager.get_region_entropy(1)  
+    planner = Waypoint_Planner(manager.costmap,T_camera, K, (w,h))    
+    waypoint = planner.get_optimal_waypoint(10, cloud, entropy)

@@ -12,7 +12,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import PoseArray, Pose
 import ros_numpy
 import numpy as np
-from ergodic_inspection.srv import PointCloudWithEntropy
+from ergodic_inspection.srv import PointCloudWithEntropy, PlanRegion
 from nav_msgs.srv import GetMap
 
 import open3d as o3d
@@ -140,16 +140,13 @@ if __name__ == "__main__":
     rospy.init_node('waypoint_planner',anonymous=False)
     rospy.wait_for_service('get_reference_cloud_region')
     rospy.wait_for_service('static_map')
+    rospy.wait_for_service('plan_region')
+
     get_cost_map = rospy.ServiceProxy('static_map', GetMap)
     costmap_msg = get_cost_map()
     costmap = process_costmap_msg(costmap_msg)
-    
-    with open(path+"/resources/region_bounds.yaml") as stream:
-        try:
-            region_bounds = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)    
-            
+
+    get_region = rospy.ServiceProxy('plan_region', PlanRegion)
     T_camera = np.eye(4)
     T_camera[0:3,3]= [0.077, -0.000, 0.218]
     T_camera[0:3,0:3] =  [[0.0019938, -0.1555174, 0.9878311],
@@ -160,14 +157,13 @@ if __name__ == "__main__":
                  [ 0.0, 0.0, 1.0]])
     w, h = 1208, 720
         
-    planner = Waypoint_Planner(costmap, region_bounds, T_camera, K, (w,h))
-    try:
-        region = 1 
+    planner = Waypoint_Planner(costmap, T_camera, K, (w,h))
+    
+    while not rospy.is_shutdown():
+        region = get_region()
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         msg = get_reference(region)
         h, region_cloud = decode_msg(msg.ref)
-        waypoint = planner.get_optimal_waypoint(region, 50, region_cloud, h)
-        print(waypoint)
+        waypoint = planner.get_optimal_waypoint(50, region_cloud, h)
         navigate2point(waypoint)
-    except rospy.ServiceException as e:
-        print("Service call failed: %s"%e)
+ 

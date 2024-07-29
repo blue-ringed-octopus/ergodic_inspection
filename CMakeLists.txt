@@ -66,6 +66,7 @@ add_message_files(
     GetGraphStructure.srv
     PlaceNode.srv
     PlanRegion.srv
+    GetRegion.srv
     
  )
 

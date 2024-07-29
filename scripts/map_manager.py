@@ -140,6 +140,11 @@ class Map_Manager:
         h = self.get_entropy()
         return ids, edges, h
     
+    def coord_to_region(self, coord, level):
+        idx = self.get_index(coord)
+        region = self.hierarchical_graph.levels[level].id_map[idx]
+        return region
+    
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     manager = Map_Manager("../")

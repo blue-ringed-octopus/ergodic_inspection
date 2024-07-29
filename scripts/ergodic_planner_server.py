@@ -16,16 +16,17 @@ import numpy as np
 class Ergodic_Planner_Server:
     def __init__(self):
         rospy.wait_for_service('GetGraphStructure')
-        get_graph = rospy.ServiceProxy('GetGraphStructure', GetGraphStructure)
-        msg = get_graph(1)
+        self.get_graph = rospy.ServiceProxy('GetGraphStructure', GetGraphStructure)
+        msg = self.get_graph(1)
         nodes, edges, w = self.parse_graph_msg(msg)
         self.planner = Ergodic_Planner(nodes, edges)
         rospy.Service('plan_region', PlanRegion, self.plan_region_handler)
 
 
     def plan_region_handler(self, req):
-        w = req.h.data
-        region = req.h.current_region
+        msg = self.get_graph(1)
+        _, _, w = self.parse_graph_msg(msg)
+        region = req.current_region
         next_region = self.planner.get_next_region(w, region)
         return PlanRegionResponse(str(next_region))
     
