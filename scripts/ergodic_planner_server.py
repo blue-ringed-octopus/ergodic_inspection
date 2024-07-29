@@ -18,7 +18,7 @@ class Ergodic_Planner_Server:
         rospy.wait_for_service('GetGraphStructure')
         self.get_graph = rospy.ServiceProxy('GetGraphStructure', GetGraphStructure)
         msg = self.get_graph(1)
-        nodes, edges, w = self.parse_graph_msg(msg)
+        self.id_map, nodes, edges, w = self.parse_graph_msg(msg)
         self.planner = Ergodic_Planner(nodes, edges)
         rospy.Service('plan_region', PlanRegion, self.plan_region_handler)
 
@@ -42,7 +42,7 @@ class Ergodic_Planner_Server:
             node1, node2 = edge.split(',')
             edges.append([id_map[node1], id_map[node2]])
         w = np.asarray(graph.weights.data)  
-        return nodes, edges, w
+        return id_map, nodes, edges, w
 
 if __name__ == '__main__':
     rospy.init_node('ergodic_planner',anonymous=False)
