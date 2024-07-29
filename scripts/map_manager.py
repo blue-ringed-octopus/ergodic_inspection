@@ -142,8 +142,8 @@ class Map_Manager:
     
     def coord_to_region(self, coord, level):
         idx = self.get_index(coord)
-        region = self.hierarchical_graph.levels[level].id_map[idx]
-        return region
+        region = self.hierarchical_graph.levels[level].id_map[idx[0], idx[1]]
+        return int(region)
     
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
@@ -151,3 +151,4 @@ if __name__ == '__main__':
     img = manager.get_region_graph_img()
     plt.imshow(img)    
     ids, edges, h = manager.get_graph(1)
+    region = manager.coord_to_region([2.57,-0.75], 1)
