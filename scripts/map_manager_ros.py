@@ -9,6 +9,8 @@ from map_manager import Map_Manager
 from ergodic_inspection.srv import PointCloudWithEntropy, PointCloudWithEntropyResponse
 from ergodic_inspection.srv import SetBelief, SetBeliefResponse
 from ergodic_inspection.srv import GetGraphStructure, GetGraphStructureResponse
+from ergodic_inspection.srv import GetRegion, GetRegionResponse
+
 from nav_msgs.srv import GetMap, GetMapResponse
 
 from sensor_msgs.msg import PointCloud2
@@ -35,9 +37,17 @@ class Server:
         rospy.Service('set_entropy', SetBelief, self.set_entropy)
         rospy.Service('GetGraphStructure', GetGraphStructure, self.send_graph)
         rospy.Service('static_map', GetMap, self.send_costmap)
-
+        rospy.Service('get_region', GetRegion, self.send_region)
         print("Map server online")
     
+    def send_region(self, req):
+        level = req.level
+        x = req.pose.position.x
+        y = req.pose.position.y
+        region = self.map_manager.coord_to_region([x,y], level)
+        
+        return GetRegionResponse(region)
+        
     def get_map_msg(self):
         costmap = self.map_manager.costmap
         im = costmap['costmap'].T
