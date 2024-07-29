@@ -79,11 +79,12 @@ class Server:
         return SetBeliefResponse(True)
     
     def send_pc(self, req):
-        if req.regionID == -1:
+        regionID = int(req.regionID)
+        if regionID == -1:
             print("Requested full workspace")
         else:
-            print("Requested Region ID: "+ str(req.regionID))
-        h, cloud = self.map_manager.get_region_entropy(req.regionID)
+            print("Requested Region ID: "+ req.regionID)
+        h, cloud = self.map_manager.get_region_entropy(regionID)
         msg = self.get_pc_msg(cloud,h)
         return PointCloudWithEntropyResponse(msg)
     
