@@ -26,7 +26,7 @@ class Ergodic_Planner_Server:
     def plan_region_handler(self, req):
         msg = self.get_graph(1)
         _, _, _, w = self.parse_graph_msg(msg)
-        region = self.id_map[int(req.current_region)]
+        region = self.id_map[req.current_region]
         next_region, _ = self.planner.get_next_region(w, region)
         return PlanRegionResponse(str(next_region))
     
