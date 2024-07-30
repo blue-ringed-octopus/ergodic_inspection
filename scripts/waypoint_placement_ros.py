@@ -52,7 +52,7 @@ class Waypoint_Placement_Wrapper:
                      [0.0, 872.2853801540007, 360.5],
                      [ 0.0, 0.0, 1.0]])
         w, h = 1208, 720
-        self.next_region = 0
+        self.next_region = "0"
     
         self.planner = Waypoint_Planner(costmap, T_camera, K, (w,h))
         
