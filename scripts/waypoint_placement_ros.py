@@ -190,10 +190,15 @@ def plot_waypoint(wrapper):
         talker(waypoint)
         rate.sleep()	
         
-if __name__ == "__main__":
-    wrapper = Waypoint_Placement_Wrapper()
-    t1 = threading.Thread(target = plot_waypoint, args = (wrapper))
-    wrapper.update()
-    t1.start()
+def update(wrapper):
     while not rospy.is_shutdown():
         wrapper.update()
+    
+if __name__ == "__main__":
+    wrapper = Waypoint_Placement_Wrapper()
+    waypoint_thread = threading.Thread(target = plot_waypoint, args = (wrapper))
+    update_thread = threading.Thread(target = update, args = (wrapper))
+    wrapper.update()
+    waypoint_thread.start()
+    update_thread.start()
+    rospy.spin()
