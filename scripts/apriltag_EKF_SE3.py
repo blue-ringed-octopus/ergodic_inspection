@@ -120,7 +120,7 @@ class EKF:
         self.R[1,1]=0.01 #y
         self.R[2,2]=0.0001 #z
         self.R[3:5, 3:5] *= 0.0001
-        self.R[5,5] *= (np.pi/4)**2
+        self.R[5,5] *= (np.pi/2)**2
         # self.R=np.eye(6)
         # self.R[0,0]=999 #x
         # self.R[1,1]=999 #y
