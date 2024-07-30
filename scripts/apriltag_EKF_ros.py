@@ -137,7 +137,7 @@ class EKF_Wrapper:
             Rv[2,2] =  data.twist.twist.linear.z**2 
             Rv[3,3] =  data.twist.twist.angular.x**2 
             Rv[4,4] =  data.twist.twist.angular.y**2
-            Rv[5,5] =  data.twist.twist.angular.z**2
+            Rv[5,5] =  10 * data.twist.twist.angular.z**2
             self.ekf.motion_update(odom, Rv)
             
             M = self.ekf.mu[0]
