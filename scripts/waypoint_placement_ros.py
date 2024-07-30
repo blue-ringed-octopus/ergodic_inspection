@@ -180,7 +180,7 @@ def process_costmap_msg(msg):
     cost = np.array(map_.data).reshape((h,w))
     resolution = map_.info.resolution
     origin =  [map_.info.origin.position.x, map_.info.origin.position.y]
-    return {"costmap": cost, "resolution": resolution,"origin":origin}
+    return {"costmap": cost.T, "resolution": resolution,"origin":origin}
 
 def plot_waypoint(wrapper):
     rate = rospy.Rate(1)

@@ -102,10 +102,11 @@ def inflation_par(image, inflation_radius, cost_scaling_factor,robot_radius):
 
 
 cost = inflation_par(masked_map, inflation_radius, cost_scaling_factor,robot_radius)
+# cost=cost.T
 plt.imshow(cost.T, origin="lower")
 
 resolution = (max_bound-min_bound)[0:2]
 resolution = resolution/[x_shape, y_shape]
 
 with open('../resources/costmap.pickle', 'wb') as handle:
-    pickle.dump({"costmap": cost, "resolution": resolution,"origin":voxel_grid.origin, "bounds":{"min": min_bound, "max": max_bound} }, handle)
+    pickle.dump({"costmap": cost/255*100, "resolution": resolution,"origin":voxel_grid.origin, "bounds":{"min": min_bound, "max": max_bound} }, handle)

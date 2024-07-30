@@ -56,7 +56,8 @@ class Waypoint_Planner:
             # coord_rand= np.random.uniform(bound["min_bound"], bound["max_bound"], size = 5)[:2]
             # centroid = 1/2*(np.array(bound["min_bound"])+np.array(bound["max_bound"]))[:2]
             cost = self.get_cost(coord_rand)
-            if cost>50:
+            if cost<25:
+                print(cost)
                 coords.append(coord_rand)
         # cost = self.get_cost(coord_rand)
         angles = np.random.uniform(0, 2*np.pi, size = len(coords))
@@ -84,7 +85,6 @@ class Waypoint_Planner:
 
 if __name__ == '__main__':
     from map_manager import Map_Manager
-    
     manager = Map_Manager("../")
     with open('tests/ref_cloud_detected.pickle', 'rb') as handle:
         ref_cloud = pickle.load(handle)
@@ -98,6 +98,13 @@ if __name__ == '__main__':
                  [0.0, 872.2853801540007, 360.5],
                  [ 0.0, 0.0, 1.0]])
     w, h = 1208, 720
-    entropy, cloud = manager.get_region_entropy(1)  
+    region = 1
+    entropy, cloud = manager.get_region_entropy(region)  
     planner = Waypoint_Planner(manager.costmap,T_camera, K, (w,h))    
-    waypoint = planner.get_optimal_waypoint(10, cloud, entropy)
+    waypoint = planner.get_optimal_waypoint(100, cloud, entropy)
+    im = np.round(manager.costmap["costmap"].copy()*255/100).astype(np.uint8)
+    im=cv2.cvtColor(im.T, cv2.COLOR_GRAY2RGB)
+    idx = manager.get_index(waypoint[0:2])
+    im=cv2.circle(im, (int(idx[0]), int(idx[1])), 1,(255,0,0), -1)
+    plt.imshow(im, origin="lower")
+    
