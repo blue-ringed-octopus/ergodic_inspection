@@ -55,7 +55,6 @@ class Waypoint_Placement_Wrapper:
         self.next_region = 0
     
         self.planner = Waypoint_Planner(costmap, T_camera, K, (w,h))
-        pose = self.get_pose()
         
         
     def get_current_region(self):
