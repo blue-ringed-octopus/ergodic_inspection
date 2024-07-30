@@ -65,10 +65,10 @@ class Map_Manager:
             except yaml.YAMLError as exc:
                 print(exc)  
         self.region_bounds = region_bounds
-        mask = cv2.threshold(self.costmap["costmap"].copy(), 127, 255,  cv2.THRESH_BINARY)[1]
+        mask = cv2.threshold(self.costmap["costmap"].copy(), 50, 100,  cv2.THRESH_BINARY)[1]
         root_node = Hierarchical_Graph.Node(0,[0,0], 0)
         root_grid = mask.astype(np.int32)
-        root_grid[root_grid==255] = -1
+        root_grid[root_grid==100] = -1
         root_graph = Graph({0:root_node} , 0 ,root_grid)
         h_graph = Hierarchical_Graph(root_graph)
         
