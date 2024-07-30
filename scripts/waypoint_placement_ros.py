@@ -192,7 +192,7 @@ def plot_waypoint(planner_wrapper):
         
 if __name__ == "__main__":
     wrapper = Waypoint_Placement_Wrapper()
-    t1 = threading.Thread(plot_waypoint, wrapper)
+    t1 = threading.Thread(plot_waypoint, (wrapper))
     wrapper.update()
     t1.start()
     while not rospy.is_shutdown():
