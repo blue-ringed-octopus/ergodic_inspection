@@ -1,0 +1,9 @@
+bool reset
+---
+std_msgs/Float32MultiArray mu
+std_msgs/Float32MultiArray sigma
+int32[] feature_id
+int32[] feature_map
+
+
+

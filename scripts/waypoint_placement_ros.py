@@ -12,7 +12,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import PoseArray, Pose
 import ros_numpy
 import numpy as np
-from ergodic_inspection.srv import PointCloudWithEntropy, PlanRegion, GetRegion
+from ergodic_inspection.srv import PointCloudWithEntropy, PlanRegion, GetRegion, PlaceNode
 from nav_msgs.srv import GetMap
 import tf 
 
@@ -39,7 +39,8 @@ class Waypoint_Placement_Wrapper:
         self.plan_region = rospy.ServiceProxy('plan_region', PlanRegion)
         self.get_region = rospy.ServiceProxy('get_region', GetRegion)
         self.get_cost_map = rospy.ServiceProxy('static_map', GetMap)
-        
+        self.place_node = rospy.ServiceProxy('place_node', PlaceNode)
+
         costmap_msg = self.get_cost_map()
         costmap = process_costmap_msg(costmap_msg)
         self.listener=tf.TransformListener()
@@ -76,7 +77,7 @@ class Waypoint_Placement_Wrapper:
         theta = pose[2]
         self.waypoint = [pose[0], pose[1], np.cos(theta/2), np.sin(theta/2)]
         navigate2point(self.waypoint)
- 
+        id_ = self.place_node()
     
 def decode_msg(msg):
     pc=ros_numpy.numpify(msg)
