@@ -21,7 +21,6 @@ from waypoint_placement import Waypoint_Planner
 import rospkg 
 import pickle
 import yaml
-import colorsys
 import threading  
 
 rospack=rospkg.RosPack()
@@ -193,12 +192,26 @@ def plot_waypoint(wrapper):
 def update(wrapper):
     while not rospy.is_shutdown():
         wrapper.update()
-    
+
+import time
+def print_stuff(i):
+    for _ in range(10):
+        print(i)
+        time.sleep(0.01)  
+        
 if __name__ == "__main__":
-    wrapper = Waypoint_Placement_Wrapper()
-    waypoint_thread = threading.Thread(target = plot_waypoint,daemon=True, args = (wrapper,))
-    update_thread = threading.Thread(target = update, args = (wrapper,))
-    wrapper.update()
-    waypoint_thread.start()
-    update_thread.start()
-    rospy.spin()
+    t1 = threading.Thread(target=print_stuff, args = (1,))
+    t2 = threading.Thread(target=print_stuff, args = (2,))
+
+    t1.start()
+    t2.start()
+
+    t1.join()
+    t2.join()
+    # wrapper = Waypoint_Placement_Wrapper()
+    # waypoint_thread = threading.Thread(target = plot_waypoint,daemon=True, args = (wrapper,))
+    # update_thread = threading.Thread(target = update, args = (wrapper,))
+    # wrapper.update()
+    # waypoint_thread.start()
+    # update_thread.start()
+    # rospy.spin()
