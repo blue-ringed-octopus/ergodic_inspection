@@ -6,7 +6,7 @@ Created on Sat Jul  6 18:13:16 2024
 """
 import cv2
 import numpy as np
-
+import colorsys
 
 
 class Graph:
@@ -17,23 +17,29 @@ class Graph:
         self.edges=[]
         
     def plot_graph(self):
+        n = len(self.nodes)
+        region_color = [(colorsys.hsv_to_rgb(i/n, 0.5, 1)) for i in range(n)]
         img = self.id_map.copy()
         img = img.astype(np.float32)
         img[img>=0] = 255
         img[img==-1] = 0
-        h, w = img.shape
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        for i in range(n):
+            img[self.id_map == i, :] = region_color[i]
+        h, w, _ = img.shape
         scale = 500
         img = cv2.resize(img, (int(scale), int(h/w*scale)),interpolation = cv2.INTER_NEAREST)
-        for node in self.nodes.values():
+        for i, node in enumerate(self.nodes.values()):
             textsize = cv2.getTextSize(str(node.id), cv2.FONT_HERSHEY_SIMPLEX, 1, 2)[0]
             pos = (int(scale/w*node.coord[1]), int(scale/w*node.coord[0]))
             img = cv2.circle(img, pos ,20, 0, -1)
             pos = (int(scale/w*node.coord[1]-textsize[1]/2), int(scale/w*node.coord[0]+textsize[0]/2))
-            img = cv2.putText(img, str(node.id), pos, cv2.FONT_HERSHEY_SIMPLEX , 1, 255, 2)
+            img = cv2.putText(img, str(node.id), pos, cv2.FONT_HERSHEY_SIMPLEX , 1, region_color[i] , 2)
             for neighbor in node.neighbor_nodes.values():
                 pos2 = (int(scale/w*neighbor.coord[1]), int(scale/w*neighbor.coord[0]))
                 img = cv2.arrowedLine(img, pos, pos2, 0)
-        return cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        # return cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        return img
     def get_edges(self):
         if len(self.edges):
             return self.edges.copy()

@@ -22,7 +22,7 @@ inflation_radius= 0.5/resolution
 cost_scaling_factor = 5.0* resolution
 
 #%% Import FOD clouds
-mesh = o3d.io.read_triangle_mesh("tests/ballast.STL")
+mesh = o3d.io.read_triangle_mesh("../resources/Ballast.STL")
 frame = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
 o3d.visualization.draw_geometries([frame, mesh])
 box = mesh.get_axis_aligned_bounding_box()
