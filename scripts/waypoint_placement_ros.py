@@ -75,7 +75,7 @@ class Waypoint_Placement_Wrapper:
         h, region_cloud = decode_msg(msg.ref)
         pose = self.planner.get_optimal_waypoint(50, region_cloud, h)
         theta = pose[2]
-        self.waypoint = pose[0], pose[1], np.cos(theta/2), np.sin(theta/2)
+        self.waypoint = [pose[0], pose[1], np.cos(theta/2), np.sin(theta/2)]
         navigate2point(self.waypoint)
  
     
@@ -140,6 +140,7 @@ def talker(waypoint):
         #To not have to deal with threading, Im gonna publish just a couple times in the begging, and then continue with telling the robot to go to the points
     # count = 0
     pub.publish(array)
+    print("sending rviz arrow")
     # while count<10:
     #     rate.sleep()	
     #     print("sending rviz arrow")
