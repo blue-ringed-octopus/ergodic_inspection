@@ -73,7 +73,9 @@ class Waypoint_Placement_Wrapper:
         self.next_region = self.plan_region(region).next_region
         msg = self.get_reference(self.next_region)
         h, region_cloud = decode_msg(msg.ref)
-        self.waypoint = self.planner.get_optimal_waypoint(50, region_cloud, h)
+        pose = self.planner.get_optimal_waypoint(50, region_cloud, h)
+        theta = pose[2]
+        self.waypoint = pose[0], pose[1], np.cos(theta/2), np.sin(theta/2)
         navigate2point(self.waypoint)
  
     
@@ -167,10 +169,7 @@ def talker(waypoint):
     
 def navigate2point(waypoint):
     try:
-        theta = waypoint[2]
-        x,y,w,z = waypoint[0], waypoint[1], np.cos(theta/2), np.sin(theta/2)
-        simple_move(x,y,w,z)
-        
+        simple_move(waypoint[0],waypoint[1],waypoint[2],waypoint[3])
         print("goal reached")
     except rospy.ROSInterruptException:
         print ("Keyboard Interrupt")
