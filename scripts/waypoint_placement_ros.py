@@ -196,7 +196,7 @@ def update(wrapper):
     
 if __name__ == "__main__":
     wrapper = Waypoint_Placement_Wrapper()
-    waypoint_thread = threading.Thread(target = plot_waypoint, args = (wrapper,))
+    waypoint_thread = threading.Thread(target = plot_waypoint,daemon=True, args = (wrapper,))
     update_thread = threading.Thread(target = update, args = (wrapper,))
     wrapper.update()
     waypoint_thread.start()
