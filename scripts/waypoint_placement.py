@@ -56,7 +56,7 @@ class Waypoint_Planner:
             # coord_rand= np.random.uniform(bound["min_bound"], bound["max_bound"], size = 5)[:2]
             # centroid = 1/2*(np.array(bound["min_bound"])+np.array(bound["max_bound"]))[:2]
             cost = self.get_cost(coord_rand)
-            if cost<127:
+            if cost<50:
                 coords.append(coord_rand)
         # cost = self.get_cost(coord_rand)
         angles = np.random.uniform(0, 2*np.pi, size = len(coords))
@@ -73,7 +73,7 @@ class Waypoint_Planner:
         idx = self.get_index(coord)
         x_shape, y_shape = self.costmap["costmap"].shape
         if (idx<[0,0]).any() or (idx>=[x_shape, y_shape]).any():
-            return 255
+            return 100
         # test = self.costmap["costmap"].copy().T
         # test = cv2.cvtColor(test, cv2.COLOR_GRAY2BGR) 
         # test = cv2.circle(test, (ind[0], ind[1]), 2, [255,0,0], -1)
