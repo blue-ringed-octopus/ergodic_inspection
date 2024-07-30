@@ -64,7 +64,7 @@ class Waypoint_Placement_Wrapper:
         pose.position.x = trans[0]
         pose.position.y = trans[1]
         region = self.get_region(pose,1).region
-        if region==-1:
+        if region=="-1":
             region = self.next_region
         return region 
     
@@ -182,10 +182,10 @@ def process_costmap_msg(msg):
     origin =  [map_.info.origin.position.x, map_.info.origin.position.y]
     return {"costmap": cost, "resolution": resolution,"origin":origin}
 
-def plot_waypoint(planner_wrapper):
+def plot_waypoint(wrapper):
     rate = rospy.Rate(1)
     while not rospy.is_shutdown():
-        waypoint = planner_wrapper.waypoint.copy()
+        waypoint = wrapper.waypoint.copy()
         talker(waypoint)
         rate.sleep()	
         
