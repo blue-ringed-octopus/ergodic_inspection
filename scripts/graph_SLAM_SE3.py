@@ -147,7 +147,8 @@ class Graph_SLAM:
             for i in range(n_prior):
                 J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(z[6*i:6*i+6])
             
-            cov = J@cov@J.T + self.forgetting_factor*np.eye(6*n)
+            cov = J@cov@J.T 
+            cov = cov + self.forgetting_factor*np.eye(len(cov))
             children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
             if localize_mode:
                 idx_map={"features": {}, "pose": pose_idx_map}    
