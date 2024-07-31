@@ -15,8 +15,8 @@
    orientation: [0, 0, 0]
 
 4:
-   position: [0.575, -4.063, 0.227]
-   orientation: [0, 0, 1.5708]
+   position: [0.35, -4.063, 0.227]
+   orientation: [0, 0, 0.2744]
 
 5:
    position: [0.914111, -5, 0.227]
