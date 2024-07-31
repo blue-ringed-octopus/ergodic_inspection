@@ -14,5 +14,5 @@ EKF:
   
 
 Graph_SLAM:
-  node_threshold: 1.5
+  node_threshold: 1
   forgetting_factor: 0.5

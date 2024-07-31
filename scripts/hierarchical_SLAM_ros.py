@@ -33,7 +33,7 @@ class Graph_SLAM_wrapper:
         self.factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
         self.pc_pub = rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
         
-        self.thres = 1.5
+        self.thres = params["Graph_SLAM"]["node_threshold"]
         #prior_feature 
         prior = read_prior()
         self.ekf_wrapper = EKF_Wrapper(0, tf_br)
@@ -285,7 +285,7 @@ def read_prior():
     prior["z"] = z
     prior["idx_map"] = idx_map
     prior["children"] = children
-    prior["cov"] = np.eye(len(z))* 0.001
+    prior["cov"] = np.eye(len(z))* 0.0001
     return prior
 
 if __name__ == "__main__":
