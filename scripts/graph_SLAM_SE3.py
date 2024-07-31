@@ -59,12 +59,12 @@ class Graph_SLAM:
                 for node in self.feature_nodes:
                     node.factor.pop(self.id)
                     
-        def __init__(self, forgetting_factor):
+        def __init__(self, horizon, forgetting_factor):
             self.prior_factor = self.Factor(0, [],[], [], None, np.eye(2),  {"features":{}, "pose":{}})
             self.pose_nodes={}
             self.factors={}
             self.feature_nodes={}
-            self.window = 10
+            self.horizon = horizon
             self.current_pose_id = -1
             self.current_factor_id = 1
             self.forgetting_factor = forgetting_factor
@@ -111,7 +111,8 @@ class Graph_SLAM:
             dx=Graph_SLAM.Back_end.linear_solve(H,b)
             M =  Graph_SLAM.Back_end.update_pose(M, 0.5*dx)
             i = 0
-            while np.max(np.abs(dx))>0.0001 and i<100:
+            # while np.max(np.abs(dx))>0.0001 and i<100:
+            while np.max(np.abs(dx))>0.001 and i<10000:
                 print("step: ", i)
                 H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map}, localize_mode)   
                 dx=Graph_SLAM.Back_end.linear_solve(H,b)
@@ -160,8 +161,8 @@ class Graph_SLAM:
             prior =  self.Factor(self.prior_factor.id, None, children, feature_nodes, z, cov, idx_map)
             self.prior_factor = prior
             
-        def prune(self, window, localize_mode):
-            for node in list(self.pose_nodes.values())[:-window]:
+        def prune(self, horizon, localize_mode):
+            for node in list(self.pose_nodes.values())[:-horizon]:
                 self.marginalize(node, localize_mode)
                 for id_, factor in node.factor.items():
                     factor.prune(node.id)
@@ -207,9 +208,9 @@ class Graph_SLAM:
             self.current_factor_id += 1    
             
     class Back_end:    
-        def __init__(self):
-            pass
-        
+        def __init__(self, max_iter, step_size):
+            self.max_iter = max_iter
+            self.step_size = step_size
         @staticmethod
         def node_to_vector(graph):
             pose_idx_map={}
@@ -348,27 +349,32 @@ class Graph_SLAM:
 
         @staticmethod
         def update_pose(M, dx):
-            M = [m@SE3.Exp(dx[6*i:6*i+6]) if 6*i+6< len(dx) else m for i, m in enumerate(M) ]
+            M = [m@SE3.Exp(dx[6*i:6*i+6]) if 6*i+6<=len(dx) else m for i, m in enumerate(M) ]
+            # M = [M[i]@SE3.Exp(dx[6*i:6*i+6]) if  for i in idx_map["pose"].values() ]
             return M
         
         def optimize(self, graph, localize_mode = False):
             # with open('graph.pickle', 'wb') as handle:
             #     pickle.dump(graph, handle)
             print("optimizing graph")
+            global idx_map
             M, idx_map = self.node_to_vector(graph)
             H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map, localize_mode)
+            global test
+            test=H
             dx=self.linear_solve(H,b)
             i=0
-            M = self.update_pose(M, 0.01*dx)
+            M = self.update_pose(M, self.step_size*dx)
 
-            while np.max(np.abs(dx))>0.001 and i<50:
+            while np.max(np.abs(dx))>0.001 and i<self.max_iter:
                 print("step: ", i)
                 H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map, localize_mode)
                 dx=self.linear_solve(H,b)
 
-                M = self.update_pose(M, 0.01*dx)
+                M = self.update_pose(M.copy(), self.step_size*dx,)
+                # M = self.update_pose(M.copy(), 1*dx)
                 i+=1
-    
+                print(max(np.abs(dx)))
             self.update_nodes(graph, M, inv(H), idx_map, localize_mode)
             print("optimized")
             
@@ -377,8 +383,10 @@ class Graph_SLAM:
             #     pickle.dump(graph_test, handle)
             return H
             
-    def __init__(self, M_init, localize_mode = False, forgetting_factor = 0):
+    def __init__(self, M_init, localize_mode = False,horizon = 10 ,forgetting_factor = 0, max_iter=50, step_size = 0.01):
+        self.back_end=self.Back_end(max_iter, step_size)
         self.forgetting_factor = forgetting_factor
+        self.horizon = horizon
         self.localize_mode = localize_mode
         self.global_map=None
         self.optimized = False
@@ -386,8 +394,7 @@ class Graph_SLAM:
         self.reset()
 
     def reset(self):
-        self.front_end=self.Front_end(self.forgetting_factor)
-        self.back_end=self.Back_end()
+        self.front_end=self.Front_end(self.horizon, self.forgetting_factor)
         self.current_node_id=self.front_end.add_node(self.M, "pose")
         self.omega=np.eye(3)*0.001
         self.feature_tree=None
@@ -486,3 +493,11 @@ class Graph_SLAM:
         self.optimized = True
         self.front_end.prune(10, self.localize_mode)
         return node_id
+    
+if __name__ == "__main__":
+    graph_slam = Graph_SLAM(np.zeros(4), True, 1, 0, 1000)
+    with open('tests/graph.pickle', 'rb') as f:
+        graph = pickle.load(f)
+    graph_slam.front_end = graph
+    graph_slam.front_end.prune(5, True)
+    graph_slam.back_end.optimize(graph_slam.front_end,  localize_mode = True)

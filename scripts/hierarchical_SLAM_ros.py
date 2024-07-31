@@ -46,7 +46,10 @@ class Graph_SLAM_wrapper:
         M_feature = ekf.mu[ekf.features[feature_id]]
         M_prior = prior["children"][feature_id]
         M_init = M_prior@np.linalg.inv(M_feature)
-        graph_slam=Graph_SLAM(M_init, localize_mode, params["Graph_SLAM"]["forgetting_factor"])
+        graph_slam=Graph_SLAM(M_init, localize_mode,params["Graph_SLAM"]["horizon"], 
+                              params["Graph_SLAM"]["forgetting_factor"], 
+                              params["Graph_SLAM"]["max_iteration"],
+                              params["Graph_SLAM"]["step_size"])
         for id_, M_prior in prior["children"].items():
             graph_slam.front_end.add_node(M_prior,"feature", id_)
             
