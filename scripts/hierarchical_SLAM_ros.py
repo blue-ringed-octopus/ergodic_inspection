@@ -24,7 +24,9 @@ np.float = np.float64
 np.set_printoptions(precision=2)
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
-
+with open(path+'/param/estimation_param.yaml', 'r') as file:
+    params = yaml.safe_load(file)
+    
 class Graph_SLAM_wrapper:
     def __init__(self, tf_br, localize_mode  = False):
         self.tf_br = tf_br
@@ -44,7 +46,7 @@ class Graph_SLAM_wrapper:
         M_feature = ekf.mu[ekf.features[feature_id]]
         M_prior = prior["children"][feature_id]
         M_init = M_prior@np.linalg.inv(M_feature)
-        graph_slam=Graph_SLAM(M_init, localize_mode)
+        graph_slam=Graph_SLAM(M_init, localize_mode, params["Graph_SLAM"]["forgetting_factor"])
         for id_, M_prior in prior["children"].items():
             graph_slam.front_end.add_node(M_prior,"feature", id_)
             

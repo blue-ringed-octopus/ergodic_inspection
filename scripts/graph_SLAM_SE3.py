@@ -59,7 +59,7 @@ class Graph_SLAM:
                 for node in self.feature_nodes:
                     node.factor.pop(self.id)
                     
-        def __init__(self):
+        def __init__(self, forgetting_factor):
             self.prior_factor = self.Factor(0, [],[], [], None, np.eye(2),  {"features":{}, "pose":{}})
             self.pose_nodes={}
             self.factors={}
@@ -67,6 +67,7 @@ class Graph_SLAM:
             self.window = 10
             self.current_pose_id = -1
             self.current_factor_id = 1
+            self.forgetting_factor = forgetting_factor
         
         def marginalize(self, node, localize_mode):
             print("marginalize node", node.id)
@@ -77,6 +78,7 @@ class Graph_SLAM:
             for key in prior.idx_map["pose"].keys():
                 pose_idx_map[key] = n
                 n+=1
+                
             for factor in node.factor.values():
                 if not factor.parent.id in prior.idx_map["pose"].keys():
                     pose_idx_map[factor.parent.id] = n
@@ -145,7 +147,7 @@ class Graph_SLAM:
             for i in range(n_prior):
                 J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(z[6*i:6*i+6])
             
-            cov = J@cov@J.T
+            cov = J@cov@J.T + self.forgetting_factor*np.eye(6*n)
             children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
             if localize_mode:
                 idx_map={"features": {}, "pose": pose_idx_map}    
@@ -374,7 +376,8 @@ class Graph_SLAM:
             #     pickle.dump(graph_test, handle)
             return H
             
-    def __init__(self, M_init, localize_mode = False):
+    def __init__(self, M_init, localize_mode = False, forgetting_factor = 0):
+        self.forgetting_factor = forgetting_factor
         self.localize_mode = localize_mode
         self.global_map=None
         self.optimized = False
@@ -382,7 +385,7 @@ class Graph_SLAM:
         self.reset()
 
     def reset(self):
-        self.front_end=self.Front_end()
+        self.front_end=self.Front_end(self.forgetting_factor)
         self.back_end=self.Back_end()
         self.current_node_id=self.front_end.add_node(self.M, "pose")
         self.omega=np.eye(3)*0.001
