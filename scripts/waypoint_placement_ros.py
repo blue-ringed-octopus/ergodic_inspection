@@ -12,7 +12,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import PoseArray, Pose
 import ros_numpy
 import numpy as np
-from ergodic_inspection.srv import PointCloudWithEntropy, PlanRegion, GetRegion, PlaceNode
+from ergodic_inspection.srv import PointCloudWithEntropy, PlanRegion, GetRegion, PlaceNode, OptimizePoseGraph
 from nav_msgs.srv import GetMap
 import tf 
 
@@ -35,12 +35,14 @@ class Waypoint_Placement_Wrapper:
         rospy.wait_for_service('get_reference_cloud_region')
         rospy.wait_for_service('static_map')
         rospy.wait_for_service('plan_region')
+        rospy.wait_for_service('optimize_pose_graph')
         
         self.get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         self.plan_region = rospy.ServiceProxy('plan_region', PlanRegion)
         self.get_region = rospy.ServiceProxy('get_region', GetRegion)
         self.get_cost_map = rospy.ServiceProxy('static_map', GetMap)
         self.place_node = rospy.ServiceProxy('place_node', PlaceNode)
+        self.optimize = rospy.ServiceProxy('optimize_pose_graph', OptimizePoseGraph)
 
         costmap_msg = self.get_cost_map()
         costmap = process_costmap_msg(costmap_msg)
@@ -79,6 +81,7 @@ class Waypoint_Placement_Wrapper:
         self.waypoint = [pose[0], pose[1], np.cos(theta/2), np.sin(theta/2)]
         navigate2point(self.waypoint)
         id_ = self.place_node()
+        self.optimize()
     
 def decode_msg(msg):
     pc=ros_numpy.numpify(msg)
@@ -185,11 +188,10 @@ def process_costmap_msg(msg):
     return {"costmap": cost.T, "resolution": resolution,"origin":origin}
 
 def plot_waypoint(wrapper):
-    rate = rospy.Rate(1)
     while not rospy.is_shutdown():
         waypoint = wrapper.waypoint.copy()
         talker(waypoint)
-        rate.sleep()	
+        time.sleep(1)	
                
 if __name__ == "__main__":
     wrapper = Waypoint_Placement_Wrapper()

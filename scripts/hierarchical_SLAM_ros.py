@@ -18,7 +18,7 @@ from Lie import SE3
 import yaml
 import rospkg
 from scipy.spatial.transform import Rotation as Rot
-from ergodic_inspection.srv import PlaceNode, PlaceNodeResponse
+from ergodic_inspection.srv import PlaceNode, PlaceNodeResponse, OptimizePoseGraph, OptimizePoseGraphResponse
 
 np.float = np.float64 
 np.set_printoptions(precision=2)
@@ -57,7 +57,12 @@ class Graph_SLAM_wrapper:
             graph_slam.front_end.add_prior_factor([], list(prior["children"].keys()),prior['z'], prior["cov"] , {} , {"features": prior["idx_map"]})
         self.graph_slam=graph_slam
         rospy.Service('place_node', PlaceNode, self.place_node_server)
+        rospy.Service('optimize_pose_graph', OptimizePoseGraph, self.optimize_server)
 
+    def optimize_server(self, req):
+        optimized = self.graph_slam.optimize()
+        return OptimizePoseGraphResponse(optimized)
+        
     def place_node(self, posterior, key_node):
         cloud = self.ekf_wrapper.ekf.cloud.copy()
         landmarks = self.graph_slam.get_features_est()

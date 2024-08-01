@@ -485,15 +485,18 @@ class Graph_SLAM:
     
     def place_node(self, posterior, local_cloud, key_node = False):
         node_id = self._posterior_to_factor(posterior, local_cloud)
+
+        return node_id
+    
+    def optimize(self):
         H = self.back_end.optimize(self.front_end, self.localize_mode)
-        with open('graph.pickle', 'wb') as handle:
-            pickle.dump(self.front_end, handle)
+        # with open('graph.pickle', 'wb') as handle:
+        #     pickle.dump(self.front_end, handle)
         self.omega = H
         # self.global_map_assemble()
         self.optimized = True
         self.front_end.prune(10, self.localize_mode)
-        return node_id
-    
+        
 if __name__ == "__main__":
     graph_slam = Graph_SLAM(np.zeros(4), True, 1, 0, 1000)
     with open('tests/graph.pickle', 'rb') as f:
