@@ -493,8 +493,8 @@ class Graph_SLAM:
     def optimize(self):
         M, H, idx_map = self.back_end.optimize(deepcopy(self.factor_graph), self.localize_mode)
         self.update_nodes(M, inv(H), idx_map)
-        # with open('graph.pickle', 'wb') as handle:
-        #     pickle.dump(self.factor_graph, handle)
+        with open('graph.pickle', 'wb') as handle:
+            pickle.dump(self.factor_graph, handle)
         self.omega = H
         # self.global_map_assemble()
         self.optimized = True
