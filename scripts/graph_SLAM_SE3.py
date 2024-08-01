@@ -7,7 +7,7 @@ Created on Tue Nov 21 15:41:45 2023
 """
 
 import numpy as np
-
+from copy import deepcopy
 from common_functions import np2pc
 # from scipy.linalg import solve_triangular
 from numpy.linalg import inv, norm, lstsq
@@ -19,7 +19,7 @@ import threading
 np.set_printoptions(precision=2)
 
 class Graph_SLAM:
-    class Front_end:
+    class Factor_Graph:
         class Node:
             def __init__(self, node_id, M, node_type):
                 self.type=node_type
@@ -211,6 +211,7 @@ class Graph_SLAM:
         def __init__(self, max_iter, step_size):
             self.max_iter = max_iter
             self.step_size = step_size
+            
         @staticmethod
         def node_to_vector(graph):
             pose_idx_map={}
@@ -322,7 +323,7 @@ class Graph_SLAM:
             return H, b
         
         @staticmethod
-        def linear_solve( A,b):
+        def linear_solve(A,b):
             # A=(A+A.T)/2
             # L=np.linalg.cholesky(A)
             # y=solve_triangular(L,b, lower=True)
@@ -337,31 +338,17 @@ class Graph_SLAM:
         #     for node_id, idx in self.feature_idx_map.items():
         #         graph.feature_nodes[node_id].M = graph.feature_nodes[node_id].M@SE3.Exp(dx[idx:idx+6])
     
-        def update_nodes(self, graph, M,cov, idx_map, localize_mode):
-            for node_id, idx in idx_map["pose"].items():
-                graph.pose_nodes[node_id].M = M[idx]
-                graph.pose_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
-                
-            if not localize_mode:
-                for node_id, idx in idx_map["features"].items():  
-                    graph.feature_nodes[node_id].M = M[idx]
-                    graph.feature_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
-
         @staticmethod
         def update_pose(M, dx):
             M = [m@SE3.Exp(dx[6*i:6*i+6]) if 6*i+6<=len(dx) else m for i, m in enumerate(M) ]
-            # M = [M[i]@SE3.Exp(dx[6*i:6*i+6]) if  for i in idx_map["pose"].values() ]
             return M
         
         def optimize(self, graph, localize_mode = False):
             # with open('graph.pickle', 'wb') as handle:
             #     pickle.dump(graph, handle)
             print("optimizing graph")
-            global idx_map
             M, idx_map = self.node_to_vector(graph)
             H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map, localize_mode)
-            global test
-            test=H
             dx=self.linear_solve(H,b)
             i=0
             M = self.update_pose(M, self.step_size*dx)
@@ -375,13 +362,10 @@ class Graph_SLAM:
                 # M = self.update_pose(M.copy(), 1*dx)
                 i+=1
                 print(max(np.abs(dx)))
-            self.update_nodes(graph, M, inv(H), idx_map, localize_mode)
+            # self.update_nodes(graph, M, inv(H), idx_map, localize_mode)
             print("optimized")
             
-            # with open('graph.pickle', 'wb') as handle:
-            #     graph_test = deepcopy(graph)
-            #     pickle.dump(graph_test, handle)
-            return H
+            return M, H, idx_map
             
     def __init__(self, M_init, localize_mode = False,horizon = 10 ,forgetting_factor = 0, max_iter=50, step_size = 0.01):
         self.back_end=self.Back_end(max_iter, step_size)
@@ -394,8 +378,8 @@ class Graph_SLAM:
         self.reset()
 
     def reset(self):
-        self.front_end=self.Front_end(self.horizon, self.forgetting_factor)
-        self.current_node_id=self.front_end.add_node(self.M, "pose")
+        self.factor_graph=self.Factor_Graph(self.horizon, self.forgetting_factor)
+        self.current_node_id=self.factor_graph.add_node(self.M, "pose")
         self.omega=np.eye(3)*0.001
         self.feature_tree=None
         
@@ -406,8 +390,8 @@ class Graph_SLAM:
         sigma = posterior["sigma"]
         idx_map = posterior["features"]
 
-        self.front_end.pose_nodes[self.current_node_id].local_map=local_cloud
-        new_node_id=self.front_end.add_node(self.M.copy(),"pose")
+        self.factor_graph.pose_nodes[self.current_node_id].local_map=local_cloud
+        new_node_id=self.factor_graph.add_node(self.M.copy(),"pose")
 
         feature_node_id = idx_map.keys()
         z= np.zeros(6*len(mu))
@@ -417,21 +401,21 @@ class Graph_SLAM:
             z[6*i:6*i+6] = tau
             J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(tau)
         sigma = J@sigma@J.T 
-        self.front_end.add_factor(self.current_node_id,new_node_id,feature_node_id, z,sigma, idx_map)
+        self.factor_graph.add_factor(self.current_node_id,new_node_id,feature_node_id, z,sigma, idx_map)
         self.current_node_id=new_node_id      
         return new_node_id
     
     def global_map_assemble(self):
         points=[]
         colors=[]
-        for node in self.front_end.pose_nodes.values():
+        for node in self.factor_graph.pose_nodes.values():
             if not node.local_map == None:
                 if( len(node.local_map["features"])) == 0:
                    M = node.M.copy() 
                 else:
                     dm = np.zeros(6)
                     for feature_id, feature in node.local_map["features"].items():
-                        dm  += SE3.Log(self.front_end.feature_nodes[feature_id].M.copy()@inv(feature['M']))
+                        dm  += SE3.Log(self.factor_graph.feature_nodes[feature_id].M.copy()@inv(feature['M']))
                     dm /= len(node.local_map["features"])
                     M = SE3.Exp(dm)
                     
@@ -457,19 +441,19 @@ class Graph_SLAM:
     
     def init_new_features(self, M_node, mu, features):
         for feature_id, idx in features.items():
-            if not feature_id in self.front_end.feature_nodes.keys():
+            if not feature_id in self.factor_graph.feature_nodes.keys():
                 Z=mu[idx]
                 M=M_node@Z
-                self.front_end.add_node(M,"feature", feature_id)
+                self.factor_graph.add_node(M,"feature", feature_id)
     
     def get_node_est(self, node_id=-1):
         if node_id==-1:
             node_id = self.current_node_id
-        return self.front_end.pose_nodes[node_id].M.copy()
+        return self.factor_graph.pose_nodes[node_id].M.copy()
     
     def get_features_est(self):
         features = {}
-        for id_, node in self.front_end.feature_nodes.items():
+        for id_, node in self.factor_graph.feature_nodes.items():
             features[id_] = node.M
         return features
     
@@ -477,7 +461,7 @@ class Graph_SLAM:
         if self.optimized:
             self.optimized=False
             
-        M = self.front_end.pose_nodes[self.current_node_id].M.copy()
+        M = self.factor_graph.pose_nodes[self.current_node_id].M.copy()
         U = posterior["mu"][0]        
         self.M = M@U
         self.init_new_features(M, posterior["mu"], posterior["features"])        
@@ -485,23 +469,35 @@ class Graph_SLAM:
     
     def place_node(self, posterior, local_cloud, key_node = False):
         node_id = self._posterior_to_factor(posterior, local_cloud)
-        backend_thread = threading.Thread(target = self.optimize,daemon=True, args = ())
-        backend_thread.start()
+        # backend_thread = threading.Thread(target = self.optimize,daemon=True, args = ())
+        # backend_thread.start()
+        self.optimize()
         return node_id
     
+    def update_nodes(self, M,cov, idx_map):
+        for node_id, idx in idx_map["pose"].items():
+            self.factor_graph.pose_nodes[node_id].M = M[idx]
+            self.factor_graph.pose_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
+            
+        if not  self.localize_mode:
+            for node_id, idx in idx_map["features"].items():  
+                self.factor_graph.feature_nodes[node_id].M = M[idx]
+                self.factor_graph.feature_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
+                   
     def optimize(self):
-        H = self.back_end.optimize(self.front_end, self.localize_mode)
+        M, H, idx_map = self.back_end.optimize(deepcopy(self.factor_graph), self.localize_mode)
+        self.update_nodes(self, M, inv(H), idx_map)
         # with open('graph.pickle', 'wb') as handle:
-        #     pickle.dump(self.front_end, handle)
+        #     pickle.dump(self.factor_graph, handle)
         self.omega = H
         # self.global_map_assemble()
         self.optimized = True
-        self.front_end.prune(10, self.localize_mode)
+        self.factor_graph.prune(10, self.localize_mode)
         
 if __name__ == "__main__":
     graph_slam = Graph_SLAM(np.zeros(4), True, 1, 0, 1000)
     with open('tests/graph.pickle', 'rb') as f:
         graph = pickle.load(f)
-    graph_slam.front_end = graph
-    graph_slam.front_end.prune(5, True)
-    graph_slam.back_end.optimize(graph_slam.front_end,  localize_mode = True)
+    graph_slam.factor_graph = graph
+    graph_slam.factor_graph.prune(5, True)
+    graph_slam.back_end.optimize(graph_slam.factor_graph,  localize_mode = True)

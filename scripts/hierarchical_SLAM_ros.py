@@ -51,10 +51,10 @@ class Graph_SLAM_wrapper:
                               params["Graph_SLAM"]["max_iteration"],
                               params["Graph_SLAM"]["step_size"])
         for id_, M_prior in prior["children"].items():
-            graph_slam.front_end.add_node(M_prior,"feature", id_)
+            graph_slam.factor_graph.add_node(M_prior,"feature", id_)
             
         if not localize_mode:
-            graph_slam.front_end.add_prior_factor([], list(prior["children"].keys()),prior['z'], prior["cov"] , {} , {"features": prior["idx_map"]})
+            graph_slam.factor_graph.add_prior_factor([], list(prior["children"].keys()),prior['z'], prior["cov"] , {} , {"features": prior["idx_map"]})
         self.graph_slam=graph_slam
         rospy.Service('place_node', PlaceNode, self.place_node_server)
         rospy.Service('optimize_pose_graph', OptimizePoseGraph, self.optimize_server)
@@ -89,7 +89,7 @@ class Graph_SLAM_wrapper:
             self.place_node(posterior, False)
             placed_node = True
             
-        plot_graph(self.graph_slam.front_end, self.factor_graph_marker_pub)
+        plot_graph(self.graph_slam.factor_graph, self.factor_graph_marker_pub)
         
         M = self.graph_slam.get_node_est()
         self.tf_br.sendTransform([M[0,3], M[1,3], M[2,3]],
