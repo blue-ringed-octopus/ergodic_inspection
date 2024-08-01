@@ -129,7 +129,7 @@ if __name__ == "__main__":
         placed_node = graph_slam_wrapper.update()    
         
         if placed_node:            
-            node_id  = list(graph_slam_wrapper.graph_slam.factor_graph.pose_nodes.keys())[-2]
+            node_id  = list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.keys())[-2]
                 
             pc, ref = detector.detect(graph_slam_wrapper.graph_slam.factor_graph.pose_nodes[node_id], graph_slam_wrapper.graph_slam.factor_graph.feature_nodes)
             msg = Float32MultiArray()

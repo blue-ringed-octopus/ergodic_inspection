@@ -62,6 +62,7 @@ class Graph_SLAM:
         def __init__(self, horizon, forgetting_factor):
             self.prior_factor = self.Factor(0, [],[], [], None, np.eye(2),  {"features":{}, "pose":{}})
             self.pose_nodes={}
+            self.key_pose_nodes={}
             self.factors={}
             self.feature_nodes={}
             self.horizon = horizon
@@ -169,11 +170,13 @@ class Graph_SLAM:
                     self.factors.pop(id_)
                 self.pose_nodes.pop(node.id)
     
-        def add_node(self, M, node_type, feature_id=None, ):
+        def add_node(self, M, node_type, feature_id=None, key_node = False):
             i=self.current_pose_id+1
             if node_type=="pose":
                 node=self.Node(i,M, node_type)
                 self.pose_nodes[i]=node
+                if key_node:
+                    self.key_pose_nodes[i]=node
                 self.current_pose_id = i
                     
             if node_type=="feature":
@@ -387,13 +390,13 @@ class Graph_SLAM:
         
         # self.costmap=self.anomaly_detector.costmap
     
-    def _posterior_to_factor(self, posterior, local_cloud):
+    def _posterior_to_factor(self, posterior, local_cloud, key_node):
         mu = posterior["mu"]
         sigma = posterior["sigma"]
         idx_map = posterior["features"]
 
         self.factor_graph.pose_nodes[self.current_node_id].local_map=local_cloud
-        new_node_id=self.factor_graph.add_node(self.M.copy(),"pose")
+        new_node_id=self.factor_graph.add_node(self.M.copy(),"pose", key_node)
 
         feature_node_id = idx_map.keys()
         z= np.zeros(6*len(mu))
@@ -470,7 +473,7 @@ class Graph_SLAM:
         return self.M.copy()
     
     def place_node(self, posterior, local_cloud, key_node = False):
-        node_id = self._posterior_to_factor(posterior, local_cloud)
+        node_id = self._posterior_to_factor(posterior, local_cloud, key_node)
         self.backend_thread.join()
         self.backend_thread = threading.Thread(target = self.optimize,daemon=True, args = ())
         self.backend_thread.start()
