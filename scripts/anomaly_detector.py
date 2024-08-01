@@ -217,7 +217,6 @@ class Anomaly_Detector:
         
         return pc.transform(T), T
     def est_correspondence(self, points, cov):
-        t = time.time()
         n = len(points)
         k = 1
         _, corr = self.ref_tree.query(points, k=k)
