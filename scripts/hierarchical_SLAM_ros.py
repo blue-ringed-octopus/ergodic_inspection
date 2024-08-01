@@ -5,6 +5,7 @@ Created on Sun Mar 31 15:27:33 2024
 
 @author: hibad
 """
+import threading 
 import rospy
 from sensor_msgs.msg import PointCloud2
 import tf
@@ -29,6 +30,7 @@ with open(path+'/param/estimation_param.yaml', 'r') as file:
     
 class Graph_SLAM_wrapper:
     def __init__(self, tf_br, localize_mode  = False):
+        self.lock=threading.Lock()
         self.tf_br = tf_br
         self.factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
         self.pc_pub = rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
@@ -64,16 +66,17 @@ class Graph_SLAM_wrapper:
         return OptimizePoseGraphResponse(optimized)
         
     def place_node(self, posterior, key_node):
-        cloud = self.ekf_wrapper.ekf.cloud.copy()
-        landmarks = self.graph_slam.get_features_est()
-        T = np.linalg.inv(self.graph_slam.get_node_est()@posterior['mu'][0])
-        for id_, M in landmarks.items():
-            landmarks[id_] = T@M
-        self.ekf_wrapper.reset(self.graph_slam.current_node_id, landmarks)
-        self.graph_slam.place_node(posterior, cloud, key_node)
-        global_map = self.graph_slam.global_map_assemble()
-        pc_msg=pc_to_msg(global_map)
-        self.pc_pub.publish(pc_msg)
+        with self.lock:
+            cloud = self.ekf_wrapper.ekf.cloud.copy()
+            landmarks = self.graph_slam.get_features_est()
+            T = np.linalg.inv(self.graph_slam.get_node_est()@posterior['mu'][0])
+            for id_, M in landmarks.items():
+                landmarks[id_] = T@M
+            self.ekf_wrapper.reset(self.graph_slam.current_node_id, landmarks)
+            self.graph_slam.place_node(posterior, cloud, key_node)
+            global_map = self.graph_slam.global_map_assemble()
+            pc_msg=pc_to_msg(global_map)
+            self.pc_pub.publish(pc_msg)
         
     def place_node_server(self, req):
         posterior = self.ekf_wrapper.ekf.get_posterior()         
