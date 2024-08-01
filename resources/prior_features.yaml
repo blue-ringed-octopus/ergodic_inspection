@@ -23,8 +23,8 @@
    orientation: [0, 0, 0]
 
 6:
-   position: [0,0,0]
-   orientation: [0, 0, 0]
+   position: [2.92, -5.781, 0.227]
+   orientation: [0, 0, 3.1415]
 
 7:
    position: [1.2787, -6.189, 0.227]
