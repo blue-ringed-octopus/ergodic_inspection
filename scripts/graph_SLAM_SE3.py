@@ -500,7 +500,7 @@ class Graph_SLAM:
         print("optimizing")
         # with open('graph.pickle', 'wb') as handle:
         #     pickle.dump(self.factor_graph, handle)
-        M, H, idx_map = self.back_end.optimize(deepcopy(self.factor_graph), self.localize_mode)
+        M, H, idx_map = self.back_end.optimize(self.factor_graph, self.localize_mode)
         print("apply results")
         self.update_nodes(M, H, idx_map)
 
