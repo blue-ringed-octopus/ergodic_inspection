@@ -125,11 +125,12 @@ if __name__ == "__main__":
     # tf_listener = tf.TransformListener()
     
     rate = rospy.Rate(30) 
+    n_key_node = len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)
     while not rospy.is_shutdown():
-        placed_node = graph_slam_wrapper.update()    
+        graph_slam_wrapper.update()    
         
-        if placed_node:            
-            node_id  = list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.keys())[-2]
+        if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)>n_key_node:            
+            node_id  = list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.keys())[-1]
                 
             pc, ref = detector.detect(graph_slam_wrapper.graph_slam.factor_graph.pose_nodes[node_id], graph_slam_wrapper.graph_slam.factor_graph.feature_nodes)
             msg = Float32MultiArray()

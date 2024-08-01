@@ -84,10 +84,8 @@ class Graph_SLAM_wrapper:
         posterior = self.ekf_wrapper.ekf.get_posterior()         
         _ = self.graph_slam.update(posterior)
         delta = np.linalg.norm(SE3.Log(posterior["mu"][0]))
-        placed_node = False 
         if delta >= self.thres:
             self.place_node(posterior, False)
-            placed_node = True
             
         plot_graph(self.graph_slam.factor_graph, self.factor_graph_marker_pub)
         
@@ -97,7 +95,6 @@ class Graph_SLAM_wrapper:
                         rospy.Time.now(),
                         "ekf",
                         "map")     
-        return placed_node
 def pc_to_msg(pc):
     points=np.asarray(pc.points)
     colors=np.asarray(pc.colors)
