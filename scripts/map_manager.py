@@ -130,7 +130,7 @@ class Map_Manager:
         entropy=np.zeros(len(self.region_idx))
         for i, idx in enumerate(self.region_idx):
             h = self.h[idx]
-            entropy[i] = np.quantile(h,0.5)
+            entropy[i] = np.quantile(h,0.75)
             # entropy[i] = np.mean(h)
         return entropy 
     
