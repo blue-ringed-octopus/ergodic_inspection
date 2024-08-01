@@ -56,7 +56,7 @@ class Waypoint_Planner:
             # coord_rand= np.random.uniform(bound["min_bound"], bound["max_bound"], size = 5)[:2]
             # centroid = 1/2*(np.array(bound["min_bound"])+np.array(bound["max_bound"]))[:2]
             cost = self.get_cost(coord_rand)
-            if cost<25:
+            if cost<20:
                 print(cost)
                 coords.append(coord_rand)
         # cost = self.get_cost(coord_rand)
