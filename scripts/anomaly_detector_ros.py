@@ -127,6 +127,7 @@ if __name__ == "__main__":
     rate = rospy.Rate(30) 
     n_key_node = len(graph_slam_wrapper.graph_slam.factor_graph.pose_nodes)
     while not rospy.is_shutdown():
+        
         graph_slam_wrapper.update()    
         
         if len(graph_slam_wrapper.graph_slam.factor_graph.pose_nodes)>n_key_node and len(graph_slam_wrapper.graph_slam.factor_graph.pose_nodes)>2 :    
