@@ -480,7 +480,11 @@ class Graph_SLAM:
         self.optimize()
         return node_id
     
-    def update_nodes(self, M,cov, idx_map):
+    def update_nodes(self, M, H, idx_map):
+        if np.linalg.det(H)==0:
+            H += np.eye(len(H))*0.001
+            
+        cov = inv(H)            
         for node_id, idx in idx_map["pose"].items():
             self.factor_graph.pose_nodes[node_id].M = M[idx]
             self.factor_graph.pose_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
@@ -494,7 +498,8 @@ class Graph_SLAM:
         with open('graph.pickle', 'wb') as handle:
             pickle.dump(self.factor_graph, handle)
         M, H, idx_map = self.back_end.optimize(deepcopy(self.factor_graph), self.localize_mode)
-        self.update_nodes(M, inv(H), idx_map)
+        if np.linalg.det(H)==0:
+            self.update_nodes(M, H, idx_map)
 
         self.omega = H
         # self.global_map_assemble()
