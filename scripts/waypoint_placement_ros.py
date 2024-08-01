@@ -81,7 +81,7 @@ class Waypoint_Placement_Wrapper:
         self.waypoint = [pose[0], pose[1], np.cos(theta/2), np.sin(theta/2)]
         navigate2point(self.waypoint)
         id_ = self.place_node()
-        self.optimize()
+        # self.optimize()
     
 def decode_msg(msg):
     pc=ros_numpy.numpify(msg)

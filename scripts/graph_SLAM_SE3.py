@@ -485,7 +485,7 @@ class Graph_SLAM:
     
     def place_node(self, posterior, local_cloud, key_node = False):
         node_id = self._posterior_to_factor(posterior, local_cloud)
-
+        self.optimize()
         return node_id
     
     def optimize(self):
