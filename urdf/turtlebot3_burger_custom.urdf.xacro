@@ -2,7 +2,9 @@
 <robot name="turtlebot3_burger" xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:include filename="$(find ballast_sim)/urdf/common_properties.xacro"/>
   <xacro:include filename="$(find ballast_sim)/urdf/turtlebot3_burger_custom.gazebo.xacro"/>
-
+  <material name="purple">
+       <color rgba="0.77 0.76 0.89 1"/>
+      </material>
   <link name="base_footprint"/>
 
   <joint name="base_joint" type="fixed">
@@ -17,7 +19,7 @@
       <geometry>
         <mesh filename="package://turtlebot3_description/meshes/bases/burger_base.stl" scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="Gazebo/Purple"/>
+      <material name="purple"/>
     </visual>
 
     <collision>
