@@ -67,6 +67,7 @@ add_message_files(
     PlaceNode.srv
     PlanRegion.srv
     GetRegion.srv
+    OptimizePoseGraph.srv
     
  )
 
