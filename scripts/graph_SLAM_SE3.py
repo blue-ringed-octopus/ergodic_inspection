@@ -15,7 +15,7 @@ from copy import deepcopy
 from Lie import SE3
 import open3d as o3d
 import pickle
-
+import threading
 np.set_printoptions(precision=2)
 
 class Graph_SLAM:
@@ -485,7 +485,8 @@ class Graph_SLAM:
     
     def place_node(self, posterior, local_cloud, key_node = False):
         node_id = self._posterior_to_factor(posterior, local_cloud)
-        self.optimize()
+        backend_thread = threading.Thread(target = self.optimize,daemon=True, args = ())
+        backend_thread.start()
         return node_id
     
     def optimize(self):
