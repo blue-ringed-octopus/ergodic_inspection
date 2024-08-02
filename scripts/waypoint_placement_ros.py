@@ -62,13 +62,17 @@ class Waypoint_Placement_Wrapper:
         
     def get_current_region(self):
         pose = Pose()
-        self.listener.waitForTransform("map",params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
-        (trans, rot) = self.listener.lookupTransform("map", params["EKF"]["robot_frame"], rospy.Time(0))
-        pose.position.x = trans[0]
-        pose.position.y = trans[1]
-        region = self.get_region(pose,1).region
-        if region=="-1":
-            region = self.next_region
+        try:
+            self.listener.waitForTransform("map",params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
+            (trans, rot) = self.listener.lookupTransform("map", params["EKF"]["robot_frame"], rospy.Time(0))
+            pose.position.x = trans[0]
+            pose.position.y = trans[1]
+            region = self.get_region(pose,1).region
+            if region=="-1":
+                region = self.next_region
+        except:
+            pass
+        region = self.next_region
         return region 
     
     def update(self):
