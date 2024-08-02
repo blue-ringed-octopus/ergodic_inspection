@@ -51,13 +51,16 @@ class Graph_SLAM:
             
             def prune(self, node_id):
                 if not self.parent.id == node_id:
-                    self.parent.factor.pop(self.id)
+                #     self.parent.factor.pop(self.id)
+                    del self.parent.factor[self.id]
                 for node in self.children:
                     if not node.id == node_id:
-                        node.factor.pop(self.id)
+                        # node.factor.pop(self.id)
+                        del self.parent.factor[self.id]
                         
                 for node in self.feature_nodes:
-                    node.factor.pop(self.id)
+                    # node.factor.pop(self.id)
+                    del self.node.factor[self.id]
                     
         def __init__(self, horizon, forgetting_factor):
             self.prior_factor = self.Factor(0, [],[], [], None, np.eye(2),  {"features":{}, "pose":{}})
@@ -125,8 +128,8 @@ class Graph_SLAM:
            
             node_idx = pose_idx_map[node.id]
             idx_range = np.arange(6*node_idx,6*node_idx+6)
-            pose_idx_map.pop(node.id)
-            
+            # pose_idx_map.pop(node.id)
+            del pose_idx_map[node.id]
             for key, idx in pose_idx_map.items():
                 if idx > node_idx:
                     pose_idx_map[key] -=1
@@ -167,8 +170,10 @@ class Graph_SLAM:
                 self.marginalize(node, localize_mode)
                 for id_, factor in node.factor.items():
                     factor.prune(node.id)
-                    self.factors.pop(id_)
-                self.pose_nodes.pop(node.id)
+                    # self.factors.pop(id_)
+                    del self.factors[id_]
+                # self.pose_nodes.pop(node.id)
+                del self.pose_nodes[node.id]
     
         def add_node(self, M, node_type, feature_id=None, key_node = False):
             i=self.current_pose_id+1
