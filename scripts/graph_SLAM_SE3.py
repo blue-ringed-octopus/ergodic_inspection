@@ -377,8 +377,8 @@ class Graph_SLAM:
         self.global_map=None
         self.optimized = False
         self.M=M_init.copy()
-        # self.backend_thread = threading.Thread(target = self.optimize,daemon=True, args = ())
-        # self.backend_thread.start()
+        self.backend_thread = threading.Thread(target = self.optimize,daemon=True, args = ())
+        self.backend_thread.start()
         self.reset()
 
     def reset(self):
@@ -473,9 +473,9 @@ class Graph_SLAM:
     
     def place_node(self, posterior, local_cloud, key_node = False):
         node_id = self._posterior_to_factor(posterior, local_cloud, key_node)
-        # self.backend_thread.join()
-        # self.backend_thread = threading.Thread(target = self.optimize,daemon=True, args = ())
-        # self.backend_thread.start()
+        self.backend_thread.join()
+        self.backend_thread = threading.Thread(target = self.optimize,daemon=True, args = ())
+        self.backend_thread.start()
         self.optimize()
         return node_id
     
