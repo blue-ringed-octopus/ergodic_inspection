@@ -333,13 +333,6 @@ class Graph_SLAM:
             
             # return solve_triangular(L.T, y)
             return lstsq(A,b)[0]
-        
-        # def update_nodes_pose(self, graph,dx):
-        #     for node_id, idx in self.pose_idx_map.items():
-        #         graph.pose_nodes[node_id].M = graph.pose_nodes[node_id].M@SE3.Exp(dx[idx:idx+6])
-      
-        #     for node_id, idx in self.feature_idx_map.items():
-        #         graph.feature_nodes[node_id].M = graph.feature_nodes[node_id].M@SE3.Exp(dx[idx:idx+6])
     
         @staticmethod
         def update_pose(M, dx):
@@ -362,7 +355,7 @@ class Graph_SLAM:
                 print("solve MAP")
                 dx=self.linear_solve(H,b)
                 print("update pose")
-                M = self.update_pose(M.copy(), self.step_size*dx,)
+                M = self.update_pose(M, self.step_size*dx,)
                 # M = self.update_pose(M.copy(), 1*dx)
                 i+=1
                 print(max(np.abs(dx)))
