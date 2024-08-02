@@ -496,23 +496,24 @@ class Graph_SLAM:
         print("update end")
         
     def optimize(self):
-        print("optimizing")
+        try:
+            print("optimizing")
         # with open('graph.pickle', 'wb') as handle:
         #     pickle.dump(self.factor_graph, handle)
-        try:
+        
             M, H, idx_map = self.back_end.optimize(self.factor_graph, self.localize_mode)
+        
+            print("apply results")
+            self.update_nodes(M, H, idx_map)
+    
+            self.omega = H
+            # self.global_map_assemble()
+            self.optimized = True
+            print("start prune")
+            self.factor_graph.prune(10, self.localize_mode)
+            print("optimize end")
         except Exception as e: 
             print(e)
-        print("apply results")
-        self.update_nodes(M, H, idx_map)
-
-        self.omega = H
-        # self.global_map_assemble()
-        self.optimized = True
-        print("start prune")
-        self.factor_graph.prune(10, self.localize_mode)
-        print("optimize end")
-        
 if __name__ == "__main__":
     graph_slam = Graph_SLAM(np.zeros(4), True, 1, 0, 1000)
     with open('tests/graph.pickle', 'rb') as f:
