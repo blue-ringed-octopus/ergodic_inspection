@@ -67,7 +67,8 @@ class Graph_SLAM_wrapper:
         
     def place_node(self, posterior, key_node):
         with self.lock:
-            cloud = self.ekf_wrapper.ekf.cloud.copy()
+            # cloud = self.ekf_wrapper.ekf.cloud.copy()
+            cloud= None
             landmarks = self.graph_slam.get_features_est()
             T = np.linalg.inv(self.graph_slam.get_node_est()@posterior['mu'][0])
             for id_, M in landmarks.items():
