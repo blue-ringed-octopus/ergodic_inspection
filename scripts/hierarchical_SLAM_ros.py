@@ -75,9 +75,9 @@ class Graph_SLAM_wrapper:
                 landmarks[id_] = T@M
             self.ekf_wrapper.reset(self.graph_slam.current_node_id, landmarks)
             self.graph_slam.place_node(posterior, cloud, key_node)
-            global_map = self.graph_slam.global_map_assemble()
-            pc_msg=pc_to_msg(global_map)
-            self.pc_pub.publish(pc_msg)
+            # global_map = self.graph_slam.global_map_assemble()
+            # pc_msg=pc_to_msg(global_map)
+            # self.pc_pub.publish(pc_msg)
         
     def place_node_server(self, req):
         posterior = self.ekf_wrapper.ekf.get_posterior()         
