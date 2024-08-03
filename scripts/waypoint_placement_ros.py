@@ -80,7 +80,7 @@ class Waypoint_Placement_Wrapper:
         return region 
     
     def update(self):
-        try:
+        # try:
             region = self.get_current_region()
             self.next_region = self.plan_region(region).next_region
             msg = self.get_reference(self.next_region)
@@ -96,8 +96,8 @@ class Waypoint_Placement_Wrapper:
                 navigate2point(waypoint)
             self.waypoint = pose
             navigate2point(pose)
-        except Exception as e: 
-            print(e)
+        # except Exception as e: 
+        #     print(e)
         # id_ = self.place_node()
         # self.optimize()
     
