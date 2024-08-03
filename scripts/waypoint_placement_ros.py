@@ -88,7 +88,7 @@ class Waypoint_Placement_Wrapper:
             h, region_cloud = decode_msg(msg.ref)
             pose = self.planner.get_optimal_waypoint(50, region_cloud, h)
             
-            alpha = np.arctan2(pose[1]-self.pose[1], pose[0]-self.pose[0]) - pose[0]
+            alpha = np.arctan2(pose[1]-self.pose[1], pose[0]-self.pose[0]) - pose[2]
             alpha = np.arctan2(np.sin(alpha), np.cos(alpha))
             if abs(alpha)>np.pi/2:
                 waypoint = pose.copy()
