@@ -10,6 +10,8 @@ import rospy
 import actionlib
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import PoseArray, Pose
+from sensor_msgs.msg import CameraInfo
+
 import ros_numpy
 import numpy as np
 from ergodic_inspection.srv import PointCloudWithEntropy, PlanRegion, GetRegion, PlaceNode, OptimizePoseGraph
@@ -50,11 +52,12 @@ class Waypoint_Placement_Wrapper:
         self.listener.waitForTransform(params["EKF"]["optical_frame"],params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
         (trans, rot) = self.listener.lookupTransform(params["EKF"]["optical_frame"], params["EKF"]["robot_frame"], rospy.Time(0))
         T_camera = self.listener.fromTranslationRotation(trans, rot)
-
-        K = np.array([[872.2853801540007, 0.0, 604.5],
-                     [0.0, 872.2853801540007, 360.5],
-                     [ 0.0, 0.0, 1.0]])
-        w, h = 1208, 720
+        camera_info = rospy.wait_for_message(params["EKF"]["camera_info"], CameraInfo)
+        K = np.reshape(camera_info.K, (3,3))
+        # K = np.array([[872.2853801540007, 0.0, 604.5],
+        #              [0.0, 872.2853801540007, 360.5],
+        #              [ 0.0, 0.0, 1.0]])
+        w, h = camera_info.width , camera_info.height
         self.next_region = "0"
     
         self.planner = Waypoint_Planner(costmap, T_camera, K, (w,h))
@@ -71,19 +74,23 @@ class Waypoint_Placement_Wrapper:
             if region=="-1":
                 region = self.next_region
         except:
-            pass
-        region = self.next_region
+            region = self.next_region
+        
         return region 
     
     def update(self):
-        region = self.get_current_region()
-        self.next_region = self.plan_region(region).next_region
-        msg = self.get_reference(self.next_region)
-        h, region_cloud = decode_msg(msg.ref)
-        pose = self.planner.get_optimal_waypoint(50, region_cloud, h)
-        theta = pose[2]
-        self.waypoint = [pose[0], pose[1], np.cos(theta/2), np.sin(theta/2)]
-        navigate2point(self.waypoint)
+        try:
+            region = self.get_current_region()
+            self.next_region = self.plan_region(region).next_region
+            msg = self.get_reference(self.next_region)
+            h, region_cloud = decode_msg(msg.ref)
+            pose = self.planner.get_optimal_waypoint(50, region_cloud, h)
+            
+            alpha = np.arctan2(pose[1]-self.pose[1], pose[0]-self.pose[0])
+            self.waypoint = pose
+            navigate2point(self.pose)
+        except Exception as e: 
+            print(e)
         # id_ = self.place_node()
         # self.optimize()
     
@@ -136,10 +143,11 @@ def talker(waypoint):
     array.header.frame_id = 'map'
     array.header.stamp = rospy.Time.now()
     pose = Pose()
+    theta = waypoint[2]
     pose.position.x = float(waypoint[0])
     pose.position.y = float(waypoint[1])
-    pose.orientation.w = float(waypoint[2])
-    pose.orientation.z = float(waypoint[3])
+    pose.orientation.w = float(np.cos(theta/2))
+    pose.orientation.z = float(np.sin(theta/2))
     array.poses.append(pose)
 
     pub = rospy.Publisher('simpleNavPoses', PoseArray, queue_size=100)
@@ -178,7 +186,8 @@ def talker(waypoint):
     
 def navigate2point(waypoint):
     try:
-        simple_move(waypoint[0],waypoint[1],waypoint[2],waypoint[3])
+        theta = waypoint[2]
+        simple_move(waypoint[0],waypoint[1],np.cos(theta/2),np.sin(theta/2))
         print("goal reached")
     except rospy.ROSInterruptException:
         print ("Keyboard Interrupt")
