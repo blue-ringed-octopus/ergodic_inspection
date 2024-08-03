@@ -86,9 +86,15 @@ class Waypoint_Placement_Wrapper:
             h, region_cloud = decode_msg(msg.ref)
             pose = self.planner.get_optimal_waypoint(50, region_cloud, h)
             
-            alpha = np.arctan2(pose[1]-self.pose[1], pose[0]-self.pose[0])
+            alpha = np.arctan2(pose[1]-self.pose[1], pose[0]-self.pose[0]) - pose[0]
+            alpha = np.arctan2(np.sin(alpha), np.cos(alpha))
+            if abs(alpha)>np.pi/2:
+                waypoint = pose.copy()
+                waypoint[0:1] += 0.01*[np.cos(pose[2]), np.sin(pose[2])]
+                waypoint[2] += np.pi
+                navigate2point(waypoint)
             self.waypoint = pose
-            navigate2point(self.pose)
+            navigate2point(pose)
         except Exception as e: 
             print(e)
         # id_ = self.place_node()
