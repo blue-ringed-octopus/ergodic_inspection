@@ -71,7 +71,7 @@ class Waypoint_Placement_Wrapper:
             pose.position.x = trans[0]
             pose.position.y = trans[1]
             region = self.get_region(pose,1).region
-            self.pose = [pose.position.x, pose.position.y, np.arctan2(2(rot[2]), 2*rot[3])]
+            self.pose = [pose.position.x, pose.position.y, np.arctan2(2*(rot[2]), 2*rot[3])]
             if region=="-1":
                 region = self.next_region
         except:
