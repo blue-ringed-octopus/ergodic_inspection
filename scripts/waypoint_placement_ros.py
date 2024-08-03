@@ -51,6 +51,7 @@ class Waypoint_Placement_Wrapper:
         self.listener=tf.TransformListener()
         self.listener.waitForTransform(params["EKF"]["optical_frame"],params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
         (trans, rot) = self.listener.lookupTransform(params["EKF"]["optical_frame"], params["EKF"]["robot_frame"], rospy.Time(0))
+        self.pose = [trans[0], trans[1], np.arctan2(2*(rot[2]), 2*rot[3])]
         T_camera = self.listener.fromTranslationRotation(trans, rot)
         camera_info = rospy.wait_for_message(params["EKF"]["camera_info"], CameraInfo)
         K = np.reshape(camera_info.K, (3,3))
@@ -76,7 +77,7 @@ class Waypoint_Placement_Wrapper:
                 region = self.next_region
         except:
             region = self.next_region
-        
+            self.pose = self. waypoint
         return region 
     
     def update(self):
