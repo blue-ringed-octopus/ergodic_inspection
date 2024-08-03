@@ -77,7 +77,7 @@ class Waypoint_Placement_Wrapper:
                 region = self.next_region
         except:
             region = self.next_region
-            self.pose = self. waypoint
+            self.pose = self.waypoint
         return region 
     
     def update(self):
@@ -142,7 +142,7 @@ def simple_move(waypoint):
     sac.wait_for_server()
     #send goal
     sac.send_goal(goal)
-    print("Sending goal:",x,y,w,z)
+    print("Sending goal:",waypoint)
     #finish
     sac.wait_for_result()
     #print result
