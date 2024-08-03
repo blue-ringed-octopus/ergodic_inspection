@@ -71,6 +71,7 @@ class Waypoint_Placement_Wrapper:
             pose.position.x = trans[0]
             pose.position.y = trans[1]
             region = self.get_region(pose,1).region
+            self.pose = [pose.position.x, pose.position.y, np.arctan2(2(rot[2]), 2*rot[3])]
             if region=="-1":
                 region = self.next_region
         except:
@@ -122,15 +123,17 @@ def decode_msg(msg):
     p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
     return h, p
 
-def simple_move(x,y,w,z):
+def simple_move(waypoint):
     sac = actionlib.SimpleActionClient('move_base', MoveBaseAction )
 
     #create goal
     goal = MoveBaseGoal()
-    goal.target_pose.pose.position.x = x
-    goal.target_pose.pose.position.y = y
-    goal.target_pose.pose.orientation.w = w
-    goal.target_pose.pose.orientation.z = z
+    goal.target_pose.pose.position.x = waypoint[0]
+    goal.target_pose.pose.position.y = waypoint[1]
+    
+    goal.target_pose.pose.orientation.z = waypoint[2]
+    goal.target_pose.pose.orientation.w = waypoint[3]
+    
     goal.target_pose.header.frame_id = 'map'
     goal.target_pose.header.stamp = rospy.Time.now()
 
@@ -152,8 +155,9 @@ def talker(waypoint):
     theta = waypoint[2]
     pose.position.x = float(waypoint[0])
     pose.position.y = float(waypoint[1])
-    pose.orientation.w = float(np.cos(theta/2))
+    
     pose.orientation.z = float(np.sin(theta/2))
+    pose.orientation.w = float(np.cos(theta/2))
     array.poses.append(pose)
 
     pub = rospy.Publisher('simpleNavPoses', PoseArray, queue_size=100)
@@ -193,7 +197,7 @@ def talker(waypoint):
 def navigate2point(waypoint):
     try:
         theta = waypoint[2]
-        simple_move(waypoint[0],waypoint[1],np.cos(theta/2),np.sin(theta/2))
+        simple_move([waypoint[0],waypoint[1],np.sin(theta/2),np.cos(theta/2)])
         print("goal reached")
     except rospy.ROSInterruptException:
         print ("Keyboard Interrupt")
