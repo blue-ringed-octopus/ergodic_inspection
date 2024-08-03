@@ -92,8 +92,7 @@ class Waypoint_Placement_Wrapper:
             alpha = np.arctan2(np.sin(alpha), np.cos(alpha))
             if abs(alpha)>np.pi/2:
                 waypoint = pose.copy()
-                waypoint[0:1] += 0.01*[np.cos(pose[2]), np.sin(pose[2])]
-                waypoint[2] += np.pi
+                waypoint += [0.01*np.cos(pose[2]), 0.01*np.sin(pose[2]), np.pi]
                 navigate2point(waypoint)
             self.waypoint = pose
             navigate2point(pose)
