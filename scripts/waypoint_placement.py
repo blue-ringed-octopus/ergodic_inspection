@@ -48,7 +48,8 @@ class Waypoint_Planner:
         idx = np.argmax(reward)
         waypoint = candidates[idx]
         
-        return waypoint
+        return np.array(waypoint)
+    
     def get_waypoints(self, bound, n):
         coords = []
         while len(coords)< n:
@@ -79,8 +80,8 @@ class Waypoint_Planner:
         return cost
     def plot_waypoints(self, waypoints):
         im = np.round(self.costmap["costmap"].copy()*255/100).astype(np.uint8)
+        im = cv2.cvtColor(im.T, cv2.COLOR_GRAY2RGB)
         for waypoint in waypoints:
-            im = cv2.cvtColor(im.T, cv2.COLOR_GRAY2RGB)
             idx = self.get_index(waypoint[0:2])
             idx2 = self.get_index(waypoint[0:2]+ [0.5*np.cos(waypoint[2]),0.5*np.sin(waypoint[2]) ])
             im = cv2.arrowedLine(im, (int(idx[0]), int(idx[1])), (int(idx2[0]),int(idx2[1])),
