@@ -263,7 +263,7 @@ class Graph_SLAM:
         def prune(self, graph, horizon, localize_mode):
             for node in list(graph.pose_nodes.values())[:-horizon]:
                 self.marginalize(graph, node, localize_mode)
-                self.graph.prune(node.id)
+                graph.prune(node.id)
                 
     def __init__(self, M_init, localize_mode = False,horizon = 10 ,forgetting_factor = 0, max_iter=50, step_size = 0.01):
         self.back_end=self.Back_end(max_iter, step_size)
