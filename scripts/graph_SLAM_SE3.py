@@ -18,6 +18,11 @@ import pickle
 import threading
 np.set_printoptions(precision=2)
 
+
+def update_pose(M, dx):
+     M = [m@SE3.Exp(dx[6*i:6*i+6]) if 6*i+6<=len(dx) else m for i, m in enumerate(M) ]
+     return M
+ 
 class Graph_SLAM:
     class Factor_Graph:
         class Node:
@@ -113,7 +118,7 @@ class Graph_SLAM:
                 
             H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map}, localize_mode)   
             dx=Graph_SLAM.Back_end.linear_solve(H,b)
-            M =  Graph_SLAM.Back_end.update_pose(M, 0.5*dx)
+            M =  update_pose(M, 0.5*dx)
             i = 0
             # while np.max(np.abs(dx))>0.0001 and i<100:
             while np.max(np.abs(dx))>0.001 and i<1000:
@@ -121,7 +126,7 @@ class Graph_SLAM:
                 H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map}, localize_mode)   
                 dx=Graph_SLAM.Back_end.linear_solve(H,b)
 
-                M =  Graph_SLAM.Back_end.update_pose(M, 0.5*dx)
+                M =  update_pose(M, 0.5*dx)
                 i+=1
                 
             cov = inv(H)
@@ -339,11 +344,6 @@ class Graph_SLAM:
             # return solve_triangular(L.T, y)
             return lstsq(A,b)[0]
     
-        @staticmethod
-        def update_pose(M, dx):
-            M = [m@SE3.Exp(dx[6*i:6*i+6]) if 6*i+6<=len(dx) else m for i, m in enumerate(M) ]
-            return M
-        
         def optimize(self, graph, localize_mode = False):
             # with open('graph.pickle', 'wb') as handle:
             #     pickle.dump(graph, handle)
@@ -352,7 +352,7 @@ class Graph_SLAM:
             H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map, localize_mode)
             dx=self.linear_solve(H,b)
             i=0
-            M = self.update_pose(M, self.step_size*dx)
+            M = update_pose(M, self.step_size*dx)
 
             while np.max(np.abs(dx))>0.001 and i<self.max_iter:
                 print("step: ", i)
@@ -360,7 +360,7 @@ class Graph_SLAM:
                 print("solve MAP")
                 dx=self.linear_solve(H,b)
                 print("update pose")
-                M = self.update_pose(M, self.step_size*dx,)
+                M =update_pose(M, self.step_size*dx,)
                 # M = self.update_pose(M.copy(), 1*dx)
                 i+=1
                 print(max(np.abs(dx)))
