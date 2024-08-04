@@ -98,6 +98,8 @@ class Waypoint_Placement_Wrapper:
                 navigate2point(waypoint)
                 im = self.planner.plot_waypoints([waypoint, pose])
                 plt.imshow(im, origin="lower")
+                plt.pause(0.05)
+                plt.show()
 
             self.waypoint = pose
             navigate2point(pose)
