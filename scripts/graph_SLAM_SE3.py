@@ -72,9 +72,9 @@ class Graph_SLAM:
                 e = np.zeros(6*n_prior)
                 prior_idx_map = prior.idx_map.copy()
                 omega = prior.omega.copy()
-                for child in prior.children:
-                    i = 6*prior_idx_map["pose"][child.id]
-                    idx = global_idx_map["pose"][child.id]
+                for child_id in prior.children_ids:
+                    i = 6*prior_idx_map["pose"][child_id]
+                    idx = global_idx_map["pose"][child_id]
                     z = prior.z[i:i+6].copy()
                     z_bar = SE3.Log(M[idx])
                     e[i:i+6] = SE3.Log(SE3.Exp(z - z_bar))
@@ -82,9 +82,9 @@ class Graph_SLAM:
                     F[6*idx:6*idx+6,i:i+6] = np.eye(6)
                     
                 if not localize_mode:
-                    for feature in prior.feature_nodes:
-                        idx = global_idx_map["features"][feature.id]
-                        i = 6*prior_idx_map["features"][feature.id]
+                    for feature_id in prior.feature_ids:
+                        idx = global_idx_map["features"][feature_id]
+                        i = 6*prior_idx_map["features"][feature_id]
                         F[6*idx:6*idx+6,i:i+6] = np.eye(6)
                         z = prior.z[i:i+6].copy()
                         z_bar = SE3.Log(M[idx])
@@ -106,13 +106,13 @@ class Graph_SLAM:
                 e = np.zeros(6*n_obsv)                  #difference between observation and expected observation
                 
                 #Odometry
-                idx = global_idx_map['pose'][factor.parent.id]
+                idx = global_idx_map['pose'][factor.parent_id]
                 F[6*idx:6*idx+6,0:6] = np.eye(6)
                 z = factor.z[0:6].copy()
                 M_r1 = M[idx]
                 M_r1_inv = inv(M_r1)
                 
-                idx = global_idx_map['pose'][factor.children[0].id]
+                idx = global_idx_map['pose'][factor.children_ids[0]]
                 F[6*idx:6*idx+6,6:12] = np.eye(6)
                 M_r2 = M[idx]
                 
@@ -122,9 +122,9 @@ class Graph_SLAM:
                 e[0:6] = SE3.Log(SE3.Exp(z - z_bar))
                 
                 #features
-                for feature in factor.feature_nodes:
-                    i = 6*factor_idx_map[feature.id]
-                    idx = global_idx_map['features'][feature.id]
+                for feature_id in factor.feature_ids:
+                    i = 6*factor_idx_map[feature_id]
+                    idx = global_idx_map['features'][feature_id]
                     if not localize_mode:
                         F[6*idx:6*idx+6,6+i:6+i+6] = np.eye(6)
 
@@ -186,8 +186,8 @@ class Graph_SLAM:
                 n+=1
                 
             for factor in node.factor.values():
-                if not factor.parent.id in prior.idx_map["pose"].keys():
-                    pose_idx_map[factor.parent.id] = n
+                if not factor.parent_id in prior.idx_map["pose"].keys():
+                    pose_idx_map[factor.parent_id] = n
                     n += 1      
                     
                 for id_  in factor.idx_map["pose"].keys():
@@ -254,26 +254,16 @@ class Graph_SLAM:
             
             cov = J@cov@J.T 
             cov = cov + graph.forgetting_factor*np.eye(len(cov))
-            # children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
+            
             if localize_mode:
-                idx_map={"features": {}, "pose": pose_idx_map}    
-                # feature_nodes = []
+                graph.add_prior_factor(z, cov, pose_idx_map ,{})
             else:
-                idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
-                # feature_nodes = [self.feature_nodes[id_] for id_ in feature_idx_map.keys()]
-            
-            # prior =  self.Factor(self.prior_factor.id, None, children, feature_nodes, z, cov, idx_map)
-            graph.add_prior_factor(z, cov, idx_map["pose"] ,idx_map["features"])
-            
+                graph.add_prior_factor(z, cov, pose_idx_map ,feature_idx_map)
+
         def prune(self, graph, horizon, localize_mode):
             for node in list(graph.pose_nodes.values())[:-horizon]:
                 self.marginalize(graph, node, localize_mode)
-                for id_, factor in node.factor.items():
-                    factor.prune(node.id)
-                    # self.factors.pop(id_)
-                    del graph.factors[id_]
-                # self.pose_nodes.pop(node.id)
-                del graph.pose_nodes[node.id]    
+                self.graph.prune(node.id)
                 
     def __init__(self, M_init, localize_mode = False,horizon = 10 ,forgetting_factor = 0, max_iter=50, step_size = 0.01):
         self.back_end=self.Back_end(max_iter, step_size)
