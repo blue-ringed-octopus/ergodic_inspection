@@ -83,6 +83,7 @@ class Waypoint_Placement_Wrapper:
     def update(self):
         # try:
             region = self.get_current_region()
+            rospy.wait_for_service('plan_region')
             self.next_region = self.plan_region(region).next_region
             msg = self.get_reference(self.next_region)
             h, region_cloud = decode_msg(msg.ref)
