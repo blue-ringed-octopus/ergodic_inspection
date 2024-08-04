@@ -356,7 +356,7 @@ class Graph_SLAM:
 
             while np.max(np.abs(dx))>0.001 and i<self.max_iter:
                 print("step: ", i)
-                H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map, localize_mode)
+                H,b=self.linearize(M.copy(), graph.prior_factor.copy() , graph.factors.copy(), idx_map.copy(), localize_mode)
                 print("solve MAP")
                 dx=self.linear_solve(H,b)
                 print("update pose")
