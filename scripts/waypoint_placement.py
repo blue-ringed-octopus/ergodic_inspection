@@ -59,7 +59,6 @@ class Waypoint_Planner:
             if cost<20:
                 print(cost)
                 coords.append(coord_rand)
-        # cost = self.get_cost(coord_rand)
         angles = np.random.uniform(0, 2*np.pi, size = len(coords))
         coords = np.asarray(coords)
         coords[:,2] = angles
@@ -75,14 +74,18 @@ class Waypoint_Planner:
         x_shape, y_shape = self.costmap["costmap"].shape
         if (idx<[0,0]).any() or (idx>=[x_shape, y_shape]).any():
             return 100
-        # test = self.costmap["costmap"].copy().T
-        # test = cv2.cvtColor(test, cv2.COLOR_GRAY2BGR) 
-        # test = cv2.circle(test, (ind[0], ind[1]), 2, [255,0,0], -1)
-        # plt.imshow(test, origin="lower")
+
         cost = self.costmap["costmap"][idx[0], idx[1]]
         return cost
-    
-
+    def plot_waypoints(self, waypoints):
+        im = np.round(self.costmap["costmap"].copy()*255/100).astype(np.uint8)
+        for waypoint in waypoints:
+            im = cv2.cvtColor(im.T, cv2.COLOR_GRAY2RGB)
+            idx = self.get_index(waypoint[0:2])
+            idx2 = self.get_index(waypoint[0:2]+ [0.5*np.cos(waypoint[2]),0.5*np.sin(waypoint[2]) ])
+            im = cv2.arrowedLine(im, (int(idx[0]), int(idx[1])), (int(idx2[0]),int(idx2[1])),
+                                             (255,0,0),1)  
+        return im
 if __name__ == '__main__':
     from map_manager import Map_Manager
     manager = Map_Manager("../")
@@ -98,13 +101,17 @@ if __name__ == '__main__':
                  [0.0, 872.2853801540007, 360.5],
                  [ 0.0, 0.0, 1.0]])
     w, h = 1208, 720
-    region = 1
+    region = 0
     entropy, cloud = manager.get_region_entropy(region)  
     planner = Waypoint_Planner(manager.costmap,T_camera, K, (w,h))    
     waypoint = planner.get_optimal_waypoint(100, cloud, entropy)
-    im = np.round(manager.costmap["costmap"].copy()*255/100).astype(np.uint8)
-    im=cv2.cvtColor(im.T, cv2.COLOR_GRAY2RGB)
-    idx = manager.get_index(waypoint[0:2])
-    im=cv2.circle(im, (int(idx[0]), int(idx[1])), 1,(255,0,0), -1)
+    # im = np.round(manager.costmap["costmap"].copy()*255/100).astype(np.uint8)
+    # im=cv2.cvtColor(im.T, cv2.COLOR_GRAY2RGB)
+    # idx = manager.get_index(waypoint[0:2])
+    # idx2 = manager.get_index(waypoint[0:2]+ [0.5*np.cos(waypoint[2]),0.5*np.sin(waypoint[2]) ])
+    # # im = cv2.circle(im, (int(idx[0]), int(idx[1])), 1,(255,0,0), -1)
+    # im = cv2.arrowedLine(im, (int(idx[0]), int(idx[1])), (int(idx2[0]),int(idx2[1])),
+    #                                  (255,0,0),1)  
+    im = planner.plot_waypoints([waypoint])
     plt.imshow(im, origin="lower")
     

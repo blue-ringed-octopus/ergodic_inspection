@@ -25,6 +25,7 @@ import pickle
 import yaml
 import threading  
 import time
+import matplotlob.pyplot as plt 
 
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
@@ -92,9 +93,12 @@ class Waypoint_Placement_Wrapper:
             alpha = np.arctan2(pose[1]-self.pose[1], pose[0]-self.pose[0]) - pose[2]
             alpha = np.arctan2(np.sin(alpha), np.cos(alpha))
             if abs(alpha)>np.pi/2:
-                waypoint = pose.copy()
+                waypoint = self.pose.copy()
                 waypoint += [0.01*np.cos(pose[2]), 0.01*np.sin(pose[2]), np.pi]
                 navigate2point(waypoint)
+                im = self.planner.plot_waypoints([waypoint, pose])
+                plt.imshow(im, origin="lower")
+
             self.waypoint = pose
             navigate2point(pose)
         # except Exception as e: 
