@@ -25,7 +25,7 @@ class Factor:
     def __init__(self, id_, parent_id, children_ids, feature_ids, z, sigma, idx_map ):
         self.prior = parent_id == None
         self.parent_id = parent_id
-        self.children_id = children_ids
+        self.children_ids = children_ids
         self.feature_ids = feature_ids
         self.z = z
         self.omega = inv(sigma)
