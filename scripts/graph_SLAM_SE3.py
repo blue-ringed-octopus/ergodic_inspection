@@ -50,7 +50,8 @@ class Graph_SLAM:
                 self.n_poses =  len(children_nodes)
                 self.idx_map = idx_map
                 self.id = id_
-                
+            def copy(self):
+                return deepcopy(self)
             def get_jacobian(self, M_init):
                 pass 
             
