@@ -110,5 +110,8 @@ class Factor_Graph:
         for factor in list(node.factor.values()).copy():
             self.remove_factor(factor)
             
-        del self.pose_nodes[node.id]    
+        del self.pose_nodes[node.id]   
+        if node.key_node:
+            del self.key_pose_nodes[node.id]   
+
         
