@@ -25,7 +25,7 @@ import pickle
 import yaml
 import threading  
 import time
-import matplotlob.pyplot as plt 
+import matplotlib.pyplot as plt 
 
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
