@@ -155,14 +155,17 @@ class Graph_SLAM:
             #     pickle.dump(graph, handle)
             print("optimizing graph")
             M, idx_map = self.node_to_vector(graph)
-            H,b=self.linearize(M.copy(), graph.prior_factor , graph.factors, idx_map, localize_mode)
+            prior =  graph.prior_factor.copy()
+            factors = graph.factors.copy()
+            
+            H,b=self.linearize(M.copy(), prior , factors, idx_map, localize_mode)
             dx=self.linear_solve(H,b)
             i=0
             M = update_pose(M, self.step_size*dx)
 
             while np.max(np.abs(dx))>0.001 and i<self.max_iter:
                 print("step: ", i)
-                H,b=self.linearize(M.copy(), graph.prior_factor.copy() , graph.factors.copy(), idx_map.copy(), localize_mode)
+                H,b=self.linearize(M.copy(), prior ,factors, idx_map, localize_mode)
                 print("solve MAP")
                 dx=self.linear_solve(H,b)
                 print("update pose")
