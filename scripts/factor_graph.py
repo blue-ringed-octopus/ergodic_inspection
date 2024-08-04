@@ -93,19 +93,22 @@ class Factor_Graph:
             feature.factor[self.current_factor_id] = factor
             
         self.current_factor_id += 1    
-    
+        
+    def remove_factor(self, factor):
+        del self.pose_nodes[factor.parent_id].factor[factor.id]
+            
+        for id_ in factor.children_ids:
+            del self.pose_nodes[id_].factor[factor.id]
+                
+        for id_ in factor.feature_ids:
+            del self.feature_nodes[id_].factor[factor.id]
+        
+        del self.factors[factor.id]
+
     def prune(self, node_id):
         node = self.pose_nodes[node_id]
-        for factor in node.factor.values():
-            if not factor.parent_id == node_id:
-                del self.pose_nodes[factor.parent_id].factor[factor.id]
-                
-            for id_ in factor.children_ids:
-                if not id_ == node_id:
-                    del self.pose_nodes[id_].factor[factor.id]
-                    
-            for id_ in factor.feature_ids:
-                del self.feature_nodes[id_].factor[factor.id]
-            del self.factors[factor.id]
+        for factor in node.factor.values().copy():
+            self.remove_factor(factor)
+            
         del self.pose_nodes[node.id]    
         
