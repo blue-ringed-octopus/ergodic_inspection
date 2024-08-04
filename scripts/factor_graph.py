@@ -112,7 +112,7 @@ class Factor_Graph:
             self.remove_factor(factor)
             
         del self.pose_nodes[node.id]   
-        if node.key_node:
+        if node.key:
             del self.key_pose_nodes[node.id]   
 
         
