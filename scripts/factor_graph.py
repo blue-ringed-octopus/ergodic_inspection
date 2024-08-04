@@ -50,7 +50,7 @@ class Factor:
                 del self.parent.factor[self.id]
                 
         for node in self.feature_nodes:
-            del self.node.factor[self.id]
+            del node.factor[self.id]
             
 class Factor_Graph:                
     def __init__(self, horizon, forgetting_factor):
