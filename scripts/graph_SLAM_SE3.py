@@ -16,6 +16,8 @@ from Lie import SE3
 import open3d as o3d
 import pickle
 import threading
+from factor_graph import Factor_Graph
+
 np.set_printoptions(precision=2)
 
 
@@ -23,204 +25,7 @@ def update_pose(M, dx):
      M = [m@SE3.Exp(dx[6*i:6*i+6]) if 6*i+6<=len(dx) else m for i, m in enumerate(M) ]
      return M
  
-class Graph_SLAM:
-    class Factor_Graph:
-        class Node:
-            def __init__(self, node_id, M, node_type):
-                self.type=node_type
-                self.M=M
-                self.cov=np.zeros((6,6))
-                self.id=node_id
-                self.local_map=None
-                self.pruned=False 
-                self.factor={}
-               # self.prior_factor = None
-                    
-        class Factor:
-            def __init__(self, id_, parent_node, children_nodes, feature_nodes, z, sigma, idx_map ):
-                self.prior = parent_node == None
-                self.parent=parent_node
-                self.children=children_nodes
-                self.feature_nodes=feature_nodes
-                self.z=z
-                self.omega=inv(sigma)
-                self.omega=(self.omega.T+self.omega)/2
-                self.pruned=False
-                self.n_features = len(feature_nodes)
-                self.n_poses =  len(children_nodes)
-                self.idx_map = idx_map
-                self.id = id_
-            def copy(self):
-                return deepcopy(self)
-            def get_jacobian(self, M_init):
-                pass 
-            
-            def prune(self, node_id):
-                if not self.parent.id == node_id:
-                #     self.parent.factor.pop(self.id)
-                    del self.parent.factor[self.id]
-                for node in self.children:
-                    if not node.id == node_id:
-                        # node.factor.pop(self.id)
-                        del self.parent.factor[self.id]
-                        
-                for node in self.feature_nodes:
-                    # node.factor.pop(self.id)
-                    del self.node.factor[self.id]
-                    
-        def __init__(self, horizon, forgetting_factor):
-            self.prior_factor = self.Factor(0, [],[], [], None, np.eye(2),  {"features":{}, "pose":{}})
-            self.pose_nodes={}
-            self.key_pose_nodes={}
-            self.factors={}
-            self.feature_nodes={}
-            self.horizon = horizon
-            self.current_pose_id = -1
-            self.current_factor_id = 1
-            self.forgetting_factor = forgetting_factor
-        
-        def marginalize(self, node, localize_mode):
-            print("marginalize node", node.id)
-            prior = self.prior_factor
-            pose_idx_map={}
-            feature_idx_map={}
-            n = 0
-            for key in prior.idx_map["pose"].keys():
-                pose_idx_map[key] = n
-                n+=1
-                
-            for factor in node.factor.values():
-                if not factor.parent.id in prior.idx_map["pose"].keys():
-                    pose_idx_map[factor.parent.id] = n
-                    n += 1      
-                    
-                for id_  in factor.idx_map["pose"].keys():
-                    if not id_ in pose_idx_map.keys():
-                        pose_idx_map[id_] = n
-                        n += 1
-                        
-            for key in prior.idx_map["features"].keys():
-                feature_idx_map[key] = n
-                n+=1       
-                
-            for factor in node.factor.values():                        
-                for id_ in factor.idx_map["features"].keys():
-                    if not id_ in feature_idx_map.keys():
-                        feature_idx_map[id_] = n
-                        n += 1
-                        
-            M = np.zeros((n, 4,4))   
-            for id_ , i in pose_idx_map.items():
-                M[i] = self.pose_nodes[id_].M.copy()
-                
-            for id_ , i in feature_idx_map.items():
-                M[i] = self.feature_nodes[id_].M.copy()
-                
-                
-            H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map}, localize_mode)   
-            dx=Graph_SLAM.Back_end.linear_solve(H,b)
-            M =  update_pose(M, 0.5*dx)
-            i = 0
-            # while np.max(np.abs(dx))>0.0001 and i<100:
-            while np.max(np.abs(dx))>0.001 and i<1000:
-                print("step: ", i)
-                H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map}, localize_mode)   
-                dx=Graph_SLAM.Back_end.linear_solve(H,b)
-
-                M =  update_pose(M, 0.5*dx)
-                i+=1
-                
-            cov = inv(H)
-           
-            node_idx = pose_idx_map[node.id]
-            idx_range = np.arange(6*node_idx,6*node_idx+6)
-            # pose_idx_map.pop(node.id)
-            del pose_idx_map[node.id]
-            for key, idx in pose_idx_map.items():
-                if idx > node_idx:
-                    pose_idx_map[key] -=1
-                
-            for key, idx in feature_idx_map.items():
-                if idx > node_idx:
-                    feature_idx_map[key] -=1
-                    
-            n_prior = len(pose_idx_map)
-            if not localize_mode:
-                n_prior += len(feature_idx_map)
-            M = np.delete(M,node_idx,0) 
-            
-            z = np.concatenate([SE3.Log(M[i]) for  i in range(n_prior)])
-            cov = np.delete(cov,idx_range, 0 )
-            cov = np.delete(cov,idx_range, 1 )
-            
-            J = np.zeros(((len(z)), len(z)))
-            
-            for i in range(n_prior):
-                J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(z[6*i:6*i+6])
-            
-            cov = J@cov@J.T 
-            cov = cov + self.forgetting_factor*np.eye(len(cov))
-            children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
-            if localize_mode:
-                idx_map={"features": {}, "pose": pose_idx_map}    
-                feature_nodes = []
-            else:
-                idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
-                feature_nodes = [self.feature_nodes[id_] for id_ in feature_idx_map.keys()]
-            
-            prior =  self.Factor(self.prior_factor.id, None, children, feature_nodes, z, cov, idx_map)
-            self.prior_factor = prior
-            
-        def prune(self, horizon, localize_mode):
-            for node in list(self.pose_nodes.values())[:-horizon]:
-                self.marginalize(node, localize_mode)
-                for id_, factor in node.factor.items():
-                    factor.prune(node.id)
-                    # self.factors.pop(id_)
-                    del self.factors[id_]
-                # self.pose_nodes.pop(node.id)
-                del self.pose_nodes[node.id]
-    
-        def add_node(self, M, node_type, feature_id=None, key_node = False):
-            i=self.current_pose_id+1
-            if node_type=="pose":
-                node=self.Node(i,M, node_type)
-                self.pose_nodes[i]=node
-                if key_node:
-                    self.key_pose_nodes[i]=node
-                self.current_pose_id = i
-                    
-            if node_type=="feature":
-                node=self.Node(feature_id,M, node_type)
-                self.feature_nodes[feature_id]=node
-            return self.current_pose_id
-        
-        def add_prior_factor(self, children_ids, features_ids, z, sigma, pose_idx_map ,feature_idx_map):
-            idx_map={"pose": pose_idx_map, "features": feature_idx_map}
-            children = [self.pose_nodes[id_] for id_ in children_ids]
-            features = [self.feature_nodes[id_] for id_ in features_ids]
-                      
-            factor = self.Factor(self.prior_factor.id, None,children,features ,z,sigma, idx_map)  
-                
-            self.prior_factor = factor
-                        
-        def add_factor(self, parent_id, child_id, feature_ids, z, sigma, feature_idx_map):
-            idx_map={"pose": {child_id: 0}, "features": feature_idx_map}
-            parent = self.pose_nodes[parent_id]
-            child = self.pose_nodes[child_id]
-                
-            features=[self.feature_nodes[feature_id] for feature_id in feature_ids]
-            factor = self.Factor(self.current_factor_id, parent,[child],features ,z,sigma, idx_map)
-            self.factors[self.current_factor_id] = factor
-            
-            parent.factor[self.current_factor_id] = factor
-            child.factor[self.current_factor_id] = factor
-            
-            for feature in features:
-                feature.factor[self.current_factor_id] = factor
-                
-            self.current_factor_id += 1    
-            
+class Graph_SLAM:            
     class Back_end:    
         def __init__(self, max_iter, step_size):
             self.max_iter = max_iter
@@ -369,7 +174,107 @@ class Graph_SLAM:
             print("optimized")
             
             return M, H, idx_map
+        
+        def marginalize(self, node, localize_mode):
+            print("marginalize node", node.id)
+            prior = self.prior_factor
+            pose_idx_map={}
+            feature_idx_map={}
+            n = 0
+            for key in prior.idx_map["pose"].keys():
+                pose_idx_map[key] = n
+                n+=1
+                
+            for factor in node.factor.values():
+                if not factor.parent.id in prior.idx_map["pose"].keys():
+                    pose_idx_map[factor.parent.id] = n
+                    n += 1      
+                    
+                for id_  in factor.idx_map["pose"].keys():
+                    if not id_ in pose_idx_map.keys():
+                        pose_idx_map[id_] = n
+                        n += 1
+                        
+            for key in prior.idx_map["features"].keys():
+                feature_idx_map[key] = n
+                n+=1       
+                
+            for factor in node.factor.values():                        
+                for id_ in factor.idx_map["features"].keys():
+                    if not id_ in feature_idx_map.keys():
+                        feature_idx_map[id_] = n
+                        n += 1
+                        
+            M = np.zeros((n, 4,4))   
+            for id_ , i in pose_idx_map.items():
+                M[i] = self.pose_nodes[id_].M.copy()
+                
+            for id_ , i in feature_idx_map.items():
+                M[i] = self.feature_nodes[id_].M.copy()
+                
+                
+            H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map}, localize_mode)   
+            dx=Graph_SLAM.Back_end.linear_solve(H,b)
+            M =  update_pose(M, 0.5*dx)
+            i = 0
+            while np.max(np.abs(dx))>0.001 and i<1000:
+                print("step: ", i)
+                H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map}, localize_mode)   
+                dx=Graph_SLAM.Back_end.linear_solve(H,b)
+
+                M =  update_pose(M, 0.5*dx)
+                i+=1
+                
+            cov = inv(H)
+           
+            node_idx = pose_idx_map[node.id]
+            idx_range = np.arange(6*node_idx,6*node_idx+6)
+            del pose_idx_map[node.id]
+            for key, idx in pose_idx_map.items():
+                if idx > node_idx:
+                    pose_idx_map[key] -=1
+                
+            for key, idx in feature_idx_map.items():
+                if idx > node_idx:
+                    feature_idx_map[key] -=1
+                    
+            n_prior = len(pose_idx_map)
+            if not localize_mode:
+                n_prior += len(feature_idx_map)
+            M = np.delete(M,node_idx,0) 
             
+            z = np.concatenate([SE3.Log(M[i]) for  i in range(n_prior)])
+            cov = np.delete(cov,idx_range, 0 )
+            cov = np.delete(cov,idx_range, 1 )
+            
+            J = np.zeros(((len(z)), len(z)))
+            
+            for i in range(n_prior):
+                J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(z[6*i:6*i+6])
+            
+            cov = J@cov@J.T 
+            cov = cov + self.forgetting_factor*np.eye(len(cov))
+            # children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
+            if localize_mode:
+                idx_map={"features": {}, "pose": pose_idx_map}    
+                # feature_nodes = []
+            else:
+                idx_map={"features": feature_idx_map, "pose": pose_idx_map}    
+                # feature_nodes = [self.feature_nodes[id_] for id_ in feature_idx_map.keys()]
+            
+            # prior =  self.Factor(self.prior_factor.id, None, children, feature_nodes, z, cov, idx_map)
+            self.factor_graph.add_prior_factor(self, z, cov, idx_map["pose"] ,idx_map["features"])
+            
+        def prune(self, horizon, localize_mode):
+            for node in list(self.pose_nodes.values())[:-horizon]:
+                self.marginalize(node, localize_mode)
+                for id_, factor in node.factor.items():
+                    factor.prune(node.id)
+                    # self.factors.pop(id_)
+                    del self.factors[id_]
+                # self.pose_nodes.pop(node.id)
+                del self.pose_nodes[node.id]    
+                
     def __init__(self, M_init, localize_mode = False,horizon = 10 ,forgetting_factor = 0, max_iter=50, step_size = 0.01):
         self.back_end=self.Back_end(max_iter, step_size)
         self.forgetting_factor = forgetting_factor
@@ -383,7 +288,7 @@ class Graph_SLAM:
         self.reset()
 
     def reset(self):
-        self.factor_graph=self.Factor_Graph(self.horizon, self.forgetting_factor)
+        self.factor_graph=Factor_Graph(self.horizon, self.forgetting_factor)
         self.current_node_id=self.factor_graph.add_node(self.M, "pose")
         self.omega=np.eye(3)*0.001
         self.feature_tree=None

@@ -56,7 +56,7 @@ class Graph_SLAM_wrapper:
             graph_slam.factor_graph.add_node(M_prior,"feature", id_)
             
         if not localize_mode:
-            graph_slam.factor_graph.add_prior_factor([], list(prior["children"].keys()),prior['z'], prior["cov"] , {} , {"features": prior["idx_map"]})
+            graph_slam.factor_graph.add_prior_factor(prior['z'], prior["cov"] , {} , {"features": prior["idx_map"]})
         self.graph_slam=graph_slam
         rospy.Service('place_node', PlaceNode, self.place_node_server)
         rospy.Service('optimize_pose_graph', OptimizePoseGraph, self.optimize_server)
