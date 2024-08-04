@@ -5,7 +5,7 @@ Created on Sat Aug  3 22:39:29 2024
 @author: hibad
 """
 import numpy as np
-import deepcopy
+from copy import deepcopy
 from numpy.linalg import inv
 
 class Node:
