@@ -9,8 +9,9 @@ from copy import deepcopy
 from numpy.linalg import inv
 
 class Node:
-    def __init__(self, node_id, M, node_type):
+    def __init__(self, node_id, M, node_type, key = False):
         self.type=node_type
+        self.key = key
         self.M=M
         self.cov=np.zeros((6,6))
         self.id=node_id
@@ -57,7 +58,7 @@ class Factor_Graph:
     def add_node(self, M, node_type, feature_id=None, key_node = False):
         i=self.current_pose_id+1
         if node_type=="pose":
-            node=Node(i,M, node_type)
+            node=Node(i,M, node_type, key_node)
             self.pose_nodes[i]=node
             if key_node:
                 self.key_pose_nodes[i]=node
