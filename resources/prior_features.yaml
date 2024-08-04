@@ -93,3 +93,35 @@
 23:
    position: [0.360, -0.4097, 0.166]
    orientation: [0, 0, 0]
+
+24:
+   position: [2.349, -3.88, 0.166]
+   orientation: [0, 0 ,3.1415]
+
+25:
+   position: [2.39, -4.156, 0.227]
+   orientation: [0, 0 ,0]
+
+26:
+   position: [3, -0.106541, 0.1188]
+   orientation: [ 0, 0 ,-1.57]
+
+27:
+   position: [2.848, -3.156, 0.227 ]
+   orientation: [ 0, 0, 1.57]
+
+28:
+   position: [3.9, -5.31, 0.177 ]
+   orientation: [ 0, 0, 1.5708]
+
+29:
+   position: [0.92, -5, 0.227]
+   orientation: [ 0, 0, 0]
+
+30:
+   position: [2.31 -6.189 0.227 ]
+   orientation: [0, 0, 1.5708]
+
+31:
+   position: [2.31, -5.35, 0.227]
+   orientation: [0, 0, -1.5708]
