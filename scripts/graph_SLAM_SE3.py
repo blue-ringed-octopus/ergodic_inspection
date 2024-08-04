@@ -294,7 +294,7 @@ class Graph_SLAM:
         idx_map = posterior["features"]
 
         self.factor_graph.pose_nodes[self.current_node_id].local_map=local_cloud
-        new_node_id=self.factor_graph.add_node(self.M.copy(),"pose", key_node)
+        new_node_id=self.factor_graph.add_node(self.M.copy(),"pose", key_node = key_node)
 
         feature_node_id = idx_map.keys()
         z= np.zeros(6*len(mu))

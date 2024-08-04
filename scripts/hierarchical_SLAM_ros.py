@@ -80,6 +80,7 @@ class Graph_SLAM_wrapper:
             # self.pc_pub.publish(pc_msg)
         
     def place_node_server(self, req):
+        print("place keynode")
         posterior = self.ekf_wrapper.ekf.get_posterior()         
         node_id = self.place_node(posterior, True)
         return  PlaceNodeResponse(str(node_id))
