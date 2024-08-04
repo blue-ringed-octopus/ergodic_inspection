@@ -175,9 +175,9 @@ class Graph_SLAM:
             
             return M, H, idx_map
         
-        def marginalize(self, node, localize_mode):
+        def marginalize(self,graph, node, localize_mode):
             print("marginalize node", node.id)
-            prior = self.prior_factor
+            prior = graph.prior_factor
             pose_idx_map={}
             feature_idx_map={}
             n = 0
@@ -207,10 +207,10 @@ class Graph_SLAM:
                         
             M = np.zeros((n, 4,4))   
             for id_ , i in pose_idx_map.items():
-                M[i] = self.pose_nodes[id_].M.copy()
+                M[i] = graph.pose_nodes[id_].M.copy()
                 
             for id_ , i in feature_idx_map.items():
-                M[i] = self.feature_nodes[id_].M.copy()
+                M[i] = graph.feature_nodes[id_].M.copy()
                 
                 
             H, b = Graph_SLAM.Back_end.linearize(M, prior, node.factor, {"pose": pose_idx_map, "features": feature_idx_map}, localize_mode)   
@@ -253,7 +253,7 @@ class Graph_SLAM:
                 J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(z[6*i:6*i+6])
             
             cov = J@cov@J.T 
-            cov = cov + self.forgetting_factor*np.eye(len(cov))
+            cov = cov + graph.forgetting_factor*np.eye(len(cov))
             # children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
             if localize_mode:
                 idx_map={"features": {}, "pose": pose_idx_map}    
@@ -263,17 +263,17 @@ class Graph_SLAM:
                 # feature_nodes = [self.feature_nodes[id_] for id_ in feature_idx_map.keys()]
             
             # prior =  self.Factor(self.prior_factor.id, None, children, feature_nodes, z, cov, idx_map)
-            self.factor_graph.add_prior_factor(self, z, cov, idx_map["pose"] ,idx_map["features"])
+            graph.add_prior_factor(z, cov, idx_map["pose"] ,idx_map["features"])
             
-        def prune(self, horizon, localize_mode):
-            for node in list(self.pose_nodes.values())[:-horizon]:
-                self.marginalize(node, localize_mode)
+        def prune(self, graph, horizon, localize_mode):
+            for node in list(graph.pose_nodes.values())[:-horizon]:
+                self.marginalize(graph, node, localize_mode)
                 for id_, factor in node.factor.items():
                     factor.prune(node.id)
                     # self.factors.pop(id_)
-                    del self.factors[id_]
+                    del graph.factors[id_]
                 # self.pose_nodes.pop(node.id)
-                del self.pose_nodes[node.id]    
+                del graph.pose_nodes[node.id]    
                 
     def __init__(self, M_init, localize_mode = False,horizon = 10 ,forgetting_factor = 0, max_iter=50, step_size = 0.01):
         self.back_end=self.Back_end(max_iter, step_size)
@@ -417,7 +417,7 @@ class Graph_SLAM:
         # self.global_map_assemble()
         self.optimized = True
         print("start prune")
-        self.factor_graph.prune(10, self.localize_mode)
+        self.back_end.prune(self.factor_graph, 10, self.localize_mode)
         print("optimize end")
 
 if __name__ == "__main__":
