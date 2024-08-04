@@ -96,15 +96,15 @@ class Waypoint_Placement_Wrapper:
             alpha = np.arctan2(np.sin(alpha), np.cos(alpha))
             if abs(alpha)>np.pi/2:
                 intermediate_waypoint = pose.copy()
-                intermediate_waypoint += [0.01*np.cos(pose[2]), 0.01*np.sin(pose[2]), np.pi]
+                intermediate_waypoint += [0.01*np.cos(pose[2]), 0.01*np.sin(pose[2]), alpha]
                 im = self.planner.plot_waypoints([waypoint, intermediate_waypoint])
                 plt.imshow(im, origin="lower")
                 plt.pause(0.05)
                 plt.show()
                 navigate2point(intermediate_waypoint)
 
-            self.waypoint = pose
-            navigate2point(pose)
+            self.waypoint = waypoint
+            navigate2point(waypoint)
         # except Exception as e: 
         #     print(e)
         # id_ = self.place_node()
