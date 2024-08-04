@@ -95,11 +95,11 @@ class Waypoint_Placement_Wrapper:
             if abs(alpha)>np.pi/2:
                 waypoint = self.pose.copy()
                 waypoint += [0.01*np.cos(pose[2]), 0.01*np.sin(pose[2]), np.pi]
-                navigate2point(waypoint)
                 im = self.planner.plot_waypoints([waypoint, pose])
                 plt.imshow(im, origin="lower")
                 plt.pause(0.05)
                 plt.show()
+                navigate2point(waypoint)
 
             self.waypoint = pose
             navigate2point(pose)
