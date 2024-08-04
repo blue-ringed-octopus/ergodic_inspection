@@ -73,7 +73,7 @@ class Factor_Graph:
         # children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
         # features = [self.feature_nodes[id_] for id_ in feature_idx_map.keys()]
                   
-        factor = Factor(self.prior_factor.id, None, pose_idx_map.keys(),feature_idx_map.keys() ,z,sigma, idx_map)  
+        factor = Factor(self.prior_factor.id, None, list(pose_idx_map.keys()),list(feature_idx_map.keys()) ,z,sigma, idx_map)  
             
         self.prior_factor = factor
                     
