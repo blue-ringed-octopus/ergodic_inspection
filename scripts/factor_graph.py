@@ -54,7 +54,7 @@ class Factor:
             
 class Factor_Graph:                
     def __init__(self, horizon, forgetting_factor):
-        self.prior_factor = self.Factor(0, [],[], [], None, np.eye(2),  {"features":{}, "pose":{}})
+        self.prior_factor = Factor(0, [],[], [], None, np.eye(2),  {"features":{}, "pose":{}})
         self.pose_nodes={}
         self.key_pose_nodes={}
         self.factors={}
@@ -67,14 +67,14 @@ class Factor_Graph:
     def add_node(self, M, node_type, feature_id=None, key_node = False):
         i=self.current_pose_id+1
         if node_type=="pose":
-            node=self.Node(i,M, node_type)
+            node=Node(i,M, node_type)
             self.pose_nodes[i]=node
             if key_node:
                 self.key_pose_nodes[i]=node
             self.current_pose_id = i
                 
         if node_type=="feature":
-            node=self.Node(feature_id,M, node_type)
+            node=Node(feature_id,M, node_type)
             self.feature_nodes[feature_id]=node
         return self.current_pose_id
     
@@ -83,7 +83,7 @@ class Factor_Graph:
         children = [self.pose_nodes[id_] for id_ in pose_idx_map.keys()]
         features = [self.feature_nodes[id_] for id_ in feature_idx_map.keys()]
                   
-        factor = self.Factor(self.prior_factor.id, None,children,features ,z,sigma, idx_map)  
+        factor = Factor(self.prior_factor.id, None,children,features ,z,sigma, idx_map)  
             
         self.prior_factor = factor
                     
@@ -93,7 +93,7 @@ class Factor_Graph:
         child = self.pose_nodes[child_id]
             
         features=[self.feature_nodes[feature_id] for feature_id in feature_ids]
-        factor = self.Factor(self.current_factor_id, parent,[child],features ,z,sigma, idx_map)
+        factor = Factor(self.current_factor_id, parent,[child],features ,z,sigma, idx_map)
         self.factors[self.current_factor_id] = factor
         
         parent.factor[self.current_factor_id] = factor
