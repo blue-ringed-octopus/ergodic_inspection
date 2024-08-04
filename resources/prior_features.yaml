@@ -119,7 +119,7 @@
    orientation: [ 0, 0, 0]
 
 30:
-   position: [2.31 -6.189 0.227 ]
+   position: [2.31, -6.189, 0.227 ]
    orientation: [0, 0, 1.5708]
 
 31:
