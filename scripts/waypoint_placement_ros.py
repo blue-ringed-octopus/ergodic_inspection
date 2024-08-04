@@ -37,6 +37,7 @@ class Waypoint_Placement_Wrapper:
         rospy.init_node('waypoint_planner',anonymous=False)
         rospy.wait_for_service('get_reference_cloud_region')
         rospy.wait_for_service('static_map')
+        rospy.wait_for_service('get_region')
         rospy.wait_for_service('plan_region')
         rospy.wait_for_service('optimize_pose_graph')
         
@@ -66,40 +67,41 @@ class Waypoint_Placement_Wrapper:
         
         
     def get_current_region(self):
-        pose = Pose()
+        pose_msg = Pose()
         try:
             self.listener.waitForTransform("map",params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
             (trans, rot) = self.listener.lookupTransform("map", params["EKF"]["robot_frame"], rospy.Time(0))
-            pose.position.x = trans[0]
-            pose.position.y = trans[1]
-            region = self.get_region(pose,1).region
-            self.pose = np.array([pose.position.x, pose.position.y, np.arctan2(2*(rot[2]), 2*rot[3])])
+            pose_msg.position.x = trans[0]
+            pose_msg.position.y = trans[1]
+            rospy.wait_for_service('get_region')
+            region = self.get_region(pose_msg,1).region
+            pose = np.array([ trans[0], trans[1], np.arctan2(2*(rot[2]), 2*rot[3])])
             if region=="-1":
                 region = self.next_region
         except:
             region = self.next_region
-            self.pose = self.waypoint
-        return region 
+            pose = self.waypoint
+        return pose, region 
     
     def update(self):
         # try:
-            region = self.get_current_region()
+            pose, region = self.get_current_region()
             rospy.wait_for_service('plan_region')
             self.next_region = self.plan_region(region).next_region
             msg = self.get_reference(self.next_region)
             h, region_cloud = decode_msg(msg.ref)
-            pose = self.planner.get_optimal_waypoint(50, region_cloud, h)
+            waypoint = self.planner.get_optimal_waypoint(50, region_cloud, h)
             
-            alpha = np.arctan2(pose[1]-self.pose[1], pose[0]-self.pose[0]) - pose[2]
+            alpha = np.arctan2(waypoint[1]-pose[1], waypoint[0]-pose[0]) - pose[2]
             alpha = np.arctan2(np.sin(alpha), np.cos(alpha))
             if abs(alpha)>np.pi/2:
-                waypoint = self.pose.copy()
-                waypoint += [0.01*np.cos(pose[2]), 0.01*np.sin(pose[2]), np.pi]
-                im = self.planner.plot_waypoints([waypoint, pose])
+                intermediate_waypoint = pose.copy()
+                intermediate_waypoint += [0.01*np.cos(pose[2]), 0.01*np.sin(pose[2]), np.pi]
+                im = self.planner.plot_waypoints([waypoint, intermediate_waypoint])
                 plt.imshow(im, origin="lower")
                 plt.pause(0.05)
                 plt.show()
-                navigate2point(waypoint)
+                navigate2point(intermediate_waypoint)
 
             self.waypoint = pose
             navigate2point(pose)
