@@ -107,7 +107,7 @@ class Factor_Graph:
 
     def prune(self, node_id):
         node = self.pose_nodes[node_id]
-        for factor in node.factor.values().copy():
+        for factor in list(node.factor.values()).copy():
             self.remove_factor(factor)
             
         del self.pose_nodes[node.id]    
