@@ -101,7 +101,7 @@ class Waypoint_Placement_Wrapper:
                 # plt.imshow(im, origin="lower")
                 # plt.pause(0.05)
                 # plt.show()
-                # navigate2point(intermediate_waypoint)
+                navigate2point(intermediate_waypoint)
 
             self.waypoint = waypoint
             navigate2point(waypoint)
