@@ -128,7 +128,9 @@ if __name__ == "__main__":
     n_key_node = 0
     while not rospy.is_shutdown():
         graph_slam_wrapper.update()    
-        
+        print("num node", len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes))
+        print("num node_prev", n_key_node)
+
         if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)>n_key_node and len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)>1 :    
             n_key_node = len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)
             node_id  = list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.keys())[-2]
