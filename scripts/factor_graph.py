@@ -29,7 +29,7 @@ class Factor:
         self.children_ids = children_ids
         self.feature_ids = feature_ids
         self.z = z
-        if np.linalg.det_sigma == 0:
+        if np.linalg.det(sigma) == 0:
             sigma += np.eye(len(z))*0.0001
         self.omega = inv(sigma)
         self.omega = (self.omega.T+self.omega)/2
