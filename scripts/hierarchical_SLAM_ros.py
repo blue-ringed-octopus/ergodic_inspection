@@ -30,6 +30,7 @@ with open(path+'/param/estimation_param.yaml', 'r') as file:
     
 class Graph_SLAM_wrapper:
     def __init__(self, tf_br, localize_mode  = False):
+        self.place_node_req = False
         self.lock=threading.Lock()
         self.tf_br = tf_br
         self.factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
@@ -81,16 +82,19 @@ class Graph_SLAM_wrapper:
         
     def place_node_server(self, req):
         print("place keynode")
-        posterior = self.ekf_wrapper.ekf.get_posterior()         
-        node_id = self.place_node(posterior, True)
-        return  PlaceNodeResponse(str(node_id))
+        # posterior = self.ekf_wrapper.ekf.get_posterior()         
+        # node_id = self.place_node(posterior, True)
+        self.place_node_req = True
+        return  PlaceNodeResponse(True)
     
     def update(self):
         posterior = self.ekf_wrapper.ekf.get_posterior()         
         _ = self.graph_slam.update(posterior)
         delta = np.linalg.norm(SE3.Log(posterior["mu"][0]))
-        if delta >= self.thres:
+        if delta >= self.thres or self.place_node_req:
             self.place_node(posterior, False)
+            if self.place_node_req:
+                self.place_node_req = False
             
         plot_graph(self.graph_slam.factor_graph, self.factor_graph_marker_pub)
         
