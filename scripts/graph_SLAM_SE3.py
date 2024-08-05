@@ -168,12 +168,9 @@ class Graph_SLAM:
 
             while np.max(np.abs(dx))>0.001 and i<self.max_iter:
                 print("step: ", i)
-                H,b=self.linearize(M.copy(), prior ,factors, idx_map, localize_mode)
-                print("solve MAP")
-                dx=self.linear_solve(H,b)
-                print("update pose")
-                M =update_pose(M, self.step_size*dx,)
-                # M = self.update_pose(M.copy(), 1*dx)
+                H,b = self.linearize(M.copy(), prior ,factors, idx_map, localize_mode)
+                dx = self.linear_solve(H,b)
+                M = update_pose(M, self.step_size*dx,)
                 i+=1
                 print(max(np.abs(dx)))
             # self.update_nodes(graph, M, inv(H), idx_map, localize_mode)

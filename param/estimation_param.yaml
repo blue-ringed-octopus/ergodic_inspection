@@ -18,4 +18,4 @@ Graph_SLAM:
   forgetting_factor: 5
   horizon: 5
   max_iteration: 50
-  step_size: 0.05
+  step_size: 0.5
