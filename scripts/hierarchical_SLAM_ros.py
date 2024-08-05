@@ -92,9 +92,8 @@ class Graph_SLAM_wrapper:
         _ = self.graph_slam.update(posterior)
         delta = np.linalg.norm(SE3.Log(posterior["mu"][0]))
         if delta >= self.thres or self.place_node_req:
-            self.place_node(posterior, False)
-            if self.place_node_req:
-                self.place_node_req = False
+            self.place_node(posterior, self.place_node_req)
+            self.place_node_req = False
             
         plot_graph(self.graph_slam.factor_graph, self.factor_graph_marker_pub)
         
