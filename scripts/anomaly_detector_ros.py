@@ -127,18 +127,20 @@ if __name__ == "__main__":
     
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
-        graph_slam_wrapper.update()    
-        for id_, node in graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.items():  
-            if id_ not in detected:
-                print("detecting node: ", id_)
-                detected.append(id_)
-                pc, ref = detector.detect(node, graph_slam_wrapper.graph_slam.factor_graph.feature_nodes)
-                msg = Float32MultiArray()
-                msg.data = detector.p_anomaly 
-            try:
-                set_h(msg)
-            except:
-                print("failed to send entropy")
+        graph_slam_wrapper.update() 
+        if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)> 1: 
+            for id_ in list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.keys())[:-2]:  
+                if id_ not in detected:
+                    print("detecting node: ", id_)
+                    detected.append(id_)
+                    node = graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[id_]
+                    pc, ref = detector.detect(node, graph_slam_wrapper.graph_slam.factor_graph.feature_nodes)
+                    msg = Float32MultiArray()
+                    msg.data = detector.p_anomaly 
+                try:
+                    set_h(msg)
+                except:
+                    print("failed to send entropy")
            
 
         rate.sleep()
