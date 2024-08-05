@@ -200,6 +200,8 @@ def get_pose_marker(tags, mu):
     return markerArray
 
 if __name__ == "__main__":
+    import yaml
+    from scipy.spatial.transform import Rotation as R
     rospack=rospkg.RosPack()
     rospy.init_node('EKF',anonymous=False)
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
@@ -208,6 +210,7 @@ if __name__ == "__main__":
 
     wrapper = EKF_Wrapper(0, br)
     rate = rospy.Rate(30) # 10hz
+    prior = {}
     while not rospy.is_shutdown():
         # pc_pub.publish(ekf.cloud)
         markers=get_pose_marker(wrapper.ekf.features, wrapper.ekf.mu)
@@ -217,4 +220,13 @@ if __name__ == "__main__":
                         rospy.Time.now(),
                         "ekf",
                         "map")
+        for tag_id, idx in wrapper.ekf.features.items():
+            T = wrapper.ekf.mu[idx]
+            rot = R.from_matrix().as_euler() 
+            t = T[0:3, 3]
+            prior[tag_id] = {"position": t, "orientation": rot}
+            
+        with open('tag_loc.yaml', 'w') as file:
+            yaml.dump(prior, file)
         rate.sleep()
+        
