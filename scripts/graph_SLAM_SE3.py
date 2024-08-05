@@ -143,6 +143,8 @@ class Graph_SLAM:
         
         @staticmethod
         def linear_solve(A,b):
+            if np.linalg.det(A) ==0:
+                A+=np.eye(len(b))*0.0001
             # A=(A+A.T)/2
             # L=np.linalg.cholesky(A)
             # y=solve_triangular(L,b, lower=True)
