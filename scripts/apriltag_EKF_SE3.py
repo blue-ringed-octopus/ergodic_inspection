@@ -151,7 +151,6 @@ class EKF:
         self.odom_prev = odom   
         
     def reset(self, node_id, pc_info, landmarks={}):
-        print("reseting EKF")
         self.id = node_id
         self.mu=[np.eye(4)]
         self.sigma=np.zeros((6,6))
@@ -159,7 +158,6 @@ class EKF:
         self.landmarks=landmarks
         self._process_pointcloud(pc_info)
         # self._initialize_landmarks(landmark)
-        print("EKF initialized")
     
     # def _initialize_landmarks(self, landmarks):
     #    mu=self.mu.copy()       #current point estimates 
