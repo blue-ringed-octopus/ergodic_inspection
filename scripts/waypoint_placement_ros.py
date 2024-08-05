@@ -107,7 +107,7 @@ class Waypoint_Placement_Wrapper:
             navigate2point(waypoint)
         # except Exception as e: 
         #     print(e)
-            id_ = self.place_node()
+            # id_ = self.place_node()
         # self.optimize()
     
 def decode_msg(msg):
