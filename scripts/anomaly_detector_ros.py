@@ -123,22 +123,18 @@ if __name__ == "__main__":
     # factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     # pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
     # tf_listener = tf.TransformListener()
+    detected = []
     
     rate = rospy.Rate(30) 
-    n_key_node = 0
     while not rospy.is_shutdown():
         graph_slam_wrapper.update()    
-        print("num node", len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes))
-        print("num node_prev", n_key_node)
-
-        if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)>n_key_node and len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)>1 :    
-            n_key_node = len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)
-            node_id  = list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.keys())[-2]
-            n_key_node = len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)
-            print("detecting")
-            pc, ref = detector.detect(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[node_id], graph_slam_wrapper.graph_slam.factor_graph.feature_nodes)
-            msg = Float32MultiArray()
-            msg.data = detector.p_anomaly 
+        for id_, node in graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.items():  
+            if id_ not in detected:
+                print("detecting node: ", id_)
+                detected.append(id_)
+                pc, ref = detector.detect(node, graph_slam_wrapper.graph_slam.factor_graph.feature_nodes)
+                msg = Float32MultiArray()
+                msg.data = detector.p_anomaly 
             try:
                 set_h(msg)
             except:
