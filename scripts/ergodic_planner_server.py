@@ -32,7 +32,7 @@ class Ergodic_Planner_Server:
         return PlanRegionResponse(str(next_region))
     
     def parse_graph_msg(self, msg):
-        graph=msg.graph
+        graph = msg.graph
         nodes = graph.node_ids
         id_map = {}
         for i, node in enumerate(nodes):
