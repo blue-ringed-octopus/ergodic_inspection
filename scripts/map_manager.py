@@ -123,7 +123,7 @@ class Map_Manager:
         cloud = deepcopy(self.reference)
         v = 1 - self.h.copy()/bernoulli.entropy(0.5)
         h = self.p.copy()
-        rgb = [colorsys.hsv_to_rgb(h[i], 1, v[i]) for i in range(len(self.num_points))]
+        rgb = [colorsys.hsv_to_rgb(h[i], 1, v[i]) for i in range(self.num_points)]
         cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
         return cloud.crop(self.bound)
     
