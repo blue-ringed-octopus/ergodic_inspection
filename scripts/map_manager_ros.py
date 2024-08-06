@@ -75,7 +75,7 @@ class Server:
         print("receiving anomaly belief")
         p = req.p.data
         self.map_manager.set_entropy(p)
-        print(self.map_manager.h)
+        # print(self.map_manager.h)
         return SetBeliefResponse(True)
     
     def send_pc(self, req):
