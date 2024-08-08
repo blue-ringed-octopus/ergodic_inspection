@@ -126,7 +126,7 @@ def get_global_cov_SE3(points, T_global, point_cov, T_cov):
     return cov
 
 class Anomaly_Detector:
-    def __init__(self, pc, bounding_box, region_bounds, thres=1):
+    def __init__(self, pc, bounding_box, region_idx, thres=1):
         self.bounding_box = bounding_box
         self.get_ref_pc(pc)
         n = len(self.ref_points)
@@ -136,7 +136,7 @@ class Anomaly_Detector:
 
         _, self.crop_index = self.ref_tree.query(np.asarray(crop_pc.points),1)
         
-        self.calculate_self_neighbor(region_bounds)
+        self.calculate_self_neighbor(region_idx)
         
         
         self.p_anomaly = np.ones(len(self.reference.points))*0.5
@@ -145,16 +145,17 @@ class Anomaly_Detector:
         self.md_ref = np.zeros((n, 2))
         self.chi2 = np.zeros((n, 2))
     
-    def calculate_self_neighbor(self, region_bounds):
+    def calculate_self_neighbor(self, region_idx):
         self.neighbor_count = 20
-
-        for region, bounds in region_bounds.items():
-            box = self.bounding_box.copy()
-            box.max_bound = bounds["max_bounds"]
-            box.min_bound = bounds["min_bounds"]
-            region_pc = self.reference.crop(box)
+        corr= [[] for _ in range(len(self.ref_points))]
+        for region, idx in region_idx.items():
+            region_cloud = self.reference.select_by_index(idx)
+            points = np.array(region_cloud.points)
+            tree =  KDTree(points)
+            _, corr_region = tree.query(points, k=self.neighbor_count)
+            corr[idx] = idx[corr_region]
             
-        _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
+        # _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
         self.self_neighbor = corr
                     
     def get_ref_pc(self, pc):
