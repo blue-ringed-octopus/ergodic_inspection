@@ -40,6 +40,8 @@ class Server:
         rospy.Service('GetGraphStructure', GetGraphStructure, self.send_graph)
         rospy.Service('static_map', GetMap, self.send_costmap)
         rospy.Service('get_region', GetRegion, self.send_region)
+        rospy.Service('get_region_index', GetRegionPointIndex, self.send_region_idx)
+
         # rospy.Service('get_region_bounds', GetRegionBounds, self.send_bounds)
 
         print("Map server online")
