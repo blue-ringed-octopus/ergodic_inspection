@@ -10,7 +10,7 @@ from ergodic_inspection.srv import PointCloudWithEntropy, PointCloudWithEntropyR
 from ergodic_inspection.srv import SetBelief, SetBeliefResponse
 from ergodic_inspection.srv import GetGraphStructure, GetGraphStructureResponse
 from ergodic_inspection.srv import GetRegion, GetRegionResponse
-
+from ergodic_inspection.srv import GetRegionBounds, GetRegionBoundsResponse
 from nav_msgs.srv import GetMap, GetMapResponse
 
 from sensor_msgs.msg import PointCloud2
@@ -18,6 +18,7 @@ from std_msgs.msg import Float32MultiArray
 from visualization_msgs.msg import Marker
 from ergodic_inspection.msg import Graph
 from nav_msgs.msg import OccupancyGrid 
+from ergodic_inspection.msg import RegionBounds
 
 import rospkg
 import open3d as o3d
@@ -38,8 +39,20 @@ class Server:
         rospy.Service('GetGraphStructure', GetGraphStructure, self.send_graph)
         rospy.Service('static_map', GetMap, self.send_costmap)
         rospy.Service('get_region', GetRegion, self.send_region)
+        rospy.Service('get_region_bounds', GetRegionBounds, self.send_bounds)
+
         print("Map server online")
     
+    def send_bounds(self, req):
+        region_bounds=[]
+        for region, bounds in self.map_manager.region_bounds.items():
+            msg = RegionBounds()
+            msg.region_id = region
+            msg.max_bound = bounds["max_bound"]
+            msg.min_bound = bounds["min_bound"]
+            region_bounds.append(msg)
+        return GetRegionResponse(region_bounds)    
+        
     def send_region(self, req):
         level = req.level
         x = req.pose.position.x
