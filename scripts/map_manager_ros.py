@@ -25,6 +25,8 @@ import rospkg
 import open3d as o3d
 import yaml
 import numpy as np
+np.float = np.float64 
+
 import ros_numpy
 import pickle 
 import rospy
