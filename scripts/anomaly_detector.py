@@ -126,7 +126,7 @@ def get_global_cov_SE3(points, T_global, point_cov, T_cov):
     return cov
 
 class Anomaly_Detector:
-    def __init__(self, pc, bounding_box, thres=1):
+    def __init__(self, pc, bounding_box, region_bounds, thres=1):
         self.bounding_box = bounding_box
         self.get_ref_pc(pc)
         n = len(self.ref_points)
@@ -136,7 +136,7 @@ class Anomaly_Detector:
 
         _, self.crop_index = self.ref_tree.query(np.asarray(crop_pc.points),1)
         
-        self.calculate_self_neighbor 
+        self.calculate_self_neighbor(region_bounds)
         
         
         self.p_anomaly = np.ones(len(self.reference.points))*0.5
@@ -145,8 +145,15 @@ class Anomaly_Detector:
         self.md_ref = np.zeros((n, 2))
         self.chi2 = np.zeros((n, 2))
     
-    def calculate_self_neighbor(self):
+    def calculate_self_neighbor(self, region_bounds):
         self.neighbor_count = 20
+
+        for region, bounds in region_bounds.items():
+            box = self.bounding_box.copy()
+            box.max_bound = bounds["max_bounds"]
+            box.min_bound = bounds["min_bounds"]
+            region_pc = self.reference.crop(box)
+            
         _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
         self.self_neighbor = corr
                     

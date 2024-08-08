@@ -21,7 +21,7 @@ from apriltag_EKF_ros import EKF_Wrapper
 import tf
 import pickle
 import yaml
-from ergodic_inspection.srv import PointCloudWithEntropy, SetBelief
+from ergodic_inspection.srv import PointCloudWithEntropy, SetBelief, GetRegionBounds
 from std_msgs.msg import Float32MultiArray 
 from Lie import SE3    
 rospack=rospkg.RosPack()
@@ -97,16 +97,31 @@ def msg_2_pc(msg):
     p.colors = o3d.utility.Vector3dVector(np.asarray(rgb/255))
     p.normals = o3d.utility.Vector3dVector(normals)
     return p
-    
+
+def parse_region_bounds(msg):
+    region_bounds={}
+    for region in msg.region_bounds:
+        id_ = region.reigon_id
+        max_bounds = region.max_bounds.data
+        min_bounds = region.min_bounds.data
+        region_bounds[id_] = {"max_bounds": max_bounds,
+                                    "min_bounds": min_bounds}
+    return region_bounds  
+  
 if __name__ == "__main__":
     localization_mode = True
 
     rospy.wait_for_service('get_reference_cloud_region')
     rospy.wait_for_service('set_entropy')
+    rospy.wait_for_service('get_region_bounds')
+
     set_h = rospy.ServiceProxy('set_entropy', SetBelief)
     get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
+    get_region_bounds = rospy.ServiceProxy('get_region_bounds', SetBelief)
+
     msg = get_reference(str(-1))
     reference_cloud = msg_2_pc(msg.ref)
+    region_bounds = parse_region_bounds(get_region_bounds())
     
     anomaly_thres = 0.02
     
@@ -118,7 +133,7 @@ if __name__ == "__main__":
     bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
     box.max_bound = bound
 
-    detector = Anomaly_Detector(reference_cloud, box,anomaly_thres)
+    detector = Anomaly_Detector(reference_cloud, box, region_bounds,anomaly_thres)
 
     # factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     # pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
@@ -137,10 +152,10 @@ if __name__ == "__main__":
                     pc, ref = detector.detect(node, graph_slam_wrapper.graph_slam.factor_graph.feature_nodes)
                     msg = Float32MultiArray()
                     msg.data = detector.p_anomaly 
-                try:
-                    set_h(msg)
-                except:
-                    print("failed to send entropy")
+                    try:
+                        set_h(msg)
+                    except:
+                        print("failed to send entropy")
            
 
         rate.sleep()
