@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
     rospy.wait_for_service('get_reference_cloud_region')
     rospy.wait_for_service('set_entropy')
-    rospy.wait_for_service('get_region_bounds')
+    rospy.wait_for_service('get_region_index')
 
     set_h = rospy.ServiceProxy('set_entropy', SetBelief)
     get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
