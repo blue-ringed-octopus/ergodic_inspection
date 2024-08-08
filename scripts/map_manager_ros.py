@@ -51,7 +51,8 @@ class Server:
             msg.max_bound = bounds["max_bound"]
             msg.min_bound = bounds["min_bound"]
             region_bounds.append(msg)
-        return GetRegionResponse(region_bounds)    
+            
+        return GetRegionBoundsResponse(region_bounds)    
         
     def send_region(self, req):
         level = req.level
