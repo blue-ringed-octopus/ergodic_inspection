@@ -147,6 +147,8 @@ if __name__ == "__main__":
                     detected.append(id_)
                     node = graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[id_]
                     pc, ref = detector.detect(node, graph_slam_wrapper.graph_slam.factor_graph.feature_nodes)
+                    del graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[id_]
+
                     msg = Float32MultiArray()
                     msg.data = detector.p_anomaly 
                     try:
