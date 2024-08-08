@@ -63,7 +63,7 @@ class Server:
     
     def send_region_idx(self, req):
         region_idx=[]
-        for i, idx in self.map_manager.region_idx:
+        for i, idx in enumerate(self.map_manager.region_idx):
             msg = RegionPointIndex()
             msg.region_id = str(i)
             msg.idx = idx.astpye(np.uint64)
