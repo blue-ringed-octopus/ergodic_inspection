@@ -101,7 +101,7 @@ def msg_2_pc(msg):
 def parse_region_idx(msg):
     region_idx={}
     for region in msg.region_idx:
-        id_ = region.reigon_id
+        id_ = region.region_id
         region_idx[id_] = region.idx
     return region_idx  
   
