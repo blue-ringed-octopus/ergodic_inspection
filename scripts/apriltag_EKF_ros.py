@@ -222,7 +222,7 @@ if __name__ == "__main__":
                         "map")
         for tag_id, idx in wrapper.ekf.features.items():
             T = wrapper.ekf.mu[idx]
-            rot = R.from_matrix().as_euler() 
+            rot = R.from_matrix().as_euler("xyz") 
             t = T[0:3, 3]
             prior[tag_id] = {"position": t, "orientation": rot}
             

@@ -141,7 +141,7 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         graph_slam_wrapper.update() 
         if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)> 1: 
-            for id_ in list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.keys())[:-2]:  
+            for id_ in list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.keys())[:-1]:  
                 if id_ not in detected:
                     print("detecting node: ", id_)
                     detected.append(id_)
