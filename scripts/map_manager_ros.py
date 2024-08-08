@@ -66,7 +66,7 @@ class Server:
         for i, idx in enumerate(self.map_manager.region_idx):
             msg = RegionPointIndex()
             msg.region_id = str(i)
-            msg.idx = idx.astpye(np.uint64)
+            msg.idx = idx.astype(np.uint64)
             region_idx.append(msg)
             
         return GetRegionPointIndexResponse(region_idx)    
