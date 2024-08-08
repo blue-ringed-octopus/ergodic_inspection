@@ -136,18 +136,20 @@ class Anomaly_Detector:
 
         _, self.crop_index = self.ref_tree.query(np.asarray(crop_pc.points),1)
         
-
+        self.calculate_self_neighbor 
         
-        self.neighbor_count = 20
-        _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
+        
         self.p_anomaly = np.ones(len(self.reference.points))*0.5
-
-        self.self_neighbor = corr
         self.thres = thres
         self.n_sample = np.zeros(n)
         self.md_ref = np.zeros((n, 2))
         self.chi2 = np.zeros((n, 2))
-        
+    
+    def calculate_self_neighbor(self):
+        self.neighbor_count = 20
+        _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
+        self.self_neighbor = corr
+                    
     def get_ref_pc(self, pc):
         self.reference = deepcopy(pc)
         self.ref_normal = np.asarray(pc.normals)

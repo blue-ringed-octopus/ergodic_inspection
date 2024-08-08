@@ -139,17 +139,49 @@ class Map_Manager:
         ids = list(self.hierarchical_graph.levels[level].nodes.keys())
         edges = self.hierarchical_graph.get_edges(level)
         h = self.get_entropy()
-        return ids, edges, h
+        # location = np.array([ node.coord for node in self.hierarchical_graph.levels[level].nodes.values()])
+        return ids,  edges, h
     
     def coord_to_region(self, coord, level):
         idx = self.get_index(coord)
         region = self.hierarchical_graph.levels[level].id_map[idx[0], idx[1]]
         return int(region)
     
+    def draw_graph_entropy(self):
+        graph = manager.hierarchical_graph.levels[1]
+        h = self.get_entropy()
+        n = len(ids)
+        v = 1 - h.copy()/bernoulli.entropy(0.5)
+        region_color = [(colorsys.hsv_to_rgb(0, 0.5, v[i])) for i in range(n)]
+        img = graph.id_map.copy()
+        img = img.astype(np.float32)
+        img[img>=0] = 255
+        img[img==-1] = 0
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        for i in range(n):
+            img[graph.id_map == i, :] = region_color[i]
+        h, w, _ = img.shape
+        scale = 500
+        img = cv2.resize(img, (int(scale), int(h/w*scale)),interpolation = cv2.INTER_NEAREST)
+        for i, node in enumerate(graph.nodes.values()):
+            textsize = cv2.getTextSize(str(node.id), cv2.FONT_HERSHEY_SIMPLEX, 1, 2)[0]
+            pos = (int(scale/w*node.coord[1]), int(scale/w*node.coord[0]))
+            img = cv2.circle(img, pos ,20, 0, -1)
+            pos = (int(scale/w*node.coord[1]-textsize[1]/2), int(scale/w*node.coord[0]+textsize[0]/2))
+            img = cv2.putText(img, str(node.id), pos, cv2.FONT_HERSHEY_SIMPLEX , 1, region_color[i] , 2)
+            for neighbor in node.neighbor_nodes.values():
+                pos2 = (int(scale/w*neighbor.coord[1]), int(scale/w*neighbor.coord[0]))
+                img = cv2.arrowedLine(img, pos, pos2, 0)
+        return img
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     manager = Map_Manager("../")
     img = manager.get_region_graph_img()
     plt.imshow(img)    
-    ids, edges, h = manager.get_graph(1)
+    ids, edges , h = manager.get_graph(1)
     region = manager.coord_to_region([2.57,-0.75], 1)
+    img2 = manager.draw_graph_entropy()
+    plt.imshow(img2)    
+
+
+   

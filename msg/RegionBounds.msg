@@ -1,0 +1,3 @@
+string region_id
+std_msgs/Float32MultiArray max_bound
+std_msgs/Float32MultiArray min_bound
