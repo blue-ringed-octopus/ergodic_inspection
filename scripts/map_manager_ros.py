@@ -48,8 +48,12 @@ class Server:
         for region, bounds in self.map_manager.region_bounds.items():
             msg = RegionBounds()
             msg.region_id = str(region)
-            msg.max_bound = bounds["max_bound"]
-            msg.min_bound = bounds["min_bound"]
+            max_bound = Float32MultiArray()
+            max_bound.data = bounds["max_bound"]
+            min_bound = Float32MultiArray()
+            min_bound.data = bounds["min_bound"]
+            msg.max_bound = max_bound
+            msg.min_bound = min_bound
             region_bounds.append(msg)
             
         return GetRegionBoundsResponse(region_bounds)    
