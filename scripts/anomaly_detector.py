@@ -149,11 +149,12 @@ class Anomaly_Detector:
         self.neighbor_count = 20
         corr= [[] for _ in range(len(self.ref_points))]
         for region, idx in region_idx.items():
+            idx = np.array(idx)
             region_cloud = self.reference.select_by_index(idx)
             points = np.array(region_cloud.points)
             tree =  KDTree(points)
             _, corr_region = tree.query(points, k=self.neighbor_count)
-            corr[idx] = idx[corr_region]
+            corr[idx] = idx[np.array(corr_region)]
             
         # _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
         self.self_neighbor = corr
