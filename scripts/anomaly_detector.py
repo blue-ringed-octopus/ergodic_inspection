@@ -148,7 +148,7 @@ class Anomaly_Detector:
     def calculate_self_neighbor(self, region_idx):
         self.neighbor_count = 20
         # corr= [[] for _ in range(len(self.ref_points))]
-        corr = np.zeors(len(self.ref_points), self.neighbor_count)
+        corr = np.zeros(len(self.ref_points), self.neighbor_count)
         for region, idx in region_idx.items():
             idx = np.array(idx)
             region_cloud = self.reference.select_by_index(idx)
