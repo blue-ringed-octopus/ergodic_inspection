@@ -158,8 +158,8 @@ class Anomaly_Detector:
             corr[idx,:] = idx[np.array(corr_region)]
             
         # _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
-        print(corr)
-        self.self_neighbor = corr
+        print(corr.astype(np.uint32))
+        self.self_neighbor = corr.astype(np.uint32)
                     
     def get_ref_pc(self, pc):
         self.reference = deepcopy(pc)
