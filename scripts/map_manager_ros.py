@@ -47,7 +47,7 @@ class Server:
         region_bounds=[]
         for region, bounds in self.map_manager.region_bounds.items():
             msg = RegionBounds()
-            msg.region_id = region
+            msg.region_id = str(region)
             msg.max_bound = bounds["max_bound"]
             msg.min_bound = bounds["min_bound"]
             region_bounds.append(msg)
