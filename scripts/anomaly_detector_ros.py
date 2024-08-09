@@ -61,7 +61,9 @@ class anomaly_detector_wrapper:
                 self.set_h(msg)
             except:
                 print("failed to send entropy")
-        
+    def combine_refs(self):
+        pass
+      
 # def get_mesh_marker(mesh_resource):
 #     marker=Marker()
 #     marker.id = 0
