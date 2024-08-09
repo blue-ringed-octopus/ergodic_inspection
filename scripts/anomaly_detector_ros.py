@@ -27,26 +27,60 @@ from Lie import SE3
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
 
-            
-def get_mesh_marker(mesh_resource):
-    marker=Marker()
-    marker.id = 0
-    marker.header.frame_id = "map"
-    marker.header.stamp = rospy.Time.now()
-    marker.mesh_resource = mesh_resource
-    marker.type = 10
-    marker.pose.orientation.x=0
-    marker.pose.orientation.y=0
-    marker.pose.orientation.z=0
-    marker.pose.orientation.w=1
-    marker.color.r = 0.2
-    marker.color.g = 0.2
-    marker.color.b = 0.2
-    marker.color.a = 0.5
-    marker.scale.x = 1
-    marker.scale.y = 1
-    marker.scale.z = 1
-    return marker
+class anomaly_detector_wrapper:
+    def __init__(self, anomaly_thres):
+        self.detected_node = []
+        self.anomaly_thres = anomaly_thres
+        rospy.wait_for_service('get_reference_cloud_region')
+        rospy.wait_for_service('set_entropy')
+        rospy.wait_for_service('get_region_index')
+
+        self.set_h = rospy.ServiceProxy('set_entropy', SetBelief)
+        get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
+        get_region_idx = rospy.ServiceProxy('get_region_index', GetRegionPointIndex)
+
+        msg = get_reference(str(-1))
+        reference_cloud = msg_2_pc(msg.ref)
+        region_idx = parse_region_idx(get_region_idx())
+        
+        box = reference_cloud.get_axis_aligned_bounding_box()
+        bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
+        box.max_bound = bound
+
+        self.detector = Anomaly_Detector(reference_cloud, box, region_idx,anomaly_thres)
+    
+    def detect(self, node, features):
+        if node.id not in self.detected_node:
+            print("detecting node: ", node.id)
+            self.detected_node.append(node.id)
+            pc, ref = self.detector.detect(node, features)
+        
+            msg = Float32MultiArray()
+            msg.data = self.detector.p_anomaly 
+            try:
+                self.set_h(msg)
+            except:
+                print("failed to send entropy")
+        
+# def get_mesh_marker(mesh_resource):
+#     marker=Marker()
+#     marker.id = 0
+#     marker.header.frame_id = "map"
+#     marker.header.stamp = rospy.Time.now()
+#     marker.mesh_resource = mesh_resource
+#     marker.type = 10
+#     marker.pose.orientation.x=0
+#     marker.pose.orientation.y=0
+#     marker.pose.orientation.z=0
+#     marker.pose.orientation.w=1
+#     marker.color.r = 0.2
+#     marker.color.g = 0.2
+#     marker.color.b = 0.2
+#     marker.color.a = 0.5
+#     marker.scale.x = 1
+#     marker.scale.y = 1
+#     marker.scale.z = 1
+#     return marker
 
 def pc_2_msg(cloud):
     points = np.array(cloud.points)
@@ -107,55 +141,24 @@ def parse_region_idx(msg):
   
 if __name__ == "__main__":
     localization_mode = True
+    anomaly_thres = 0.05
 
-    rospy.wait_for_service('get_reference_cloud_region')
-    rospy.wait_for_service('set_entropy')
-    rospy.wait_for_service('get_region_index')
-
-    set_h = rospy.ServiceProxy('set_entropy', SetBelief)
-    get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
-    get_region_idx = rospy.ServiceProxy('get_region_index', GetRegionPointIndex)
-
-    msg = get_reference(str(-1))
-    reference_cloud = msg_2_pc(msg.ref)
-    region_idx = parse_region_idx(get_region_idx())
-    
-    anomaly_thres = 0.02
+    detector_wrapper = anomaly_detector_wrapper(anomaly_thres)
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
     graph_slam_wrapper = Graph_SLAM_wrapper(br, localization_mode)
-    box = reference_cloud.get_axis_aligned_bounding_box()
-    bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
-    box.max_bound = bound
-
-    detector = Anomaly_Detector(reference_cloud, box, region_idx,anomaly_thres)
-
-    # factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
-    # pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
-    # tf_listener = tf.TransformListener()
-    detected = []
-    
+       
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
         graph_slam_wrapper.update() 
+        features = graph_slam_wrapper.graph_slam.factor_graph.feature_nodes
         if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)> 1: 
-            for id_ in list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.keys())[:-1]:  
-                if id_ not in detected:
-                    print("detecting node: ", id_)
-                    detected.append(id_)
-                    node = graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[id_]
-                    pc, ref = detector.detect(node, graph_slam_wrapper.graph_slam.factor_graph.feature_nodes)
-                    del graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[id_]
+            for node in list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.values())[:-1]:  
+               detector_wrapper.detect(node, features)
+               del graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[node.id]
 
-                    msg = Float32MultiArray()
-                    msg.data = detector.p_anomaly 
-                    try:
-                        set_h(msg)
-                    except:
-                        print("failed to send entropy")
-           
 
         rate.sleep()
 

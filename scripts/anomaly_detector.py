@@ -135,7 +135,8 @@ class Anomaly_Detector:
         crop_pc = self.reference.crop(self.bounding_box)
 
         _, self.crop_index = self.ref_tree.query(np.asarray(crop_pc.points),1)
-        
+        self.neighbor_count = 20
+
         self.calculate_self_neighbor(region_idx)
         
         
@@ -145,8 +146,20 @@ class Anomaly_Detector:
         self.md_ref = np.zeros((n, 2))
         self.chi2 = np.zeros((n, 2))
     
+    def partition(self, region_idx):
+        region_refs = {}
+        for region_id, idx in region_idx.items():
+            idx = np.array(idx)
+            region_cloud = self.reference.select_by_index(idx)
+            # region_refs[region_id] = region_cloud
+            points = np.array(region_cloud.points)
+            tree =  KDTree(points)
+            _, corr = tree.query(points, k=self.neighbor_count)
+            region_refs[region_id] = {"cloud": region_cloud, "tree": tree, "self_neighbor": corr}
+            
+        self.region_refs = region_refs
+        
     def calculate_self_neighbor(self, region_idx):
-        self.neighbor_count = 20
         # corr= [[] for _ in range(len(self.ref_points))]
         corr = np.zeros((len(self.ref_points), self.neighbor_count))
         for region, idx in region_idx.items():
@@ -158,7 +171,6 @@ class Anomaly_Detector:
             corr[idx,:] = idx[np.array(corr_region)]
             
         # _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
-        print(corr.astype(np.uint32))
         self.self_neighbor = corr.astype(np.uint32)
                     
     def get_ref_pc(self, pc):
@@ -196,7 +208,6 @@ class Anomaly_Detector:
         color = cv2.cvtColor(color, cv2.COLOR_BGR2RGB)
         color = np.squeeze(color)
         pc.colors = o3d.utility.Vector3dVector(color/255)
-
         return pc
 
     def sum_md(self, mds, corr):
