@@ -13,6 +13,8 @@ import rospy
 import open3d as o3d
 import rospkg
 from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import Pose
+
 import ros_numpy
 from sensor_msgs.msg import PointCloud2
 from hierarchical_SLAM_ros import Graph_SLAM_wrapper
@@ -21,46 +23,64 @@ from apriltag_EKF_ros import EKF_Wrapper
 import tf
 import pickle
 import yaml
-from ergodic_inspection.srv import PointCloudWithEntropy, SetBelief, GetRegionPointIndex
+from ergodic_inspection.srv import PointCloudWithEntropy, SetBelief, GetRegionPointIndex, GetRegion
 from std_msgs.msg import Float32MultiArray 
-from Lie import SE3    
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
 
-class anomaly_detector_wrapper:
+class Anomaly_Detector_Wrapper:
     def __init__(self, anomaly_thres):
         self.detected_node = []
         self.anomaly_thres = anomaly_thres
         rospy.wait_for_service('get_reference_cloud_region')
         rospy.wait_for_service('set_entropy')
         rospy.wait_for_service('get_region_index')
+        rospy.wait_for_service('get_region')
 
         self.set_h = rospy.ServiceProxy('set_entropy', SetBelief)
         get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         get_region_idx = rospy.ServiceProxy('get_region_index', GetRegionPointIndex)
+        self.get_region = rospy.ServiceProxy('get_region', GetRegion)
 
         msg = get_reference(str(-1))
         reference_cloud = msg_2_pc(msg.ref)
-        region_idx = parse_region_idx(get_region_idx())
-        
+        self.region_idx = parse_region_idx(get_region_idx())
+        self.partition(self, self.region_idx)
         box = reference_cloud.get_axis_aligned_bounding_box()
         bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
         box.max_bound = bound
 
-        self.detector = Anomaly_Detector(reference_cloud, box, region_idx,anomaly_thres)
+        # self.detector = Anomaly_Detector(reference_cloud, box, region_idx,anomaly_thres)
     
     def detect(self, node, features):
         if node.id not in self.detected_node:
             print("detecting node: ", node.id)
+
             self.detected_node.append(node.id)
-            pc, ref = self.detector.detect(node, features)
-        
+            pose_msg = Pose()
+            pose_msg.position.x = node.M[3,0]
+            pose_msg.position.y = node.M[3,1]
+            rospy.wait_for_service('get_region')
+            region = self.get_region(pose_msg,1).region
+            
+            pc, ref = self.detectors[region].detect(node, features)
             msg = Float32MultiArray()
-            msg.data = self.detector.p_anomaly 
+            msg.data = self.detectors[region].p_anomaly 
+            msg.indices = self.region_idx[region]
             try:
                 self.set_h(msg)
             except:
                 print("failed to send entropy")
+                
+    def partition(self, region_idx):
+        detectors = {}
+        for id_, idx in region_idx.items():
+            idx = np.array(idx)
+            region_cloud = self.reference.select_by_index(idx)
+            detectors[id_] = Anomaly_Detector(region_cloud, self.anomaly_thres)
+            
+        self.detectors = detectors
+        
     def combine_refs(self):
         pass
       
@@ -143,9 +163,9 @@ def parse_region_idx(msg):
   
 if __name__ == "__main__":
     localization_mode = True
-    anomaly_thres = 0.05
+    anomaly_thres = 0.04
 
-    detector_wrapper = anomaly_detector_wrapper(anomaly_thres)
+    detector_wrapper = Anomaly_Detector_Wrapper(anomaly_thres)
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)

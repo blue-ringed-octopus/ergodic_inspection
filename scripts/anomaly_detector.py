@@ -126,8 +126,8 @@ def get_global_cov_SE3(points, T_global, point_cov, T_cov):
     return cov
 
 class Anomaly_Detector:
-    def __init__(self, pc, bounding_box, region_idx, thres=1):
-        self.bounding_box = bounding_box
+    def __init__(self, pc, thres=1):
+        self.bounding_box = pc.get_axis_aligned_bounding_box()
         self.get_ref_pc(pc)
         n = len(self.ref_points)
         self.ref_tree = KDTree(self.ref_points)
@@ -137,7 +137,7 @@ class Anomaly_Detector:
         _, self.crop_index = self.ref_tree.query(np.asarray(crop_pc.points),1)
         self.neighbor_count = 20
 
-        self.calculate_self_neighbor(region_idx)
+        self.calculate_self_neighbor()
         
         
         self.p_anomaly = np.ones(len(self.reference.points))*0.5
@@ -160,17 +160,16 @@ class Anomaly_Detector:
         self.region_refs = region_refs
         
     def calculate_self_neighbor(self, region_idx):
-        # corr= [[] for _ in range(len(self.ref_points))]
-        corr = np.zeros((len(self.ref_points), self.neighbor_count))
-        for region, idx in region_idx.items():
-            idx = np.array(idx)
-            region_cloud = self.reference.select_by_index(idx)
-            points = np.array(region_cloud.points)
-            tree =  KDTree(points)
-            _, corr_region = tree.query(points, k=self.neighbor_count)
-            corr[idx,:] = idx[np.array(corr_region)]
+        # corr = np.zeros((len(self.ref_points), self.neighbor_count))
+        # for region, idx in region_idx.items():
+        #     idx = np.array(idx)
+        #     region_cloud = self.reference.select_by_index(idx)
+        #     points = np.array(region_cloud.points)
+        #     tree =  KDTree(points)
+        #     _, corr_region = tree.query(points, k=self.neighbor_count)
+        #     corr[idx,:] = idx[np.array(corr_region)]
             
-        # _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
+        _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
         self.self_neighbor = corr.astype(np.uint32)
                     
     def get_ref_pc(self, pc):
@@ -333,3 +332,5 @@ class Anomaly_Detector:
         with open('ref_cloud_detected.pickle', 'wb') as handle:
             pickle.dump({"ref_pc": self.ref_points[self.crop_index], "p_anomaly": self.p_anomaly[self.crop_index]}, handle)
         return p, ref.crop(self.bounding_box)
+
+        
