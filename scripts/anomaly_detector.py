@@ -159,7 +159,7 @@ class Anomaly_Detector:
             
         self.region_refs = region_refs
         
-    def calculate_self_neighbor(self, region_idx):
+    def calculate_self_neighbor(self):
         # corr = np.zeros((len(self.ref_points), self.neighbor_count))
         # for region, idx in region_idx.items():
         #     idx = np.array(idx)
