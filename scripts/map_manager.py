@@ -25,6 +25,7 @@ class Map_Manager:
         self.build_region_graph()
         self.build_reference_pointcloud()
         self.partition()
+        self.p = np.zeros(self.num_points)
         self.set_entropy(np.array(range(self.num_points)),np.ones(self.num_points)*0.5)
         
     def build_reference_pointcloud(self):
