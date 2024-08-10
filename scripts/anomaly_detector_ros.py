@@ -58,8 +58,8 @@ class Anomaly_Detector_Wrapper:
 
             self.detected_node.append(node.id)
             pose_msg = Pose()
-            pose_msg.position.x = node.M[3,0]
-            pose_msg.position.y = node.M[3,1]
+            pose_msg.position.x = node.M[0,3]
+            pose_msg.position.y = node.M[1,3]
             rospy.wait_for_service('get_region')
             region = self.get_region(pose_msg,1).region
             
