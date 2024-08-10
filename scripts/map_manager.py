@@ -26,7 +26,7 @@ class Map_Manager:
         self.build_reference_pointcloud()
         self.partition()
         self.p = np.zeros(self.num_points)
-        self.set_entropy(np.array(range(self.num_points), dtype = np.uint64),np.ones(self.num_points)*0.5)
+        self.set_entropy(np.ones(self.num_points)*0.5,np.array(range(self.num_points)))
         
     def build_reference_pointcloud(self):
         mesh = o3d.io.read_triangle_mesh(self.path + "/resources/ballast.STL")
