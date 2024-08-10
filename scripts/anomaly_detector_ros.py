@@ -45,7 +45,7 @@ class Anomaly_Detector_Wrapper:
         msg = get_reference(str(-1))
         reference_cloud = msg_2_pc(msg.ref)
         self.region_idx = parse_region_idx(get_region_idx())
-        self.partition(self.region_idx)
+        self.partition(reference_cloud, self.region_idx)
         box = reference_cloud.get_axis_aligned_bounding_box()
         bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
         box.max_bound = bound
@@ -72,11 +72,11 @@ class Anomaly_Detector_Wrapper:
             except:
                 print("failed to send entropy")
                 
-    def partition(self, region_idx):
+    def partition(self, reference_cloud, region_idx):
         detectors = {}
         for id_, idx in region_idx.items():
             idx = np.array(idx)
-            region_cloud = self.reference.select_by_index(idx)
+            region_cloud = reference_cloud.select_by_index(idx)
             detectors[id_] = Anomaly_Detector(region_cloud, self.anomaly_thres)
             
         self.detectors = detectors
