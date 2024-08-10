@@ -106,9 +106,9 @@ class Map_Manager:
     def get_region_graph_img(self):
         return self.hierarchical_graph.levels[1].plot_graph()
     
-    def set_entropy(self, p):
-        self.p = p
-        self.h = bernoulli.entropy(p)
+    def set_entropy(self, p, idx):
+        self.p[idx] = p
+        self.h[idx] = bernoulli.entropy(p)
         
     def get_region_entropy(self, region_id):
         if region_id==-1:
