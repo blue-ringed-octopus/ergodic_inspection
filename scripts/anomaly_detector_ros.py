@@ -146,7 +146,7 @@ def parse_region_idx(msg):
     region_idx={}
     for region in msg.region_idx:
         id_ = region.region_id
-        region_idx[id_] = region.idx
+        region_idx[id_] = np.array(region.idx)
     return region_idx  
   
 if __name__ == "__main__":
