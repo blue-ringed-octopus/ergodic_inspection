@@ -44,13 +44,12 @@ class Anomaly_Detector_Wrapper:
 
         msg = get_reference(str(-1))
         reference_cloud = msg_2_pc(msg.ref)
-        self.region_idx = parse_region_idx(get_region_idx())
-        self.partition(reference_cloud, self.region_idx)
+        region_idx = parse_region_idx(get_region_idx())
         box = reference_cloud.get_axis_aligned_bounding_box()
-        bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
+        bound = [box.max_bound[0],box.max_bound[1], 0.5 ]
         box.max_bound = bound
 
-        # self.detector = Anomaly_Detector(reference_cloud, box, region_idx,anomaly_thres)
+        self.detector = Anomaly_Detector(reference_cloud, region_idx, 0.04)
     
     def detect(self, node, features):
         if node.id not in self.detected_node:
@@ -63,11 +62,11 @@ class Anomaly_Detector_Wrapper:
             rospy.wait_for_service('get_region')
             region = self.get_region(pose_msg,1).region
             
-            pc, ref = self.detectors[region].detect(node, features)
+            p, idx = self.detector.detect(node, features, region)
             msg = Float32MultiArray()
-            msg.data = self.detectors[region].p_anomaly 
+            msg.data = p
             try:
-                self.set_h(self.region_idx[region], msg)
+                self.set_h(idx, p)
             except:
                 print("failed to send entropy")
                 

@@ -23,3 +23,4 @@ Graph_SLAM:
 Anomaly_Detector:
   neightbor_count: 20
   anoamly_threshold: 0.02
+  smoothing_factor: 0.1

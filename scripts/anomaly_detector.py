@@ -128,17 +128,18 @@ def get_global_cov_SE3(points, T_global, point_cov, T_cov):
 class Anomaly_Detector:
     def __init__(self, reference_cloud, region_idx, thres = 1):
         self.reference = reference_cloud
+        self.anomaly_thres = thres
         self.region_idx = region_idx
-        self.partition(reference_cloud, self.region_idx)
+        self.partition(self.region_idx)
         box = reference_cloud.get_axis_aligned_bounding_box()
-        bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
+        bound = [box.max_bound[0],box.max_bound[1], 0.5 ]
         box.max_bound = bound
         
     def partition(self, region_idx):
         detectors = {}
         for id_, idx in region_idx.items():
             idx = np.array(idx)
-            region_cloud = self.reference_cloud.select_by_index(idx)
+            region_cloud = self.reference.select_by_index(idx)
             detectors[id_] = Local_Detector(region_cloud, self.anomaly_thres)
             
         self.detectors = detectors    
@@ -197,9 +198,9 @@ class Anomaly_Detector:
         # cov=get_global_cov(point_cov, T@node_pose, sigma_node)
         cov = get_global_cov_SE3(points, T, point_cov, sigma_node)
         p_anomaly = self.detectors[region].detect(p, cov)
-        
-        with open('ref_cloud_detected.pickle', 'wb') as handle:
-            pickle.dump({"ref_pc": self.ref_points, "p_anomaly": self.p_anomaly}, handle)
+        return p_anomaly, self.region_idx[region]
+        # with open('ref_cloud_detected.pickle', 'wb') as handle:
+        #     pickle.dump({"ref_pc": self.ref_points, "p_anomaly": self.p_anomaly}, handle)
             
 class Local_Detector:
     def __init__(self, pc, thres=1):
@@ -293,10 +294,12 @@ class Local_Detector:
     def detect(self, p, cov):           
         # T = np.eye(4)        
         p = p.crop(self.bounding_box)
+        p, cov = self.random_down_sample(p, cov)
+
         points = np.array(p.points)
         mds, corr = self._est_correspondence(points, cov)
        
-        p = self._paint_pc(p, mds)
+        # p = self._paint_pc(p, mds)
         # p = self.paint_cov(p, cov)
         self._sum_md(mds, corr)
         idx = self.n_sample>0
@@ -315,4 +318,17 @@ class Local_Detector:
         return self.p_anomaly.copy()
 
 if __name__ == "__main__":
-    pass        
+    from map_manager import Map_Manager
+    manager = Map_Manager("../")
+    detector = Anomaly_Detector(manager.reference, manager.region_idx, 0.04)
+    with open('tests/graph.pickle', 'rb') as f:
+        graph = pickle.load(f)
+    for node in graph.pose_nodes.values():
+    # node = graph.pose_nodes[0]
+        coord= [node.M[0,3], node.M[1,3]]
+        region = manager.coord_to_region(coord, 1)
+        p, idx = detector.detect(node, graph.feature_nodes ,region)
+        manager.set_entropy(p, idx)
+    
+    cloud = manager.visualize_entropy()
+    o3d.visualization.draw_geometries([cloud])

@@ -37,26 +37,28 @@ class Map_Manager:
         pc = mesh.sample_points_uniformly(
             number_of_points=num_points, use_triangle_normal=True)
         pc.paint_uniform_color([0,0,0])
+        box = pc.get_axis_aligned_bounding_box()
+        bound = [box.max_bound[0],box.max_bound[1], 0.5 ]
+        box.max_bound = bound
+        pc = pc.crop(box)
+        self.bound = box
         self.reference = deepcopy(pc)
         self.ref_normal = np.asarray(pc.normals)
         self.ref_points = np.asarray(pc.points)
         self.ref_tree = KDTree(self.ref_points)
-        box = pc.get_axis_aligned_bounding_box()
-        bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
-        box.max_bound = bound
-        self.bound = box
+        
         
     def partition(self):
         region_bounds=self.region_bounds
-        region_idx=[]
+        region_idx={}
         ref  = deepcopy(self.reference)    
-        for bound in region_bounds.values():     
+        for id_, bound in region_bounds.items():     
             box = ref.get_axis_aligned_bounding_box()
             box.max_bound = bound["max_bound"]
             box.min_bound = bound["min_bound"]
             region = ref.crop(box)
             _, idx = self.ref_tree.query(region.points)
-            region_idx.append(idx)
+            region_idx[id_] = idx
             
         self.region_idx = region_idx
         
@@ -175,6 +177,7 @@ class Map_Manager:
                 pos2 = (int(scale/w*neighbor.coord[1]), int(scale/w*neighbor.coord[0]))
                 img = cv2.arrowedLine(img, pos, pos2, 0)
         return img
+    
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     manager = Map_Manager("../")
