@@ -296,7 +296,7 @@ class Graph_SLAM:
         self.factor_graph.pose_nodes[self.current_node_id].local_map=local_cloud
         new_node_id=self.factor_graph.add_node(self.M.copy(),"pose", key_node = key_node)
 
-        feature_node_id = idx_map.keys()
+        feature_node_id = list(idx_map.keys())
         z= np.zeros(6*len(mu))
         J = np.zeros((6*len(mu), 6*len(mu)))
         for i, M in enumerate(mu):
