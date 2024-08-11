@@ -126,18 +126,94 @@ def get_global_cov_SE3(points, T_global, point_cov, T_cov):
     return cov
 
 class Anomaly_Detector:
+    def __init__(self, reference_cloud, region_idx, thres = 1):
+        self.reference = reference_cloud
+        self.region_idx = region_idx
+        self.partition(reference_cloud, self.region_idx)
+        box = reference_cloud.get_axis_aligned_bounding_box()
+        bound = [box.max_bound[0],box.max_bound[1], 0.7 ]
+        box.max_bound = bound
+        
+    def partition(self, region_idx):
+        detectors = {}
+        for id_, idx in region_idx.items():
+            idx = np.array(idx)
+            region_cloud = self.reference_cloud.select_by_index(idx)
+            detectors[id_] = Local_Detector(region_cloud, self.anomaly_thres)
+            
+        self.detectors = detectors    
+        
+    def paint_ref(self, c):
+        pc = deepcopy(self.reference)
+        color = (c*255).astype(np.uint8)
+        color = cv2.applyColorMap(color, cv2.COLORMAP_TURBO)
+        color = cv2.cvtColor(color, cv2.COLOR_BGR2RGB)
+        color = np.squeeze(color)
+        pc.colors = o3d.utility.Vector3dVector(color/255)
+        return pc
+
+    def ICP(self, pc):
+        result_icp = o3d.pipelines.registration.registration_icp(
+            pc, self.reference , 0.5, np.eye(4),
+            o3d.pipelines.registration.TransformationEstimationPointToPlane())
+        T = result_icp.transformation
+        
+        return pc.transform(T), T
+    
+    def _register_to_ref(self, node, features):
+        # M = node.M.copy()
+        if( len(node.local_map["features"])) == 0:
+           M = node.M.copy() 
+           print(node.id)
+        else:
+            # dm = SE3.Log(node.M)
+            dm = np.zeros(6)
+            for feature_id, feature in node.local_map["features"].items():
+                dm  += SE3.Log(features[feature_id].M.copy()@inv(feature['M']))
+            dm /= len(node.local_map["features"])
+            M = SE3.Exp(dm)
+            
+        cloud = node.local_map['pc'].copy()
+        p = o3d.geometry.PointCloud()
+        p.points = o3d.utility.Vector3dVector(cloud["points"])
+        p = p.transform(M)
+        p, T = self.ICP(p)
+        
+        return p, T@M
+    
+    def detect(self, node, features, region):
+        print("estimating anomaly: node " + str(node.id))
+        
+        p, T = self._register_to_ref(node, features)
+        
+        # T = np.eye(4)
+        point_cov = node.local_map['cov'].copy()
+        # p, point_cov = self.random_down_sample(p, point_cov)
+        #sigma_node = np.zeros((3,3))#node.cov
+        points = np.asarray(p.points)
+        sigma_node = np.eye(6) 
+        sigma_node[0:3,0:3] *= 0.05
+        sigma_node[3:6,3:6] *= 0.001
+        # cov=get_global_cov(point_cov, T@node_pose, sigma_node)
+        cov = get_global_cov_SE3(points, T, point_cov, sigma_node)
+        p_anomaly = self.detectors[region].detect(p, cov)
+        
+        with open('ref_cloud_detected.pickle', 'wb') as handle:
+            pickle.dump({"ref_pc": self.ref_points, "p_anomaly": self.p_anomaly}, handle)
+            
+class Local_Detector:
     def __init__(self, pc, thres=1):
         self.bounding_box = pc.get_axis_aligned_bounding_box()
         self.get_ref_pc(pc)
         n = len(self.ref_points)
         self.ref_tree = KDTree(self.ref_points)
         
-        crop_pc = self.reference.crop(self.bounding_box)
+        # crop_pc = self.reference.crop(self.bounding_box)
 
-        _, self.crop_index = self.ref_tree.query(np.asarray(crop_pc.points),1)
+        # _, self.crop_index = self.ref_tree.query(np.asarray(crop_pc.points),1)
         self.neighbor_count = 20
 
-        self.calculate_self_neighbor()
+        self._calculate_self_neighbor()
         
         
         self.p_anomaly = np.ones(len(self.reference.points))*0.5
@@ -145,30 +221,8 @@ class Anomaly_Detector:
         self.n_sample = np.zeros(n)
         self.md_ref = np.zeros((n, 2))
         self.chi2 = np.zeros((n, 2))
-    
-    def partition(self, region_idx):
-        region_refs = {}
-        for region_id, idx in region_idx.items():
-            idx = np.array(idx)
-            region_cloud = self.reference.select_by_index(idx)
-            # region_refs[region_id] = region_cloud
-            points = np.array(region_cloud.points)
-            tree =  KDTree(points)
-            _, corr = tree.query(points, k=self.neighbor_count)
-            region_refs[region_id] = {"cloud": region_cloud, "tree": tree, "self_neighbor": corr}
-            
-        self.region_refs = region_refs
-        
-    def calculate_self_neighbor(self):
-        # corr = np.zeros((len(self.ref_points), self.neighbor_count))
-        # for region, idx in region_idx.items():
-        #     idx = np.array(idx)
-        #     region_cloud = self.reference.select_by_index(idx)
-        #     points = np.array(region_cloud.points)
-        #     tree =  KDTree(points)
-        #     _, corr_region = tree.query(points, k=self.neighbor_count)
-        #     corr[idx,:] = idx[np.array(corr_region)]
-            
+
+    def _calculate_self_neighbor(self):
         _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
         self.self_neighbor = corr.astype(np.uint32)
                     
@@ -178,10 +232,9 @@ class Anomaly_Detector:
         self.ref_points = np.asarray(pc.points)
         self.num_points = len(self.ref_points)
         
-    def paint_pc(self, pc, mds):
+    def _paint_pc(self, pc, mds):
         c = np.array([0.5 if mds[i, 0]+mds[i, 1]==0 else mds[i, 0]/(mds[i, 0]+mds[i, 1]  )
                      for i in range(len(mds))])
-        #chi=np.array([1 for i in range(len(chi_1))])
 
         color = (c*255).astype(np.uint8)
         color = cv2.applyColorMap(color, cv2.COLORMAP_TURBO)
@@ -199,47 +252,14 @@ class Anomaly_Detector:
         color = np.squeeze(color)
         pc.colors = o3d.utility.Vector3dVector(color/255)
         return pc
-
-    def paint_ref(self, c):
-        pc = deepcopy(self.reference)
-        color = (c*255).astype(np.uint8)
-        color = cv2.applyColorMap(color, cv2.COLORMAP_TURBO)
-        color = cv2.cvtColor(color, cv2.COLOR_BGR2RGB)
-        color = np.squeeze(color)
-        pc.colors = o3d.utility.Vector3dVector(color/255)
-        return pc
-
-    def sum_md(self, mds, corr):
-        # t = time.time()
-        # count = Counter(corr)        
-        # n_sample = np.zeros(self.num_points)
-        # n_sample[list(count.keys())] = list(count.values())
-        # self.n_sample = n_sample
-        # n_sample = n_sample[self.self_neighbor]
-        # self.n_sample = np.sum(n_sample, 1)
-         
+    
+    def _sum_md(self, mds, corr):      
         one = np.ones(len(mds))
         for i in range(self.neighbor_count):
             np.add.at(self.md_ref, self.self_neighbor[corr, :][:, i], mds)
             np.add.at(self.n_sample , self.self_neighbor[corr,:][:,i], one)
-        # n_sample = np.zeros(self.num_points)
-        # for i, idx in enumerate(corr):
-        #     n_idx = self.self_neighbor[idx, :]
-        #     n_sample[n_idx] += 1
-            # n_sample[idx] += 1
-            # self.md_ref[n_idx,:] += mds[i,:]
-            # self.md_ref[idx,:] += mds[i,:]
-        # print("sum", np.max(np.abs(self.n_sample - n_sample)))
-        # print("sum md time", time.time()-t)
 
-    def ICP(self, pc):
-        result_icp = o3d.pipelines.registration.registration_icp(
-            pc, self.reference , 0.5, np.eye(4),
-            o3d.pipelines.registration.TransformationEstimationPointToPlane())
-        T = result_icp.transformation
-        
-        return pc.transform(T), T
-    def est_correspondence(self, points, cov):
+    def _est_correspondence(self, points, cov):
         n = len(points)
         k = 1
         _, corr = self.ref_tree.query(points, k=k)
@@ -256,12 +276,9 @@ class Anomaly_Detector:
         else:
             mds = get_md_par(points, mus, self.thres, cov, normals)
             
-        # print("md time: ", time.time()-t)
         return mds, corr
-    def random_down_sample(self, point_cloud, covs):
-        # p = p.uniform_down_sample(117)
-        # point_cov = point_cov[np.arange(0,len(point_cov),117)]
-        
+    
+    def random_down_sample(self, point_cloud, covs):       
         n = len(point_cloud.points)
         n_ds = 5000
         if n<n_ds:
@@ -273,64 +290,29 @@ class Anomaly_Detector:
         
         return point_cloud, covs
         
-    def detect(self, node, features):
-        print("estimating anomaly: node " + str(node.id))
-
-        # M = node.M.copy()
-        if( len(node.local_map["features"])) == 0:
-           M = node.M.copy() 
-           print(node.id)
-        else:
-            # dm = SE3.Log(node.M)
-            dm = np.zeros(6)
-            for feature_id, feature in node.local_map["features"].items():
-                dm  += SE3.Log(features[feature_id].M.copy()@inv(feature['M']))
-            dm /= len(node.local_map["features"])
-            M = SE3.Exp(dm)
-        cloud = node.local_map['pc'].copy()
-        p = o3d.geometry.PointCloud()
-        p.points = o3d.utility.Vector3dVector(cloud["points"])
-        p = p.transform(M)
-        p, T = self.ICP(p)
-        # T = np.eye(4)
-        point_cov = node.local_map['cov'].copy()
-        p, point_cov = self.random_down_sample(p, point_cov)
-        #sigma_node = np.zeros((3,3))#node.cov
-        points = np.asarray(p.points)
-        sigma_node = np.eye(6) 
-        sigma_node[0:3,0:3] *= 0.05
-        sigma_node[3:6,3:6] *= 0.001
-        # cov=get_global_cov(point_cov, T@node_pose, sigma_node)
-        cov=get_global_cov_SE3(points, T@M, point_cov, sigma_node)
-        
-        mds, corr = self.est_correspondence(points, cov)
+    def detect(self, p, cov):           
+        # T = np.eye(4)        
+        p = p.crop(self.bounding_box)
+        points = np.array(p.points)
+        mds, corr = self._est_correspondence(points, cov)
        
-        p = self.paint_pc(p, mds)
+        p = self._paint_pc(p, mds)
         # p = self.paint_cov(p, cov)
-        self.sum_md(mds, corr)
+        self._sum_md(mds, corr)
         idx = self.n_sample>0
-        # chi2_nominal = np.nan_to_num(chi2.sf(x = self.md_ref[idx, 0], df = self.n_sample[idx], scale = 1), nan=0.5)
-        # chi2_anomaly = np.nan_to_num(chi2.sf(self.md_ref[idx, 1], self.n_sample[idx]), nan=0.5)
-        # chi2_nominal = np.nan_to_num(chi2.pdf(self.md_ref[idx, 0], self.n_sample[idx]), nan=0.5)
-        # chi2_anomaly = np.nan_to_num(chi2.pdf(self.md_ref[idx, 1], self.n_sample[idx]), nan=0.5)
 
         z_nominal = norm.sf(self.md_ref[idx, 0]/np.sqrt(self.n_sample[idx]))
         z_anomaly  = norm.sf(self.md_ref[idx, 1]/np.sqrt(self.n_sample[idx]))
-        # z_nominal = 1- z_anomaly
-        # print(np.max(np.abs(chi2_nominal - chi2_nominal_test)))
-        # print(np.max(np.abs(chi2_anomaly - chi2_anomaly_test)))
 
         p_nominal = (z_nominal + 0.1) * (1-self.p_anomaly[idx])
         p_anomaly = (z_anomaly + 0.1) * self.p_anomaly[idx]
         p_anomaly = p_anomaly/(p_nominal + p_anomaly)
         self.p_anomaly[idx] = p_anomaly
-        # self.p_anomaly[idx] = chi2_anomaly_test
-        ref = self.paint_ref(self.p_anomaly)
+        # ref = self.paint_ref(self.p_anomaly)
         self.md_ref = np.zeros((self.num_points,2))
         self.n_sample = np.zeros(self.num_points)
-        # self.chi2= np.zeros((self.num_points,2))
-        with open('ref_cloud_detected.pickle', 'wb') as handle:
-            pickle.dump({"ref_pc": self.ref_points[self.crop_index], "p_anomaly": self.p_anomaly[self.crop_index]}, handle)
-        return p, ref.crop(self.bounding_box)
 
-        
+        return self.p_anomaly.copy()
+
+if __name__ == "__main__":
+    pass        

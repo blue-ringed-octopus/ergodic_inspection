@@ -302,7 +302,7 @@ def read_prior():
     return prior
 
 if __name__ == "__main__":
-   
+    import pickle
     localization_mode = True
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
@@ -311,5 +311,7 @@ if __name__ == "__main__":
 
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
-        graph_slam_wrapper.update()           
+        graph_slam_wrapper.update()         
+        with open('graph.pickle', 'wb') as handle:
+            pickle.dump(graph_slam_wrapper.graph_slam.factor_graph, handle)
         rate.sleep()

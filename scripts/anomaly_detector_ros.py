@@ -71,18 +71,7 @@ class Anomaly_Detector_Wrapper:
             except:
                 print("failed to send entropy")
                 
-    def partition(self, reference_cloud, region_idx):
-        detectors = {}
-        for id_, idx in region_idx.items():
-            idx = np.array(idx)
-            region_cloud = reference_cloud.select_by_index(idx)
-            detectors[id_] = Anomaly_Detector(region_cloud, self.anomaly_thres)
-            
-        self.detectors = detectors
-        
-    def combine_refs(self):
-        pass
-      
+
 # def get_mesh_marker(mesh_resource):
 #     marker=Marker()
 #     marker.id = 0
