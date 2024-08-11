@@ -34,13 +34,14 @@ class Map_Manager:
         self.mesh = mesh
         num_points = 100000
         self.num_points = num_points
+
         pc = mesh.sample_points_uniformly(
             number_of_points=num_points, use_triangle_normal=True)
         pc.paint_uniform_color([0,0,0])
         box = pc.get_axis_aligned_bounding_box()
         bound = [box.max_bound[0],box.max_bound[1], 0.5 ]
         box.max_bound = bound
-        pc = pc.crop(box)
+        # pc = pc.crop(box)
         self.bound = box
         self.reference = deepcopy(pc)
         self.ref_normal = np.asarray(pc.normals)

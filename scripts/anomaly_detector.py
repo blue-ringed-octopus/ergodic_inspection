@@ -131,9 +131,9 @@ class Anomaly_Detector:
         self.anomaly_thres = thres
         self.region_idx = region_idx
         self.partition(self.region_idx)
-        box = reference_cloud.get_axis_aligned_bounding_box()
-        bound = [box.max_bound[0],box.max_bound[1], 0.5 ]
-        box.max_bound = bound
+        # box = reference_cloud.get_axis_aligned_bounding_box()
+        # bound = [box.max_bound[0],box.max_bound[1], 0.5 ]
+        # box.max_bound = bound
         
     def partition(self, region_idx):
         detectors = {}
