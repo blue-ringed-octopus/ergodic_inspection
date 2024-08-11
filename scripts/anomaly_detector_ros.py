@@ -63,7 +63,6 @@ class Anomaly_Detector_Wrapper:
             region = self.get_region(pose_msg,1).region
             
             p, idx = self.detector.detect(node, features, region)
-            print(idx)
             msg = Float32MultiArray()
             msg.data = p
             # try:
