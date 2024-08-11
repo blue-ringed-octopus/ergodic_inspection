@@ -45,9 +45,9 @@ class Anomaly_Detector_Wrapper:
         msg = get_reference(str(-1))
         reference_cloud = msg_2_pc(msg.ref)
         region_idx = parse_region_idx(get_region_idx())
-        box = reference_cloud.get_axis_aligned_bounding_box()
-        bound = [box.max_bound[0],box.max_bound[1], 0.5 ]
-        box.max_bound = bound
+        # box = reference_cloud.get_axis_aligned_bounding_box()
+        # bound = [box.max_bound[0],box.max_bound[1], 0.5 ]
+        # box.max_bound = bound
 
         self.detector = Anomaly_Detector(reference_cloud, region_idx, 0.04)
     
@@ -66,7 +66,7 @@ class Anomaly_Detector_Wrapper:
             msg = Float32MultiArray()
             msg.data = p
             try:
-                self.set_h(idx, p)
+                self.set_h(idx.astype(np.uint64), p)
             except:
                 print("failed to send entropy")
                 
