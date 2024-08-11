@@ -65,10 +65,10 @@ class Anomaly_Detector_Wrapper:
             p, idx = self.detector.detect(node, features, region)
             msg = Float32MultiArray()
             msg.data = p
-            try:
-                self.set_h(idx.astype(np.uint64), p)
-            except:
-                print("failed to send entropy")
+            # try:
+            self.set_h(idx.astype(np.uint64), p)
+            # except:
+            #     print("failed to send entropy")
                 
 
 # def get_mesh_marker(mesh_resource):
