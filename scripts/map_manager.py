@@ -39,8 +39,10 @@ class Map_Manager:
             number_of_points=num_points, use_triangle_normal=True)
         pc.paint_uniform_color([0,0,0])
         box = pc.get_axis_aligned_bounding_box()
-        bound = [box.max_bound[0],box.max_bound[1], 0.5 ]
-        box.max_bound = bound
+        min_bound = [box.min_bound[0],box.min_bound[1], 0.02 ]
+        max_bound = [box.max_bound[0],box.max_bound[1], 0.5 ]
+        box.min_bound = min_bound
+        box.max_bound = max_bound
         # pc = pc.crop(box)
         self.bound = box
         self.reference = deepcopy(pc)

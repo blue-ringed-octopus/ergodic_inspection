@@ -125,6 +125,18 @@ def get_global_cov_SE3(points, T_global, point_cov, T_cov):
         cov[i,:,:] = R@point_cov[i, :, :]@R.T + J@T_cov@J.T
     return cov
 
+def random_down_sample(point_cloud, covs):       
+    n = len(point_cloud.points)
+    n_ds = 5000
+    if n<n_ds:
+        return point_cloud, covs
+    
+    idx = np.random.choice(range(n), n_ds, replace = False)
+    point_cloud = point_cloud.select_by_index(idx)
+    covs = covs[idx]
+    
+    return point_cloud, covs
+ 
 class Anomaly_Detector:
     def __init__(self, reference_cloud, region_idx, thres = 1):
         self.reference = reference_cloud
@@ -177,18 +189,22 @@ class Anomaly_Detector:
         cloud = node.local_map['pc'].copy()
         p = o3d.geometry.PointCloud()
         p.points = o3d.utility.Vector3dVector(cloud["points"])
+        
+        p, cov = random_down_sample(p, node.local_map["cov"])
+
         p = p.transform(M)
         p, T = self.ICP(p)
         
-        return p, T@M
+        return p, T@M, cov
     
     def detect(self, node, features, region):
         print("estimating anomaly: node " + str(node.id))
         
-        p, T = self._register_to_ref(node, features)
+        p, T, cov = self._register_to_ref(node, features)
         
         # T = np.eye(4)
-        point_cov = node.local_map['cov'].copy()
+        # point_cov = node.local_map['cov'].copy()
+        point_cov = cov
         # p, point_cov = self.random_down_sample(p, point_cov)
         #sigma_node = np.zeros((3,3))#node.cov
         points = np.asarray(p.points)
@@ -278,23 +294,11 @@ class Local_Detector:
             mds = get_md_par(points, mus, self.thres, cov, normals)
             
         return mds, corr
-    
-    def random_down_sample(self, point_cloud, covs):       
-        n = len(point_cloud.points)
-        n_ds = 5000
-        if n<n_ds:
-            return point_cloud, covs
-        
-        idx = np.random.choice(range(n), n_ds, replace = False)
-        point_cloud = point_cloud.select_by_index(idx)
-        covs = covs[idx]
-        
-        return point_cloud, covs
         
     def detect(self, p, cov):           
         # T = np.eye(4)        
         p = p.crop(self.bounding_box)
-        p, cov = self.random_down_sample(p, cov)
+        # p, cov = self.random_down_sample(p, cov)
 
         points = np.array(p.points)
         mds, corr = self._est_correspondence(points, cov)
@@ -307,8 +311,8 @@ class Local_Detector:
         z_nominal = norm.sf(self.md_ref[idx, 0]/np.sqrt(self.n_sample[idx]))
         z_anomaly  = norm.sf(self.md_ref[idx, 1]/np.sqrt(self.n_sample[idx]))
 
-        p_nominal = (z_nominal + 0.1) * (1-self.p_anomaly[idx])
-        p_anomaly = (z_anomaly + 0.1) * self.p_anomaly[idx]
+        p_nominal = (z_nominal + 0.01) * (1-self.p_anomaly[idx])
+        p_anomaly = (z_anomaly + 0.01) * self.p_anomaly[idx]
         p_anomaly = p_anomaly/(p_nominal + p_anomaly)
         self.p_anomaly[idx] = p_anomaly
         # ref = self.paint_ref(self.p_anomaly)
@@ -324,11 +328,12 @@ if __name__ == "__main__":
     with open('tests/graph.pickle', 'rb') as f:
         graph = pickle.load(f)
     for node in graph.pose_nodes.values():
+        if not node.local_map == None:
     # node = graph.pose_nodes[0]
-        coord= [node.M[0,3], node.M[1,3]]
-        region = manager.coord_to_region(coord, 1)
-        p, idx = detector.detect(node, graph.feature_nodes ,region)
-        manager.set_entropy(p, idx)
-    
+            coord= [node.M[0,3], node.M[1,3]]
+            region = manager.coord_to_region(coord, 1)
+            p, idx = detector.detect(node, graph.feature_nodes ,region)
+            manager.set_entropy(p, idx)
+        
     cloud = manager.visualize_entropy()
     o3d.visualization.draw_geometries([cloud])
