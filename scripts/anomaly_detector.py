@@ -214,6 +214,9 @@ class Anomaly_Detector:
         # cov=get_global_cov(point_cov, T@node_pose, sigma_node)
         cov = get_global_cov_SE3(points, T, point_cov, sigma_node)
         p_anomaly = self.detectors[region].detect(p, cov)
+        if len(p_anomaly) == 0:
+            return [], []
+        
         return p_anomaly, self.region_idx[region]
         # with open('ref_cloud_detected.pickle', 'wb') as handle:
         #     pickle.dump({"ref_pc": self.ref_points, "p_anomaly": self.p_anomaly}, handle)
@@ -302,13 +305,15 @@ class Local_Detector:
 
         points = np.array(p.points)
         print("num points: ", len(points))
+        if len(points) == 0:
+            return []
+
         mds, corr = self._est_correspondence(points, cov)
        
         # p = self._paint_pc(p, mds)
         # p = self.paint_cov(p, cov)
         self._sum_md(mds, corr)
         idx = self.n_sample>0
-
         z_nominal = norm.sf(self.md_ref[idx, 0]/np.sqrt(self.n_sample[idx]))
         z_anomaly  = norm.sf(self.md_ref[idx, 1]/np.sqrt(self.n_sample[idx]))
 

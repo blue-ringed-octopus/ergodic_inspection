@@ -63,10 +63,12 @@ class Anomaly_Detector_Wrapper:
             region = self.get_region(pose_msg,1).region
             
             p, idx = self.detector.detect(node, features, region)
-            msg = Float32MultiArray()
-            msg.data = p
-            # try:
-            self.set_h(idx.astype(np.uint64), msg)
+            
+            if len(p) != 0:                
+                msg = Float32MultiArray()
+                msg.data = p
+                # try:
+                self.set_h(idx.astype(np.uint64), msg)
             # except:
             #     print("failed to send entropy")
                 
