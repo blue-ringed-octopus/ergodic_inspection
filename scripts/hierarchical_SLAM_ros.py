@@ -263,7 +263,7 @@ def get_feature_markers(nodes):
 
 def plot_graph(graph, pub):
     markerArray=MarkerArray()
-    pose_marker = get_pose_markers(graph.pose_nodes)
+    pose_marker = get_pose_markers(graph.key_pose_nodes)
     feature_markers = get_feature_markers(graph.feature_nodes)
   #  factor_marker= get_factor_markers(graph)
     

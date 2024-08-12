@@ -21,7 +21,7 @@ class Waypoint_Planner:
         bound={}
         bound["min_bound"] = region_cloud.get_min_bound()
         bound["max_bound"] = region_cloud.get_max_bound()
-        candidates = self.get_waypoints( bound, num_candidates)    
+        candidates = self.sample_waypoints( bound, num_candidates)    
         reward=np.zeros(len(candidates))
         w, h = self.img_shape
         for i,candidate in enumerate(candidates):
@@ -52,7 +52,7 @@ class Waypoint_Planner:
         
         return np.array(waypoint)
     
-    def get_waypoints(self, bound, n):
+    def sample_waypoints(self, bound, n):
         coords = []
         while len(coords)< n:
             coord_rand= np.random.uniform(bound["min_bound"], bound["max_bound"], size = 3 )

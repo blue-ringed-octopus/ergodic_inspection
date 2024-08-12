@@ -169,7 +169,7 @@ if __name__ == "__main__":
         if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)> 1: 
             for node in list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.values())[:-1]:  
                detector_wrapper.detect(node, features)
-               del graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[node.id]
+               # del graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[node.id]
 
 
         rate.sleep()
