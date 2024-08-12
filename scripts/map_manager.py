@@ -84,17 +84,19 @@ class Map_Manager:
             min_idx = self.get_index(bounds["min_bound"][0:2])
             max_idx = self.get_index(bounds["max_bound"][0:2])
             region_map[min_idx[0]:max_idx[0],min_idx[1]:max_idx[1]] = region_id
-        region_map[root_grid==-1] = -1 
-           
+        idx_map = region_map.copy()
+        
+        idx_map[root_grid==-1] = -1 
+
         region_nodes={}
         region_idx=[]
         for i, x in enumerate(region_bounds):
-           idx= np.array(np.where(region_map==x)).T
+           idx= np.array(np.where(idx_map==x)).T
            region_idx.append(idx)
            region_nodes[i] = Hierarchical_Graph.Node(i,np.mean(idx,0), 1)
            region_nodes[i].add_parent(root_node)
         
-        region_graph =  Graph(region_nodes , 1 ,region_map)
+        region_graph =  Graph(region_nodes , 1 ,idx_map)
         h_graph.levels[1] = region_graph
         
         stencil = [[i,j] for i in [-1,0,1] for j in [-1,0,1] if not(i==0 and j==0)]
@@ -103,7 +105,7 @@ class Map_Manager:
         grid_graph = Graph(grid_nodes , 2 ,grid_ids)
         h_graph.levels[2] = grid_graph
         self.hierarchical_graph = h_graph
-        
+        self.region_map = region_map
         
     def get_index(self, coord):
         idx = (coord[0:2]-self.costmap["bounds"]["min"][0:2])/self.costmap["resolution"]
@@ -151,7 +153,8 @@ class Map_Manager:
     
     def coord_to_region(self, coord, level):
         idx = self.get_index(coord)
-        region = self.hierarchical_graph.levels[level].id_map[idx[0], idx[1]]
+        # region = self.hierarchical_graph.levels[level].id_map[idx[0], idx[1]]
+        region = self.region_map[idx[0], idx[1]]
         return int(region)
     
     def draw_graph_entropy(self):
@@ -185,10 +188,12 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     manager = Map_Manager("../")
     img = manager.get_region_graph_img()
+    plt.figure()
     plt.imshow(img)    
     ids, edges , h = manager.get_graph(1)
     region = manager.coord_to_region([2.57,-0.75], 1)
     img2 = manager.draw_graph_entropy()
+    plt.figure()
     plt.imshow(img2)    
 
 

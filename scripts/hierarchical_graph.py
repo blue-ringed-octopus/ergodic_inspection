@@ -14,7 +14,7 @@ class Graph:
         self.nodes =nodes  
         self.level = level
         self.id_map = id_map
-        self.edges=[]
+        self.edges = []
         
     def plot_graph(self):
         n = len(self.nodes)
