@@ -317,8 +317,8 @@ class Local_Detector:
         z_nominal = norm.sf(self.md_ref[idx, 0]/np.sqrt(self.n_sample[idx]))
         z_anomaly  = norm.sf(self.md_ref[idx, 1]/np.sqrt(self.n_sample[idx]))
 
-        p_nominal = (z_nominal + 0.01) * (1-self.p_anomaly[idx])
-        p_anomaly = (z_anomaly + 0.01) * self.p_anomaly[idx]
+        p_nominal = (z_nominal + 0.05) * (1-self.p_anomaly[idx])
+        p_anomaly = (z_anomaly + 0.05) * self.p_anomaly[idx]
         p_anomaly = p_anomaly/(p_nominal + p_anomaly)
         self.p_anomaly[idx] = p_anomaly
         # ref = self.paint_ref(self.p_anomaly)

@@ -45,7 +45,9 @@ class Waypoint_Planner:
                 # entropy = bernoulli.entropy(detector.p_anomaly[global_idx])
                 entropy = entropies[idx]
                 reward[i] =  np.sum(entropy)
-        idx = np.argmax(reward)
+        w = reward/np.sum(reward)
+        idx = np.random.choice(range(len(w)), p = w)
+        # idx = np.argmax(reward)
         waypoint = candidates[idx]
         
         return np.array(waypoint)
@@ -101,6 +103,7 @@ if __name__ == '__main__':
     K = np.array([[872.2853801540007, 0.0, 604.5],
                  [0.0, 872.2853801540007, 360.5],
                  [ 0.0, 0.0, 1.0]])
+
     w, h = 1208, 720
     region = 0
     entropy, cloud = manager.get_region_entropy(region)  
