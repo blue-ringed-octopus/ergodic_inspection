@@ -149,7 +149,6 @@ def parse_region_idx(msg):
     return region_idx  
   
 if __name__ == "__main__":
-    from copy import deepcopy
     localization_mode = True
     anomaly_thres = 0.04
 

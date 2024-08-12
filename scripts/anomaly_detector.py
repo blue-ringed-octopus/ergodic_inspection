@@ -301,6 +301,7 @@ class Local_Detector:
         # p, cov = self.random_down_sample(p, cov)
 
         points = np.array(p.points)
+        print("num points: ", len(points))
         mds, corr = self._est_correspondence(points, cov)
        
         # p = self._paint_pc(p, mds)
