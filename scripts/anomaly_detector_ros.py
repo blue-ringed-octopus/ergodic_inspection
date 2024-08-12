@@ -149,6 +149,7 @@ def parse_region_idx(msg):
     return region_idx  
   
 if __name__ == "__main__":
+    from copy import deepcopy
     localization_mode = True
     anomaly_thres = 0.04
 
@@ -163,7 +164,7 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         graph_slam_wrapper.update() 
         with open('graph.pickle', 'wb') as handle:
-            pickle.dump(graph_slam_wrapper.graph_slam.factor_graph, handle)
+            pickle.dump(deepcopy(graph_slam_wrapper.graph_slam.factor_graph), handle)
         features = graph_slam_wrapper.graph_slam.factor_graph.feature_nodes
         if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)> 1: 
             for node in list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.values())[:-1]:  
