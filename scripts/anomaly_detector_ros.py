@@ -163,8 +163,7 @@ if __name__ == "__main__":
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
         graph_slam_wrapper.update() 
-        with open('graph.pickle', 'wb') as handle:
-            pickle.dump(deepcopy(graph_slam_wrapper.graph_slam.factor_graph), handle)
+     
         features = graph_slam_wrapper.graph_slam.factor_graph.feature_nodes
         if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)> 1: 
             for node in list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.values())[:-1]:  
