@@ -162,7 +162,7 @@ def get_pose_markers(nodes):
           
           # Set the color
           marker.color.r = 0.0
-          marker.color.g = 1.0
+          marker.color.g = 0.0
           marker.color.b = 1.0
           marker.color.a = 1.0
           marker.pose = p
@@ -206,9 +206,9 @@ def get_feature_markers(nodes):
         marker.scale.z = 0.05
         
         # Set the color
-        marker.color.r = 0.0
-        marker.color.g = 0.0
-        marker.color.b = 1.0
+        marker.color.r = 1.0
+        marker.color.g = 0.5
+        marker.color.b = 0.0
         marker.color.a = 1.0
         
         marker.pose = p
