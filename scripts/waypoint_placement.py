@@ -19,6 +19,7 @@ class Waypoint_Planner:
         self.img_shape = img_shape
     
     def camera_projection(self, pose, point_cloud):
+        w, h = self.img_shape
         T_robot = np.eye(4)
         T_robot[0:2,3] = pose[0:2]
         T_robot[0:2,0:2] = [[np.cos(pose[2]), -np.sin(pose[2])],
@@ -42,7 +43,7 @@ class Waypoint_Planner:
         bound["max_bound"] = region_cloud.get_max_bound()
         candidates = self.sample_waypoints( bound, num_candidates)    
         reward=np.zeros(len(candidates))
-        w, h = self.img_shape
+
         for i,candidate in enumerate(candidates):
             idx = self.camera_projection(candidate, region_cloud)
             if len(idx) == 0:
