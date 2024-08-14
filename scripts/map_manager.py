@@ -24,7 +24,6 @@ class Map_Manager:
         self.costmap = costmap
         self.build_region_graph()
         self.build_reference_pointcloud()
-        self.partition()
         self.p = np.zeros(self.num_points)
         self.h = np.zeros(self.num_points)
         self.set_entropy(np.ones(self.num_points)*0.5,np.array(range(self.num_points)))
@@ -37,20 +36,23 @@ class Map_Manager:
 
         pc = mesh.sample_points_uniformly(
             number_of_points=num_points, use_triangle_normal=True)
+        self.process_reference(pc)
+        
+        
+    def process_reference(self, pc):  
         pc.paint_uniform_color([0,0,0])
         box = pc.get_axis_aligned_bounding_box()
         min_bound = [box.min_bound[0],box.min_bound[1], 0.02 ]
         max_bound = [box.max_bound[0],box.max_bound[1], 0.5 ]
         box.min_bound = min_bound
         box.max_bound = max_bound
-        # pc = pc.crop(box)
         self.bound = box
         self.reference = deepcopy(pc)
         self.ref_normal = np.asarray(pc.normals)
         self.ref_points = np.asarray(pc.points)
         self.ref_tree = KDTree(self.ref_points)
-        
-        
+        self.partition()
+
     def partition(self):
         region_bounds=self.region_bounds
         region_idx={}
@@ -138,12 +140,14 @@ class Map_Manager:
     
     def get_entropy(self):
         entropy=np.zeros(len(self.region_idx))
-        for i, idx in enumerate(self.region_idx):
+        for i, idx in self.region_idx.items():
             h = self.h[idx]
             # entropy[i] = np.quantile(h,0.25)
-            entropy[i] = np.quantile(h,0.75)
+            # entropy[i] = np.quantile(h,0.75)
+            # entropy[i] = np.quantile(h,0.5)
             # entropy[i] = np.mean(h)
-        return entropy 
+            entropy[i] = np.sum(h)
+        return entropy
     
     def get_graph(self, level):
         ids = list(self.hierarchical_graph.levels[level].nodes.keys())
@@ -161,9 +165,10 @@ class Map_Manager:
     def draw_graph_entropy(self):
         graph = manager.hierarchical_graph.levels[1]
         h = self.get_entropy()
+        h = h/np.max(h) 
         n = len(ids)
         v = 1 - h.copy()/bernoulli.entropy(0.5)
-        region_color = [(colorsys.hsv_to_rgb(0, 0.5, v[i])) for i in range(n)]
+        region_color = [(colorsys.hsv_to_rgb(0, 0, v[i])) for i in range(n)]
         img = graph.id_map.copy()
         img = img.astype(np.float32)
         img[img>=0] = 255
@@ -188,6 +193,16 @@ class Map_Manager:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     manager = Map_Manager("../")
+    with open('tests/detections.pickle', 'rb') as f:
+        dat = pickle.load(f)
+        
+    pc=o3d.geometry.PointCloud()
+    pc.points=o3d.utility.Vector3dVector(dat["cloud"])
+    manager.process_reference(pc)
+    manager.set_entropy(dat["p"][-1], np.array(range(len(dat["p"][-1]))))
+    test = manager.visualize_entropy()
+    o3d.visualization.draw_geometries([test])
+    print(manager.get_entropy())
     img = manager.get_region_graph_img()
     plt.figure()
     plt.imshow(img)    

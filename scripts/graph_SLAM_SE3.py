@@ -413,6 +413,7 @@ class Graph_SLAM:
         print("optimize end")
         # with open('graph.pickle', 'wb') as handle:
         #     pickle.dump(self.factor_graph, handle)
+        
 if __name__ == "__main__":
     graph_slam = Graph_SLAM(np.zeros(4), True, 1, 0, 1000)
     with open('tests/graph.pickle', 'rb') as f:

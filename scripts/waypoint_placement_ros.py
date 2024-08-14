@@ -34,6 +34,7 @@ with open(path+'/param/estimation_param.yaml', 'r') as file:
     
 class Waypoint_Placement_Wrapper:
     def __init__(self):
+        strategy = "ergodic"
         rospy.init_node('waypoint_planner',anonymous=False)
         rospy.wait_for_service('get_reference_cloud_region')
         rospy.wait_for_service('static_map')
@@ -63,7 +64,7 @@ class Waypoint_Placement_Wrapper:
         w, h = camera_info.width , camera_info.height
         self.next_region = "0"
     
-        self.planner = Waypoint_Planner(costmap, T_camera, K, (w,h))
+        self.planner = Waypoint_Planner(strategy, costmap, T_camera, K, (w,h))
         self.count = 0 
         
     def get_current_region(self):
@@ -233,3 +234,5 @@ if __name__ == "__main__":
     waypoint_thread.start()
     while not rospy.is_shutdown() and wrapper.count<=50:
         wrapper.update()
+        
+    print("inspection done")
