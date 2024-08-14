@@ -64,7 +64,7 @@ class Waypoint_Placement_Wrapper:
         self.next_region = "0"
     
         self.planner = Waypoint_Planner(costmap, T_camera, K, (w,h))
-        
+        self.count = 0 
         
     def get_current_region(self):
         pose_msg = Pose()
@@ -108,6 +108,7 @@ class Waypoint_Placement_Wrapper:
         # except Exception as e: 
         #     print(e)
             self.place_node()
+            self.count += 1
         # self.optimize()
     
 def decode_msg(msg):
@@ -230,5 +231,5 @@ if __name__ == "__main__":
     waypoint_thread = threading.Thread(target = plot_waypoint,daemon=True, args = (wrapper,))
     wrapper.update()
     waypoint_thread.start()
-    while not rospy.is_shutdown():
+    while not rospy.is_shutdown() and wrapper.count<=50:
         wrapper.update()
