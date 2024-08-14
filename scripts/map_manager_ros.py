@@ -109,6 +109,8 @@ class Server:
         p = np.array(req.p.data)
         idx = np.array(req.indices)
         self.map_manager.set_entropy(p, idx)
+        with open('detections.pickle', 'wb') as handle:
+            pickle.dump(self.map_manager, handle)
         # print(self.map_manager.h)
         return SetBeliefResponse(True)
     
