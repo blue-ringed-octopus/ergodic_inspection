@@ -30,7 +30,7 @@ class Waypoint_Planner:
         pixel = (self.K@points.T).T
         pixel_x = pixel[:,0]/pixel[:,2]
         pixel_y = pixel[:,1]/pixel[:,2]
-        idx = np.where((points[:,2]<1) & (points[:,2]>0.05) & 
+        idx = np.where((points[:,2]<2) & (points[:,2]>0.05) & 
                         (pixel_x>=0) & (pixel_x<w) &
                         (pixel_y>=0) & (pixel_y<h))[0]
 

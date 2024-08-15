@@ -152,7 +152,7 @@ def parse_region_idx(msg):
   
 if __name__ == "__main__":
     localization_mode = True
-    anomaly_thres = 0.04
+    anomaly_thres = 0.05
 
     detector_wrapper = Anomaly_Detector_Wrapper(anomaly_thres)
     
