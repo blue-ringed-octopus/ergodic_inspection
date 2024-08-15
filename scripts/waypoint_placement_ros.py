@@ -58,9 +58,7 @@ class Waypoint_Placement_Wrapper:
         T_camera = self.listener.fromTranslationRotation(trans, rot)
         camera_info = rospy.wait_for_message(params["EKF"]["camera_info"], CameraInfo)
         K = np.reshape(camera_info.K, (3,3))
-        # K = np.array([[872.2853801540007, 0.0, 604.5],
-        #              [0.0, 872.2853801540007, 360.5],
-        #              [ 0.0, 0.0, 1.0]])
+
         w, h = camera_info.width , camera_info.height
         self.next_region = "0"
     
