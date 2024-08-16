@@ -102,7 +102,11 @@ class Graph_SLAM_wrapper:
                         tf.transformations.quaternion_from_matrix(M),
                         rospy.Time.now(),
                         "ekf",
-                        "map")     
+                        "map") 
+        
+        with open('key_nodes.pickle', 'wb') as handle:
+            pickle.dump(self.factor_graph.key_pose_nodes, handle)
+            
 def pc_to_msg(pc):
     points=np.asarray(pc.points)
     colors=np.asarray(pc.colors)
@@ -201,7 +205,7 @@ def get_feature_markers(nodes):
         marker.pose.orientation.w=1
         
         
-        marker.scale.x = 0.5
+        marker.scale.x = 0.25
         marker.scale.y = 0.05
         marker.scale.z = 0.05
         
@@ -280,7 +284,7 @@ def read_prior():
     file = path + "/resources/prior_features.yaml"
     with open(file) as stream:
         try:
-            features = yaml.safe_load(stream)
+            features = yaml.unsafe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
             
