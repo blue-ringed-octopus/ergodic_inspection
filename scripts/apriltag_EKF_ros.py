@@ -31,6 +31,7 @@ with open(path+'/param/estimation_param.yaml', 'r') as file:
 
 class EKF_Wrapper:
     def __init__(self, node_id, tf_br, landmarks={}):
+        self.tf_listener = tf.TransformListener()
         self.tf_br = tf_br
         self.bridge = CvBridge()
 
@@ -68,10 +69,9 @@ class EKF_Wrapper:
         ts.registerCallback(self.camera_callback)
 
     def get_camera_to_robot_tf(self):
-        listener=tf.TransformListener()
-        listener.waitForTransform(params["EKF"]["robot_frame"],params["EKF"]["optical_frame"],rospy.Time(), rospy.Duration(4.0))
-        (trans, rot) = listener.lookupTransform(params["EKF"]["robot_frame"], params["EKF"]["optical_frame"], rospy.Time(0))
-        T_c_to_r=listener.fromTranslationRotation(trans, rot)
+        self.listener.waitForTransform(params["EKF"]["robot_frame"],params["EKF"]["optical_frame"],rospy.Time(), rospy.Duration(4.0))
+        (trans, rot) = self.listener.lookupTransform(params["EKF"]["robot_frame"], params["EKF"]["optical_frame"], rospy.Time(0))
+        T_c_to_r = self.listener.fromTranslationRotation(trans, rot)
         return T_c_to_r
     
     def reset(self, node_id, landmarks={}):
@@ -139,10 +139,9 @@ class EKF_Wrapper:
             Rv[4,4] =  data.twist.twist.angular.y**2
             Rv[5,5] =  5 * data.twist.twist.angular.z**2
             self.ekf.motion_update(odom.copy(), Rv)
-            listener=tf.TransformListener()
-            listener.waitForTransform("odom","base_footprint",rospy.Time(), rospy.Duration(4.0))
-            (trans, rot) = listener.lookupTransform("odom","base_footprint", rospy.Time(0))
-            odom = listener.fromTranslationRotation(trans, rot)
+            self.listener.waitForTransform("odom","base_footprint",rospy.Time(), rospy.Duration(4.0))
+            (trans, rot) = self.listener.lookupTransform("odom","base_footprint", rospy.Time(0))
+            odom = self.listener.fromTranslationRotation(trans, rot)
             M = self.ekf.mu[0].copy()
             M = M@inv(odom)
             self.tf_br.sendTransform((M[0,3], M[1,3] , M[2,3]),
