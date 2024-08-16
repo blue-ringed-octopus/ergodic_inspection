@@ -138,10 +138,10 @@ class EKF_Wrapper:
             Rv[3,3] =  data.twist.twist.angular.x**2 
             Rv[4,4] =  data.twist.twist.angular.y**2
             Rv[5,5] =  5 * data.twist.twist.angular.z**2
-            self.ekf.motion_update(odom, Rv)
+            self.ekf.motion_update(odom.copy(), Rv)
             listener=tf.TransformListener()
-            listener.waitForTransform("odom","base_link",rospy.Time(), rospy.Duration(4.0))
-            (trans, rot) = listener.lookupTransform("odom","base_link", rospy.Time(0))
+            listener.waitForTransform("odom","base_footprint",rospy.Time(), rospy.Duration(4.0))
+            (trans, rot) = listener.lookupTransform("odom","base_footprint", rospy.Time(0))
             odom = listener.fromTranslationRotation(trans, rot)
             M = self.ekf.mu[0].copy()
             M = M@inv(odom)
