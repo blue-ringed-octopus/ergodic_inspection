@@ -119,7 +119,6 @@ class EKF_Wrapper:
         		print("Service all failed: %s"%e)
 
     def odom_callback(self, data):
-        with self.lock:
             R=tf.transformations.quaternion_matrix([data.pose.pose.orientation.x,
                                                         data.pose.pose.orientation.y,
                                                         data.pose.pose.orientation.z,
@@ -138,7 +137,9 @@ class EKF_Wrapper:
             Rv[3,3] =  data.twist.twist.angular.x**2 
             Rv[4,4] =  data.twist.twist.angular.y**2
             Rv[5,5] =  5 * data.twist.twist.angular.z**2
-            self.ekf.motion_update(odom.copy(), Rv)
+            with self.lock:
+                self.ekf.motion_update(odom.copy(), Rv)
+                
             self.tf_listener.waitForTransform("odom","base_footprint",rospy.Time(), rospy.Duration(4.0))
             (trans, rot) = self.tf_listener.lookupTransform("odom","base_footprint", rospy.Time(0))
             odom = self.tf_listener.fromTranslationRotation(trans, rot)
