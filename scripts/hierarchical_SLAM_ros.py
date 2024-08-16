@@ -104,8 +104,7 @@ class Graph_SLAM_wrapper:
                         "ekf",
                         "map") 
         
-        with open('key_nodes.pickle', 'wb') as handle:
-            pickle.dump(self.factor_graph.key_pose_nodes, handle)
+
             
 def pc_to_msg(pc):
     points=np.asarray(pc.points)
@@ -316,6 +315,8 @@ if __name__ == "__main__":
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
         graph_slam_wrapper.update()         
-        with open('graph.pickle', 'wb') as handle:
-            pickle.dump(graph_slam_wrapper.graph_slam.factor_graph, handle)
+        # with open('graph.pickle', 'wb') as handle:
+        #     pickle.dump(graph_slam_wrapper.graph_slam.factor_graph, handle)
+        with open('key_nodes.pickle', 'wb') as handle:
+            pickle.dump(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes, handle)
         rate.sleep()
