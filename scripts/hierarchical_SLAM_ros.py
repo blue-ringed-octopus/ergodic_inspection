@@ -77,8 +77,8 @@ class Graph_SLAM_wrapper:
             self.ekf_wrapper.reset(self.graph_slam.current_node_id, landmarks)
             self.graph_slam.place_node(posterior, cloud, key_node)
             global_map = self.graph_slam.global_map_assemble(key_only = True)
-            pc_msg=pc_to_msg(global_map)
-            self.pc_pub.publish(pc_msg)
+        pc_msg = pc_to_msg(global_map)
+        self.pc_pub.publish(pc_msg)
         
     def place_node_server(self, req):
         print("place keynode")

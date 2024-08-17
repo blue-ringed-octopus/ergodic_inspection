@@ -311,11 +311,17 @@ class Graph_SLAM:
     def global_map_assemble(self, key_only = False):
         points=[]
         colors=[]
-        for node in self.factor_graph.pose_nodes.values():
+        
+        if key_only:
+            nodes = self.factor_graph.key_pose_nodes.values()
+        else:
+            nodes = self.factor_graph.pose_nodes.values()
+            
+        for node in nodes:
             if not node.local_map == None:
+                print(node.id)
                 if( len(node.local_map["features"])) == 0:
                    M = node.M.copy() 
-                   print(node.id)
                 else:
                     # dm = SE3.Log(node.M)
                     dm = np.zeros(6)
