@@ -308,36 +308,37 @@ class Graph_SLAM:
         self.current_node_id=new_node_id      
         return new_node_id
     
-    def global_map_assemble(self):
+    def global_map_assemble(self, key_only = False):
         points=[]
         colors=[]
         for node in self.factor_graph.pose_nodes.values():
             if not node.local_map == None:
                 if( len(node.local_map["features"])) == 0:
                    M = node.M.copy() 
+                   print(node.id)
                 else:
+                    # dm = SE3.Log(node.M)
                     dm = np.zeros(6)
                     for feature_id, feature in node.local_map["features"].items():
                         dm  += SE3.Log(self.factor_graph.feature_nodes[feature_id].M.copy()@inv(feature['M']))
                     dm /= len(node.local_map["features"])
                     M = SE3.Exp(dm)
                     
-                    cloud = node.local_map['pc'].copy()
-                    p = o3d.geometry.PointCloud()
-                    p.points=o3d.utility.Vector3dVector(cloud["points"])
-                 #   p.colors=o3d.utility.Vector3dVector(cloud["colors"])
-                    p=p.transform(M)
-                    points.append(np.array(p.points))
-                 #   colors.append(np.array(p.colors))
-                    colors.append(cloud["colors"])
+                cloud = node.local_map['pc'].copy()
+                p = o3d.geometry.PointCloud()
+                p.points = o3d.utility.Vector3dVector(cloud["points"])
+                p = p.transform(M)
+                points.append(np.array(p.points))
+                colors.append(cloud["colors"])
+                
         if len(points)>0: 
             points=np.concatenate(points)  
             colors=np.concatenate(colors)  
     
-            self.global_map = np2pc(points, colors)
-            self.global_map = self.global_map.voxel_down_sample(0.05)
+            global_map = np2pc(points, colors)
+            global_map = global_map.voxel_down_sample(0.05)
             
-        return self.global_map
+        return global_map
     
     def update_costmap(self, costmap):
         pass 

@@ -87,6 +87,9 @@ class Graph_SLAM_wrapper:
         self.place_node_req = True
         return  PlaceNodeResponse(True)
     
+    def get_global_map(self):
+        self.graph_slam.global_map_assemble(key_only = True)
+        
     def update(self):
         posterior = self.ekf_wrapper.ekf.get_posterior()         
         _ = self.graph_slam.update(posterior)
@@ -314,7 +317,8 @@ if __name__ == "__main__":
 
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
-        graph_slam_wrapper.update()         
+        graph_slam_wrapper.update()
+        graph_slam_wrapper.get_global_map()         
         # with open('graph.pickle', 'wb') as handle:
         #     pickle.dump(graph_slam_wrapper.graph_slam.factor_graph, handle)
         with open('key_nodes.pickle', 'wb') as handle:
