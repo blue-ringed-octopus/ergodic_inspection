@@ -337,6 +337,7 @@ class Graph_SLAM:
                 points.append(np.array(p.points))
                 colors.append(cloud["colors"])
                 
+        global_map = o3d.geometry.PointCloud()        
         if len(points)>0: 
             points=np.concatenate(points)  
             colors=np.concatenate(colors)  
