@@ -10,14 +10,15 @@ from numpy.linalg import inv
 
 class Node:
     def __init__(self, node_id, M, node_type, key = False):
-        self.type=node_type
+        self.type = node_type
         self.key = key
-        self.M=M
-        self.cov=np.zeros((6,6))
-        self.id=node_id
-        self.local_map=None
-        self.pruned=False 
-        self.factor={}
+        self.M = M
+        self.cov = np.zeros((6,6))
+        self.id = node_id
+        self.local_map = None
+        self.pruned = False 
+        self.factor = {}
+        self.in_progress = True
        
     def copy(self):
         return deepcopy(self)

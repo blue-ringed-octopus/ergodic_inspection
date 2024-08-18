@@ -281,6 +281,8 @@ class Graph_SLAM:
         self.backend_thread.start()
 
     def reset(self):
+        self.global_map = o3d.geometry.PointCloud()
+        self.assembled_nodes=[]
         self.factor_graph=Factor_Graph(self.horizon, self.forgetting_factor)
         self.current_node_id=self.factor_graph.add_node(self.M, "pose")
         self.omega=np.eye(3)*0.001
@@ -305,12 +307,13 @@ class Graph_SLAM:
             J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(tau)
         sigma = J@sigma@J.T 
         self.factor_graph.add_factor(self.current_node_id,new_node_id,feature_node_id, z,sigma, idx_map)
+        self.factor_graph.pose_nodes[self.current_node_id].in_progress = False 
         self.current_node_id=new_node_id      
         return new_node_id
     
     def global_map_assemble(self, key_only = False):
-        points=[]
-        colors=[]
+        points=np.asarray(self.global_map.points)
+        colors=np.asarray(self.global_map.colors)
         
         if key_only:
             nodes = self.factor_graph.key_pose_nodes.values()
@@ -318,7 +321,7 @@ class Graph_SLAM:
             nodes = self.factor_graph.pose_nodes.values()
             
         for node in nodes:
-            if not node.local_map == None:
+            if not node.local_map == None and node.id not in self.assembled_nodes:
                 print(node.id)
                 if( len(node.local_map["features"])) == 0:
                    M = node.M.copy() 
@@ -336,6 +339,7 @@ class Graph_SLAM:
                 p = p.transform(M)
                 points.append(np.array(p.points))
                 colors.append(cloud["colors"])
+                self.assembled_nodes.append(node.id)
                 
         global_map = o3d.geometry.PointCloud()        
         if len(points)>0: 
@@ -345,6 +349,7 @@ class Graph_SLAM:
             global_map = np2pc(points, colors)
             global_map = global_map.voxel_down_sample(0.05)
             
+        self.global_map = global_map    
         return global_map
     
     def update_costmap(self, costmap):
