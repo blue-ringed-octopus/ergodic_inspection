@@ -17,6 +17,7 @@ p_region = []
 
 for p in dat["p"]:
     p_region.append([np.quantile(p[idx],1) for idx in region_index.values()])
+    
 p_region=np.array(p_region)    
 
 for i in range(len(region_index)):

@@ -67,9 +67,15 @@ class Graph_Planner:
     def get_next_region(self, weight, current_region):
         if self.strategy == "ergodic":
             P = self.UBFMMC(weight, self.edges)
-            region=np.random.choice(range(self.num_regions),p=P[:,current_region])
+            region = np.random.choice(range(self.num_regions),p=P[:,current_region])
         elif self.strategy == "random":
-            regoin = 
+            n = len(weight)
+            P = np.zeros((n,n))
+            for i, j in self.edges:
+                P[j,i]=1
+                
+            P=P/sum(P, 0)
+            region = np.random.choice(range(self.num_regions),p=P[:,current_region])
         return region, P
     
 
