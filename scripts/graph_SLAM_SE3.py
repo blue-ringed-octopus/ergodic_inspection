@@ -337,8 +337,8 @@ class Graph_SLAM:
                 p = o3d.geometry.PointCloud()
                 p.points = o3d.utility.Vector3dVector(cloud["points"])
                 p = p.transform(M)
-                points.append(np.array(p.points))
-                colors.append(cloud["colors"])
+                points = np.concatenate((points, np.array(p.points)))
+                colors = np.concatenate((colors, cloud["colors"]))
                 self.assembled_nodes.append(node.id)
                 
         global_map = o3d.geometry.PointCloud()        
