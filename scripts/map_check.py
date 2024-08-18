@@ -10,7 +10,7 @@ import numpy as np
 from Lie import SE3 
 from scipy.spatial.transform import Rotation as Rot
 import open3d as o3d 
-
+import pickle 
 def read_prior(features):  
     prior = {}         
     z = np.zeros(6*len(features))
@@ -34,3 +34,6 @@ with open('../resources/tag_loc_physical.yaml', 'r') as file:
     features = yaml.unsafe_load(file)
     
 prior = read_prior(features)
+
+with open('../resources/key_nodes.pickle', 'rb') as handle:
+    keynodes = pickle.load(handle)  

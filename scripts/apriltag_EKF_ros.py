@@ -59,8 +59,6 @@ class EKF_Wrapper:
                        params["EKF"]["tag_families"])
         self.reset(node_id, landmarks)
 
-
-       # rospy.Subscriber("/robot_pose_ekf/odom_combined", PoseWithCovarianceStamped, self.odom_callback)
         rospy.Subscriber(params["EKF"]["odom_topic"], Odometry, self.odom_callback)
         rgbsub=message_filters.Subscriber(params["EKF"]["rgb_topic"], Image)
         depthsub=message_filters.Subscriber(params["EKF"]["depth_aligned_topic"], Image)
@@ -157,6 +155,9 @@ class EKF_Wrapper:
             depth = self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
             self.ekf.camera_update(rgb, depth)
             
+    def tf_callback(self, msg):
+        pass
+        
 def get_pose_marker(tags, mu):
     markers=[]
     for tag_id, idx in tags.items():
