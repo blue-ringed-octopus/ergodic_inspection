@@ -15,6 +15,8 @@ Panels:
         - /DepthCloud1
         - /DepthCloud1/Auto Size1
         - /PointCloud22
+        - /Path1
+        - /Path1/Offset1
         - /Pose1
         - /Map1
         - /PoseArray1
@@ -90,11 +92,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
         base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        base_scan:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -243,7 +240,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.05000000074505806
+      Size (m): 0.10000000149011612
       Style: Flat Squares
       Topic: /pc_ref
       Unreliable: false
@@ -253,18 +250,18 @@ Visualization Manager:
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
-      Color: 25; 255; 0
+      Color: 0; 0; 255
       Enabled: true
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
-      Line Style: Lines
-      Line Width: 0.029999999329447746
+      Line Style: Billboards
+      Line Width: 0.05000000074505806
       Name: Path
       Offset:
         X: 0
         Y: 0
-        Z: 0
+        Z: 0.10000000149011612
       Pose Color: 255; 85; 255
       Pose Style: None
       Queue Size: 10
@@ -294,18 +291,18 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: Map
       Topic: /move_base/local_costmap/costmap
       Unreliable: false
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 1
       Arrow Length: 0.30000001192092896
       Axes Length: 0.30000001192092896
       Axes Radius: 0.009999999776482582
       Class: rviz/PoseArray
-      Color: 255; 25; 0
+      Color: 0; 0; 255
       Enabled: true
       Head Length: 0.30000001192092896
       Head Radius: 0.10000000149011612
@@ -354,7 +351,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 12.241162300109863
+      Distance: 15.15657901763916
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -362,9 +359,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 2.9220986366271973
-        Y: -2.457493305206299
-        Z: 0.1986175775527954
+        X: 2.7399773597717285
+        Y: -2.717134952545166
+        Z: -0.30303195118904114
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -372,7 +369,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 3.149937629699707
+      Yaw: 3.1449949741363525
     Saved: ~
 Window Geometry:
   Displays:
