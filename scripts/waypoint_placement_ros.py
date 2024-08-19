@@ -30,11 +30,13 @@ import matplotlib.pyplot as plt
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
 with open(path+'/param/control_param.yaml', 'r') as file:
-    params = yaml.safe_load(file)
-    
+    control_params = yaml.safe_load(file)
+with open(path+'/param/estimation_param.yaml', 'r') as file:
+    est_params = yaml.safe_load(file) 
+       
 class Waypoint_Placement_Wrapper:
     def __init__(self):
-        strategy = params["waypoint_placement"]['strategy']
+        strategy = control_params["waypoint_placement"]['strategy']
         rospy.init_node('waypoint_planner',anonymous=False)
         rospy.wait_for_service('get_reference_cloud_region')
         rospy.wait_for_service('static_map')
@@ -52,11 +54,11 @@ class Waypoint_Placement_Wrapper:
         costmap_msg = self.get_cost_map()
         costmap = process_costmap_msg(costmap_msg)
         self.listener=tf.TransformListener()
-        self.listener.waitForTransform(params["EKF"]["optical_frame"],params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
-        (trans, rot) = self.listener.lookupTransform(params["EKF"]["optical_frame"], params["EKF"]["robot_frame"], rospy.Time(0))
+        self.listener.waitForTransform(est_params["EKF"]["optical_frame"],est_params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
+        (trans, rot) = self.listener.lookupTransform(est_params["EKF"]["optical_frame"], est_params["EKF"]["robot_frame"], rospy.Time(0))
         self.pose = np.array([trans[0], trans[1], np.arctan2(2*(rot[2]), 2*rot[3])])
         T_camera = self.listener.fromTranslationRotation(trans, rot)
-        camera_info = rospy.wait_for_message(params["EKF"]["camera_info"], CameraInfo)
+        camera_info = rospy.wait_for_message(est_params["EKF"]["camera_info"], CameraInfo)
         K = np.reshape(camera_info.K, (3,3))
 
         w, h = camera_info.width , camera_info.height
@@ -68,8 +70,8 @@ class Waypoint_Placement_Wrapper:
     def get_current_region(self):
         pose_msg = Pose()
         try:
-            self.listener.waitForTransform("map",params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
-            (trans, rot) = self.listener.lookupTransform("map", params["EKF"]["robot_frame"], rospy.Time(0))
+            self.listener.waitForTransform("map",est_params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
+            (trans, rot) = self.listener.lookupTransform("map", est_params["EKF"]["robot_frame"], rospy.Time(0))
             pose_msg.position.x = trans[0]
             pose_msg.position.y = trans[1]
             rospy.wait_for_service('get_region')
