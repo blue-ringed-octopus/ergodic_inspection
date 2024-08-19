@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
-with open(path+'/param/estimation_param.yaml', 'r') as file:
+with open(path+'/param/control_param.yaml', 'r') as file:
     params = yaml.safe_load(file)
     
 class Waypoint_Placement_Wrapper:
