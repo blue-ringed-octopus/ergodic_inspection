@@ -341,11 +341,8 @@ class Graph_SLAM:
                 colors = np.concatenate((colors, cloud["colors"]))
                 self.assembled_nodes.append(node.id)
                 
-        global_map = o3d.geometry.PointCloud()        
-        if len(points)>0: 
-            points=np.concatenate(points)  
-            colors=np.concatenate(colors)  
-    
+        global_map = self.global_map   
+        if len(points)>0:    
             global_map = np2pc(points, colors)
             global_map = global_map.voxel_down_sample(0.05)
             
