@@ -72,10 +72,12 @@ class EKF_Wrapper:
         T_c_to_r = self.tf_listener.fromTranslationRotation(trans, rot)
         return T_c_to_r
     
-    def reset(self, node_id, landmarks={}):
+    def reset(self, node_id, landmarks={}, get_point_cloud = True):
         print("reseting EKF")
         with self.lock:
-            pc_info = self.get_point_cloud()
+            pc_info = None
+            if get_point_cloud:
+                pc_info = self.get_point_cloud()
             self.id = node_id
             self.ekf.reset(node_id, pc_info, landmarks)
         print("EKF initialized") 

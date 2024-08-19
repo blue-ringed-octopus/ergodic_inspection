@@ -34,7 +34,7 @@ with open(path+'/param/estimation_param.yaml', 'r') as file:
     
 class Waypoint_Placement_Wrapper:
     def __init__(self):
-        strategy = "ergodic"
+        strategy = params["waypoint_placement"]['strategy']
         rospy.init_node('waypoint_planner',anonymous=False)
         rospy.wait_for_service('get_reference_cloud_region')
         rospy.wait_for_service('static_map')

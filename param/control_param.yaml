@@ -1,2 +1,6 @@
 waypoint_placement:
-    strategy: "ergodic"
+    #strategy: "ergodic"
+    strategy: "random"
+graph_planner:
+    #strategy: "ergodic"
+    strategy: "random"

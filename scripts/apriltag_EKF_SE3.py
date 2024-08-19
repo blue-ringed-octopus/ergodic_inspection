@@ -156,7 +156,8 @@ class EKF:
         self.sigma=np.zeros((6,6))
         self.features={}
         self.landmarks=landmarks
-        self._process_pointcloud(pc_info)
+        if not pc_info == None:
+            self._process_pointcloud(pc_info)
         # self._initialize_landmarks(landmark)
     
     # def _initialize_landmarks(self, landmarks):

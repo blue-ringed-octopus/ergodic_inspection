@@ -3,7 +3,10 @@
 
 	<node pkg="ergodic_inspection" name="graph_planner_server" type="graph_planner_server.py" output="screen">
   	</node> 
-  	
+
+  	<node pkg="ergodic_inspection" name="waypoint_placement_ros" type="waypoint_placement_ros.py" output="screen">
+  	</node> 
+
   	<node pkg="pointcloud_to_laserscan" name="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" output="screen">
   	    <remap from="cloud_in" to="/camera/depth_points"/>
       	    <param name="target_frame " type="str" value="base_footprint" />

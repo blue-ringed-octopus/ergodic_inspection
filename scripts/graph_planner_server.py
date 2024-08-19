@@ -10,12 +10,18 @@ from graph_planner import Graph_Planner
 import rospy
 from ergodic_inspection.srv import GetGraphStructure
 from ergodic_inspection.srv import PlanRegion, PlanRegionResponse
-
 import numpy as np 
+import rospkg
+import yaml 
 
+rospack=rospkg.RosPack()
+path = rospack.get_path("ergodic_inspection")
+with open(path+'/param/control_param.yaml', 'r') as file:
+    params = yaml.safe_load(file)
+    
 class Graph_Planner_Server:
     def __init__(self):
-        strategy = "ergodic"
+        strategy = params["graph_planner"]['strategy']
         rospy.wait_for_service('GetGraphStructure')
         self.get_graph = rospy.ServiceProxy('GetGraphStructure', GetGraphStructure)
         graph_level = 1

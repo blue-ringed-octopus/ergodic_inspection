@@ -74,7 +74,7 @@ class Graph_SLAM_wrapper:
             T = np.linalg.inv(self.graph_slam.get_node_est()@posterior['mu'][0])
             for id_, M in landmarks.items():
                 landmarks[id_] = T@M
-            self.ekf_wrapper.reset(self.graph_slam.current_node_id, landmarks)
+            self.ekf_wrapper.reset(self.graph_slam.current_node_id, landmarks, get_point_cloud=key_node)
             self.graph_slam.place_node(posterior, cloud, key_node)
             global_map = self.graph_slam.global_map_assemble(key_only = True)
         pc_msg = pc_to_msg(global_map)
