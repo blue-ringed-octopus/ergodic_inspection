@@ -70,7 +70,7 @@ class Waypoint_Planner:
         region_cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
         
         idx = self.camera_projection(waypoint, region_cloud)
-        colors = np.asarray(cloud.colors)
+        colors = np.asarray(region_cloud.colors)
         colors[idx] = [255,0,0]
         region_cloud.colors = o3d.utility.Vector3dVector(colors)
         T_robot = np.eye(4)
