@@ -21,7 +21,8 @@ class Waypoint_Planner:
         self.T_camera = T_camera
         self.K = cam_param
         self.img_shape = img_shape
-    
+        print("K", self.K)
+        print("T_camera", self.T_camera)
     def camera_projection(self, pose, point_cloud):
         w, h = self.img_shape
         T_robot = np.eye(4)
