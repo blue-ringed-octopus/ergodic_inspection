@@ -1,8 +1,8 @@
 waypoint_placement:
-    #strategy: "ergodic"
+    strategy: "ergodic"
     #strategy: "random"
-    strategy: "greedy"
+    #strategy: "greedy"
 graph_planner:
-    #strategy: "ergodic"
+    strategy: "ergodic"
     #strategy: "random"
-    strategy: "greedy"
+    #strategy: "greedy"
