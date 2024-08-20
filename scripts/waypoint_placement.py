@@ -67,20 +67,20 @@ class Waypoint_Planner:
         
         v = 1 - entropies/bernoulli.entropy(0.5)
         rgb = [colorsys.hsv_to_rgb(0, 0, v[i]) for i in range(len(entropies))]
-        cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
+        region_cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
         
         planner = Waypoint_Planner("ergodic", manager.costmap,T_camera, K, (w,h))    
-        idx = planner.camera_projection(waypoint, cloud)
+        idx = planner.camera_projection(waypoint, region_cloud)
         colors = np.asarray(cloud.colors)
         colors[idx] = [255,0,0]
-        cloud.colors = o3d.utility.Vector3dVector(colors)
+        region_cloud.colors = o3d.utility.Vector3dVector(colors)
         T_robot = np.eye(4)
         T_robot[0:2,3] = waypoint[0:2]
         T_robot[0:2,0:2] = [[np.cos(waypoint[2]), -np.sin(waypoint[2])],
                            [np.sin(waypoint[2]), np.cos(waypoint[2])]]
         robot_frame  = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
         robot_frame = robot_frame.transform(T_robot)
-        o3d.visualization.draw_geometries([cloud, robot_frame])
+        o3d.visualization.draw_geometries([region_cloud, robot_frame])
         return np.array(waypoint)
     
     def sample_waypoints(self, bound, n):
