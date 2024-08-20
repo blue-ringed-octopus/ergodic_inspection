@@ -69,8 +69,7 @@ class Waypoint_Planner:
         rgb = [colorsys.hsv_to_rgb(0, 0, v[i]) for i in range(len(entropies))]
         region_cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
         
-        planner = Waypoint_Planner("ergodic", manager.costmap,T_camera, K, (w,h))    
-        idx = planner.camera_projection(waypoint, region_cloud)
+        idx = self.camera_projection(waypoint, region_cloud)
         colors = np.asarray(cloud.colors)
         colors[idx] = [255,0,0]
         region_cloud.colors = o3d.utility.Vector3dVector(colors)
