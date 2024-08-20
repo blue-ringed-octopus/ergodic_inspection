@@ -24,7 +24,10 @@ class Graph_Planner:
         self.strategy = strategy 
         self.num_regions = len(nodes)
         self.edges = edges
-        
+        self.adjacency = np.zeros((self.num_regions,self.num_regions))
+        for i, j in self.edges:
+            self.adjacency[j,i]=1
+            
     def UBFMMC(self, weight, transform=True):
         weight=weight/sum(weight)
         n=len(weight)
@@ -70,12 +73,14 @@ class Graph_Planner:
             region = np.random.choice(range(self.num_regions),p=P[:,current_region])
             
         elif self.strategy == "random":
-            n = len(weight)
-            P = np.zeros((n,n))
-            for i, j in self.edges:
-                P[j,i]=1
+            P = self.adjacency.copy()
             P=P/sum(P, 0)
             region = np.random.choice(range(self.num_regions),p=P[:,current_region])
+            
+        elif self.strategy == "greedy":
+            P =  self.adjacency.copy()[:,current_region]
+            P = P * weight 
+            region = np.argmax(P)
         return region, P
     
 
