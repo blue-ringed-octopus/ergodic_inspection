@@ -91,7 +91,6 @@ class Waypoint_Planner:
             # centroid = 1/2*(np.array(bound["min_bound"])+np.array(bound["max_bound"]))[:2]
             cost = self.get_cost(coord_rand)
             if cost<20:
-                print(cost)
                 coords.append(coord_rand)
         angles = np.random.uniform(0, 2*np.pi, size = len(coords))
         coords = np.asarray(coords)
