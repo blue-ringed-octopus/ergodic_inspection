@@ -10,6 +10,8 @@ import yaml
 import cv2 
 import matplotlib.pyplot as plt
 from copy import deepcopy
+from scipy.stats import bernoulli 
+
 class Waypoint_Planner:
     def __init__(self, strategy, costmap, T_camera, cam_param, img_shape):
         self.strategy = strategy
