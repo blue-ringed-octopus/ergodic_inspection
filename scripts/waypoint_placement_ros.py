@@ -91,7 +91,7 @@ class Waypoint_Placement_Wrapper:
             self.next_region = self.plan_region(region).next_region
             msg = self.get_reference(self.next_region)
             h, region_cloud = decode_msg(msg.ref)
-            waypoint = self.planner.get_optimal_waypoint(50, region_cloud, h)
+            waypoint = self.planner.get_optimal_waypoint(1000, region_cloud, h)
             
             alpha = np.arctan2(waypoint[1]-pose[1], waypoint[0]-pose[0]) - pose[2]
             alpha = np.arctan2(np.sin(alpha), np.cos(alpha))
