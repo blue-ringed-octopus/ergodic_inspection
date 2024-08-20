@@ -23,6 +23,7 @@ class Waypoint_Planner:
         self.img_shape = img_shape
         print("K", self.K)
         print("T_camera", self.T_camera)
+        
     def camera_projection(self, pose, point_cloud):
         w, h = self.img_shape
         T_robot = np.eye(4)
@@ -66,21 +67,21 @@ class Waypoint_Planner:
             idx = np.argmax(reward) 
         waypoint = candidates[idx]
         
-        v = 1 - entropies/bernoulli.entropy(0.5)
-        rgb = [colorsys.hsv_to_rgb(0, 0, v[i]) for i in range(len(entropies))]
-        region_cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
+        # v = 1 - entropies/bernoulli.entropy(0.5)
+        # rgb = [colorsys.hsv_to_rgb(0, 0, v[i]) for i in range(len(entropies))]
+        # region_cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
         
-        idx = self.camera_projection(waypoint, region_cloud)
-        colors = np.asarray(region_cloud.colors)
-        colors[idx] = [255,0,0]
-        region_cloud.colors = o3d.utility.Vector3dVector(colors)
-        T_robot = np.eye(4)
-        T_robot[0:2,3] = waypoint[0:2]
-        T_robot[0:2,0:2] = [[np.cos(waypoint[2]), -np.sin(waypoint[2])],
-                           [np.sin(waypoint[2]), np.cos(waypoint[2])]]
-        robot_frame  = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
-        robot_frame = robot_frame.transform(T_robot)
-        o3d.visualization.draw_geometries([region_cloud, robot_frame])
+        # idx = self.camera_projection(waypoint, region_cloud)
+        # colors = np.asarray(region_cloud.colors)
+        # colors[idx] = [255,0,0]
+        # region_cloud.colors = o3d.utility.Vector3dVector(colors)
+        # T_robot = np.eye(4)
+        # T_robot[0:2,3] = waypoint[0:2]
+        # T_robot[0:2,0:2] = [[np.cos(waypoint[2]), -np.sin(waypoint[2])],
+        #                    [np.sin(waypoint[2]), np.cos(waypoint[2])]]
+        # robot_frame  = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
+        # robot_frame = robot_frame.transform(T_robot)
+        # o3d.visualization.draw_geometries([region_cloud, robot_frame])
         return np.array(waypoint)
     
     def sample_waypoints(self, bound, n):
