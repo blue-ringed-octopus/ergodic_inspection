@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 from scipy.stats import bernoulli 
 import colorsys
+import open3d as o3d
 
 class Waypoint_Planner:
     def __init__(self, strategy, costmap, T_camera, cam_param, img_shape):
