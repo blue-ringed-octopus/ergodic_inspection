@@ -166,12 +166,6 @@ class EKF_Wrapper:
     def tf_callback(self, msg):
         pass
     
-    def get_cloud(self):
-        cloud = self.ekf.cloud.copy()
-        points = cloud["points"]
-        colors = cloud["colors"]
-        return points, colors
-    
 def get_pose_marker(tags, mu):
     markers=[]
     for tag_id, idx in tags.items():
@@ -217,7 +211,9 @@ def get_pose_marker(tags, mu):
     markerArray.markers=markers
     return markerArray
 
-def pc_to_msg(points, colors):
+def pc_to_msg(pc):
+    points = pc["points"]
+    colors = pc["colors"]
     pc_array = np.zeros(len(points), dtype=[
     ('x', np.float32),
     ('y', np.float32),
@@ -251,8 +247,8 @@ if __name__ == "__main__":
     rate = rospy.Rate(30) # 10hz
     prior = {}
     while not rospy.is_shutdown():
-        points, colors = wrapper.get_cloud()
-        pc_pub.publish(pc_to_msg(points, colors))
+        pc = wrapper.ekf.cloud["pc"]
+        pc_pub.publish(pc_to_msg(pc))
         markers=get_pose_marker(wrapper.ekf.features, wrapper.ekf.mu)
         factor_graph_marker_pub.publish(markers)
         br.sendTransform((0,0 , 0),
