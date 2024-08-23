@@ -39,7 +39,10 @@ class EKF_Wrapper:
         T_c_to_r = self.get_camera_to_robot_tf()
         self.lock=threading.Lock()
         camera_info = self.get_message(params["EKF"]["camera_info"], CameraInfo)
+
         K = np.reshape(camera_info.K, (3,3))
+        print("received camera info: ", K)
+
         self.marker_pub = rospy.Publisher(params["EKF"]["apriltag_marker_topic"], Marker, queue_size = 2)
         self.image_pub = rospy.Publisher(params["EKF"]["rgb_detected"], Image, queue_size = 2)
         
@@ -49,6 +52,8 @@ class EKF_Wrapper:
                                                    odom.pose.pose.orientation.y,
                                                    odom.pose.pose.orientation.z,
                                                    odom.pose.pose.orientation.w])[0:3,0:3]
+        print("received initial odometry")
+
         M=np.eye(4)
         M[0:3,0:3] = R
         M[0:3,3]=[odom.pose.pose.position.x,
