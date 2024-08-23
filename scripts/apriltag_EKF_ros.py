@@ -21,6 +21,7 @@ np.float = np.float64
 import ros_numpy
 import threading
 from apriltag_EKF_SE3 import EKF
+
 np.set_printoptions(precision=2)
 
 rospack=rospkg.RosPack()
@@ -159,7 +160,13 @@ class EKF_Wrapper:
             
     def tf_callback(self, msg):
         pass
-        
+    
+    def get_cloud(self):
+        cloud = self.ekf.cloud.copy()
+        points = cloud["points"]
+        colors = cloud["colors"]
+        return points, colors
+    
 def get_pose_marker(tags, mu):
     markers=[]
     for tag_id, idx in tags.items():
@@ -205,6 +212,27 @@ def get_pose_marker(tags, mu):
     markerArray.markers=markers
     return markerArray
 
+def pc_to_msg(points, colors):
+    pc_array = np.zeros(len(points), dtype=[
+    ('x', np.float32),
+    ('y', np.float32),
+    ('z', np.float32),
+    ('r', np.uint32),
+    ('g', np.uint32),
+    ('b', np.uint32),
+    ])
+
+    pc_array['x'] = points[:,0]
+    pc_array['y'] = points[:, 1]
+    pc_array['z'] = points[:, 2]
+    pc_array['r'] = (colors[:,0]*255).astype(np.uint32)
+    pc_array['g'] = (colors[:, 1]*255).astype(np.uint32)
+    pc_array['b'] = (colors[:, 2]*255).astype(np.uint32)
+    pc_array= ros_numpy.point_cloud2.merge_rgb_fields(pc_array)
+    pc_msg = ros_numpy.msgify(PointCloud2, pc_array, stamp=rospy.Time.now(), frame_id="map")
+    
+    return pc_msg
+
 if __name__ == "__main__":
     import yaml
     from scipy.spatial.transform import Rotation as R
@@ -218,7 +246,8 @@ if __name__ == "__main__":
     rate = rospy.Rate(30) # 10hz
     prior = {}
     while not rospy.is_shutdown():
-        # pc_pub.publish(ekf.cloud)
+        points, colors = wrapper.get_cloud()
+        pc_pub.publish(pc_to_msg(points, colors))
         markers=get_pose_marker(wrapper.ekf.features, wrapper.ekf.mu)
         factor_graph_marker_pub.publish(markers)
         br.sendTransform((0,0 , 0),
