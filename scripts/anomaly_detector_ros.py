@@ -170,7 +170,7 @@ if __name__ == "__main__":
     rospy.init_node('estimator',anonymous=False)
     print(params)    
 
-    graph_slam_wrapper = Graph_SLAM_wrapper(br, localization_mode, params)
+    graph_slam_wrapper = Graph_SLAM_wrapper(br, params, localization_mode)
        
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():
