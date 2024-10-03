@@ -122,21 +122,25 @@ def decode_msg(msg):
     points[:,0]=x
     points[:,1]=pc['y'].reshape(-1)
     points[:,2]=pc['z'].reshape(-1)
-    pc=ros_numpy.point_cloud2.split_rgb_field(pc)
+    
+    normals = np.zeros((len(x),3))
+    normals[:,0]=pc['i'].reshape(-1)
+    normals[:,1]=pc['j'].reshape(-1)
+    normals[:,2]=pc['k'].reshape(-1)
 
+    pc=ros_numpy.point_cloud2.split_rgb_field(pc)
     rgb=np.zeros((len(x),3))
     rgb[:,0]=pc['r'].reshape(-1)
     rgb[:,1]=pc['g'].reshape(-1)
     rgb[:,2]=pc['b'].reshape(-1)
     h = pc["h"]
 
-    n = np.asarray(pc['n'].reshape(-1))
     # p = {"points": points, "colors": np.asarray(rgb/255), "h": h}
     # print(h)
     p=o3d.geometry.PointCloud()
     p.points=o3d.utility.Vector3dVector(points)
     p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
-    p.normals = o3d.utility.Vector3dVector(n)
+    p.normals = o3d.utility.Vector3dVector(normals)
     return h, p
 
 def simple_move(waypoint):
