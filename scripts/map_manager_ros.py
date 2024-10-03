@@ -5,6 +5,8 @@ Created on Sun Jul  7 15:52:00 2024
 
 @author: hibad
 """
+import sys
+
 from map_manager import Map_Manager
 from ergodic_inspection.srv import PointCloudWithEntropy, PointCloudWithEntropyResponse
 from ergodic_inspection.srv import SetBelief, SetBeliefResponse
@@ -22,8 +24,6 @@ from nav_msgs.msg import OccupancyGrid
 from ergodic_inspection.msg import RegionPointIndex
 
 import rospkg
-import open3d as o3d
-import yaml
 import numpy as np
 np.float = np.float64 
 
@@ -208,6 +208,8 @@ def get_mesh_marker(mesh_resource):
     return marker
  
 if __name__ == "__main__":
+    sys_type = sys.argv[1]
+    
     rospy.init_node('map_manager',anonymous=False)
     mesh_resource = "file:///" + path + "/resources/ballast.STL"
     mesh_marker = get_mesh_marker(mesh_resource)

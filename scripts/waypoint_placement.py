@@ -33,12 +33,15 @@ class Waypoint_Planner:
         T = T_robot@self.T_camera
         cloud = deepcopy(point_cloud).transform(np.linalg.inv(T))
         points = np.asarray(cloud.points)
+        normals = np.asarray(cloud.normals)
+        
         pixel = (self.K@points.T).T
         pixel_x = pixel[:,0]/pixel[:,2]
         pixel_y = pixel[:,1]/pixel[:,2]
         idx = np.where((points[:,2]<2) & (points[:,2]>0.05) & 
                         (pixel_x>=0) & (pixel_x<w) &
-                        (pixel_y>=0) & (pixel_y<h))[0]
+                        (pixel_y>=0) & (pixel_y<h)&
+                        (normals[:,2]<0))[0]
 
         return idx
         
@@ -127,13 +130,13 @@ if __name__ == '__main__':
     import colorsys
     
     manager = Map_Manager("../")
-    with open('tests/detections.pickle', 'rb') as f:
-        dat = pickle.load(f)
+    # with open('tests/detections.pickle', 'rb') as f:
+    #     dat = pickle.load(f)
         
-    pc=o3d.geometry.PointCloud()
-    pc.points=o3d.utility.Vector3dVector(dat["cloud"])
-    manager.process_reference(pc)
-    manager.set_entropy(dat["p"][-1], np.array(range(len(dat["p"][-1]))))
+    # pc=o3d.geometry.PointCloud()
+    # pc.points=o3d.utility.Vector3dVector(dat["cloud"])
+    # manager.process_reference(pc)
+    # manager.set_entropy(dat["p"][-1], np.array(range(len(dat["p"][-1]))))
      
     T_camera = np.eye(4)
     T_camera[0:3,3]= [0.077, -0.000, 0.218]
@@ -146,7 +149,7 @@ if __name__ == '__main__':
                  [ 0.0, 0.0, 1.0]])
 
     w, h = 1208, 720
-    region = 5
+    region = 4
     entropy, cloud = manager.get_region_entropy(region)  
     for _ in range(10):
         v = 1 - entropy/bernoulli.entropy(0.5)

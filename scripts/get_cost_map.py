@@ -14,20 +14,26 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 from numba import cuda
 import pickle
+# mesh_path = "../resources/Ballast.STL"
+# output_path = '../resources/costmap.pickle'
+mesh_path = "../resources/Ballast_physical.STL"
+output_path = '../resources/costmap_physical.pickle'
 resolution=0.05
 kernel_size=(5,5)
 
 robot_radius=0.175/2/resolution
-inflation_radius= 0.5/resolution
+inflation_radius= 0.2/resolution
 cost_scaling_factor = 5.0* resolution
 
 #%% Import FOD clouds
-mesh = o3d.io.read_triangle_mesh("../resources/Ballast.STL")
-frame = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
-o3d.visualization.draw_geometries([frame, mesh])
+mesh = o3d.io.read_triangle_mesh(mesh_path)
+# frame = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
+# o3d.visualization.draw_geometries([frame, mesh])
 box = mesh.get_axis_aligned_bounding_box()
 min_bound = np.array([box.min_bound[0],box.min_bound[1], 0.05 ])
 max_bound = np.array([box.max_bound[0],box.max_bound[1], 0.2 ])
+# min_bound = np.array([box.min_bound[0],box.min_bound[1], 0.1 ])
+# max_bound = np.array([box.max_bound[0],box.max_bound[1], 0.2 ])
 box.min_bound = min_bound
 box.max_bound = max_bound
 pc = mesh.sample_points_uniformly(
@@ -35,7 +41,7 @@ pc = mesh.sample_points_uniformly(
 pc=pc.crop(box)
 
 pt = np.asarray(pc.points)
-pt[2]=0
+pt[:,2]=0
 pc.points=o3d.utility.Vector3dVector(pt)
 
 
@@ -108,5 +114,5 @@ plt.imshow(cost.T, origin="lower")
 resolution = (max_bound-min_bound)[0:2]
 resolution = resolution/[x_shape, y_shape]
 
-with open('../resources/costmap.pickle', 'wb') as handle:
+with open(output_path, 'wb') as handle:
     pickle.dump({"costmap": cost/255*100, "resolution": resolution,"origin":voxel_grid.origin, "bounds":{"min": min_bound, "max": max_bound} }, handle)

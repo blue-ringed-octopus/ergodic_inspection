@@ -14,6 +14,7 @@ class Graph:
         self.nodes =nodes  
         self.level = level
         self.id_map = id_map
+        self.n = len(nodes)
         self.edges = []
         
     def plot_graph(self):
@@ -23,9 +24,13 @@ class Graph:
         img = img.astype(np.float32)
         img[img>=0] = 255
         img[img==-1] = 0
+  
+        # print(img)
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         for i in range(n):
             img[self.id_map == i, :] = region_color[i]
+        # img = cv2.flip(img, 1)
+        # img = cv2.flip(img, 0)
         h, w, _ = img.shape
         scale = 500
         img = cv2.resize(img, (int(scale), int(h/w*scale)),interpolation = cv2.INTER_NEAREST)
@@ -38,7 +43,6 @@ class Graph:
             for neighbor in node.neighbor_nodes.values():
                 pos2 = (int(scale/w*neighbor.coord[1]), int(scale/w*neighbor.coord[0]))
                 img = cv2.arrowedLine(img, pos, pos2, 0)
-        # return cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         return img
     def get_edges(self):
         if len(self.edges):

@@ -19,7 +19,7 @@ import colorsys
 class Map_Manager:
     def __init__(self, path):
         self.path = path
-        with open(path+'/resources/costmap.pickle', 'rb') as handle:
+        with open(path+'costmap.pickle', 'rb') as handle:
             costmap = pickle.load(handle)  
         self.costmap = costmap
         self.build_region_graph()
@@ -29,7 +29,7 @@ class Map_Manager:
         self.set_entropy(np.ones(self.num_points)*0.5,np.array(range(self.num_points)))
         
     def build_reference_pointcloud(self):
-        mesh = o3d.io.read_triangle_mesh(self.path + "/resources/ballast.STL")
+        mesh = o3d.io.read_triangle_mesh(self.path + "ballast.STL")
         self.mesh = mesh
         num_points = 100000
         self.num_points = num_points
@@ -68,7 +68,7 @@ class Map_Manager:
         self.region_idx = region_idx
         
     def build_region_graph(self):
-        with open(self.path+"/resources/region_bounds.yaml") as stream:
+        with open(self.path+"region_bounds.yaml") as stream:
             try:
                 region_bounds = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
@@ -192,7 +192,7 @@ class Map_Manager:
     
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    manager = Map_Manager("../")
+    manager = Map_Manager("../resources/")
     with open('tests/detections.pickle', 'rb') as f:
         dat = pickle.load(f)
         
@@ -201,15 +201,15 @@ if __name__ == '__main__':
     manager.process_reference(pc)
     manager.set_entropy(dat["p"][-1], np.array(range(len(dat["p"][-1]))))
     test = manager.visualize_entropy()
-    o3d.visualization.draw_geometries([test])
+    # o3d.visualization.draw_geometries([test])
     print(manager.get_entropy())
     img = manager.get_region_graph_img()
-    plt.figure()
+    plt.figure(dpi=1200)   
     plt.imshow(img)    
     ids, edges , h = manager.get_graph(1)
     region = manager.coord_to_region([2.57,-0.75], 1)
     img2 = manager.draw_graph_entropy()
-    plt.figure()
+    plt.figure()   
     plt.imshow(img2)    
 
 
