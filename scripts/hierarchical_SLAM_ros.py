@@ -23,13 +23,10 @@ from ergodic_inspection.srv import PlaceNode, PlaceNodeResponse, OptimizePoseGra
 
 np.float = np.float64 
 np.set_printoptions(precision=2)
-rospack=rospkg.RosPack()
-path = rospack.get_path("ergodic_inspection")
-with open(path+'/param/estimation_param.yaml', 'r') as file:
-    params = yaml.safe_load(file)
+
     
 class Graph_SLAM_wrapper:
-    def __init__(self, tf_br, localize_mode  = False):
+    def __init__(self, tf_br, params, localize_mode  = False):
         self.place_node_req = False
         self.lock=threading.Lock()
         self.tf_br = tf_br
@@ -39,7 +36,7 @@ class Graph_SLAM_wrapper:
         self.thres = params["Graph_SLAM"]["node_threshold"]
         #prior_feature 
         prior = read_prior()
-        self.ekf_wrapper = EKF_Wrapper(0, tf_br)
+        self.ekf_wrapper = EKF_Wrapper(0, tf_br, params)
         ekf = self.ekf_wrapper.ekf
         intersection = [id_  for id_ in ekf.features.keys() if id_ in prior["children"]]
         while not len(intersection) and not rospy.is_shutdown():
@@ -309,10 +306,22 @@ def read_prior():
 
 if __name__ == "__main__":
     import pickle
+    rospack=rospkg.RosPack()
+    path = rospack.get_path("ergodic_inspection")
+    is_sim = rospy.get_param("isSim")
+    
+    if is_sim:
+        param_path = path + "/param/sim/"
+    else:
+        param_path = path +"/param/real/"
+        
+    with open(param_path+'estimation_param.yaml', 'r') as file:
+        params = yaml.safe_load(file)    
+        
     localization_mode = True
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
-    graph_slam_wrapper = Graph_SLAM_wrapper(br, localization_mode)
+    graph_slam_wrapper = Graph_SLAM_wrapper(br, localization_mode, params)
     
 
     rate = rospy.Rate(30) 

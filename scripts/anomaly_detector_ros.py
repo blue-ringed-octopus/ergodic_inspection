@@ -25,8 +25,6 @@ import pickle
 import yaml
 from ergodic_inspection.srv import PointCloudWithEntropy, SetBelief, GetRegionPointIndex, GetRegion
 from std_msgs.msg import Float32MultiArray 
-rospack=rospkg.RosPack()
-path = rospack.get_path("ergodic_inspection")
 
 class Anomaly_Detector_Wrapper:
     def __init__(self, anomaly_thres):
@@ -151,15 +149,27 @@ def parse_region_idx(msg):
     return region_idx  
   
 if __name__ == "__main__":
+    rospack=rospkg.RosPack()
+    path = rospack.get_path("ergodic_inspection")
+    is_sim = rospy.get_param("isSim")
+    
+    if is_sim:
+        param_path = path + "/param/sim/"
+    else:
+        param_path = path +"/param/real/"
+        
+    with open(param_path+'estimation_param.yaml', 'r') as file:
+        params = yaml.safe_load(file)    
+        
     localization_mode = True
     anomaly_thres = 0.05
 
-    detector_wrapper = Anomaly_Detector_Wrapper(anomaly_thres)
+    detector_wrapper = Anomaly_Detector_Wrapper(anomaly_thres, params)
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
     
-    graph_slam_wrapper = Graph_SLAM_wrapper(br, localization_mode)
+    graph_slam_wrapper = Graph_SLAM_wrapper(br, localization_mode, params)
        
     rate = rospy.Rate(30) 
     while not rospy.is_shutdown():

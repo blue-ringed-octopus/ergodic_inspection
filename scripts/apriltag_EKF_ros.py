@@ -24,14 +24,9 @@ from apriltag_EKF_SE3 import EKF
 
 np.set_printoptions(precision=2)
 
-rospack=rospkg.RosPack()
-path = rospack.get_path("ergodic_inspection")
-
-with open(path+'/param/estimation_param.yaml', 'r') as file:
-    params = yaml.safe_load(file)
 
 class EKF_Wrapper:
-    def __init__(self, node_id, tf_br, landmarks={}):
+    def __init__(self, node_id, tf_br, params ,landmarks={}):
         self.tf_listener = tf.TransformListener()
         self.tf_br = tf_br
         self.bridge = CvBridge()
@@ -235,15 +230,26 @@ def pc_to_msg(pc):
     return pc_msg
 
 if __name__ == "__main__":
-    import yaml
     from scipy.spatial.transform import Rotation as R
+    
     rospack=rospkg.RosPack()
+    path = rospack.get_path("ergodic_inspection")
+    is_sim = rospy.get_param("isSim")
+    
+    if is_sim:
+        param_path = path + "/param/sim/"
+    else:
+        param_path = path +"/param/real/"
+        
+    with open(param_path+'estimation_param.yaml', 'r') as file:
+        params = yaml.safe_load(file)
+        
     rospy.init_node('EKF',anonymous=False)
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     br = tf.TransformBroadcaster()
 
-    wrapper = EKF_Wrapper(0, br)
+    wrapper = EKF_Wrapper(0, br, params)
     rate = rospy.Rate(30) # 10hz
     prior = {}
     while not rospy.is_shutdown():
