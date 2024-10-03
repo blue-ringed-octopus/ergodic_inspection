@@ -4,11 +4,11 @@
 
   <param name="isSim" type="bool" value="$(arg isSim)" />
 
- <!--<rosparam file="$(find ergodic_inspection)/param/sim/move_base/costmap_common_params_burger_custom.yaml" command="load" ns="global_costmap" />
+ <rosparam file="$(find ergodic_inspection)/param/sim/move_base/costmap_common_params_burger_custom.yaml" command="load" ns="global_costmap" />
     <rosparam file="$(find ergodic_inspection)/param/sim/move_base/costmap_common_params_burger_custom.yaml" command="load" ns="local_costmap" />
     <rosparam file="$(find ergodic_inspection)/param/sim/move_base/local_costmap_params.yaml" command="load" />
     <rosparam file="$(find ergodic_inspection)/param/sim/move_base/global_costmap_params.yaml" command="load" />
     <rosparam file="$(find ergodic_inspection)/param/sim/move_base/move_base_params.yaml" command="load" />
-    <rosparam file="$(find ergodic_inspection)/param/sim/move_base/dwa_local_planner_params_burger_custom.yaml" command="load" /> -->
+    <rosparam file="$(find ergodic_inspection)/param/sim/move_base/dwa_local_planner_params_burger_custom.yaml" command="load" />
  
 </launch>
