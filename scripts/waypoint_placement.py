@@ -34,7 +34,7 @@ class Waypoint_Planner:
         cloud = deepcopy(point_cloud).transform(np.linalg.inv(T))
         points = np.asarray(cloud.points)
         normals = np.asarray(cloud.normals)
-        
+        print(cloud.normals)
         pixel = (self.K@points.T).T
         pixel_x = pixel[:,0]/pixel[:,2]
         pixel_y = pixel[:,1]/pixel[:,2]
@@ -129,7 +129,7 @@ if __name__ == '__main__':
     from scipy.stats import bernoulli 
     import colorsys
     
-    manager = Map_Manager("../")
+    manager = Map_Manager("../resources/sim/")
     # with open('tests/detections.pickle', 'rb') as f:
     #     dat = pickle.load(f)
         

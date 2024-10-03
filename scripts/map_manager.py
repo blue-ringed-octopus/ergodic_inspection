@@ -192,7 +192,7 @@ class Map_Manager:
     
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    manager = Map_Manager("../resources/")
+    manager = Map_Manager("../resources/sim/")
     with open('tests/detections.pickle', 'rb') as f:
         dat = pickle.load(f)
         
