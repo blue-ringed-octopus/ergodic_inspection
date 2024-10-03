@@ -29,7 +29,7 @@ class Map_Manager:
         self.set_entropy(np.ones(self.num_points)*0.5,np.array(range(self.num_points)))
         
     def build_reference_pointcloud(self):
-        mesh = o3d.io.read_triangle_mesh(self.path + "ballast.STL")
+        mesh = o3d.io.read_triangle_mesh(self.path + "Ballast.STL")
         self.mesh = mesh
         num_points = 100000
         self.num_points = num_points
