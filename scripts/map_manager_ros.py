@@ -215,7 +215,7 @@ if __name__ == "__main__":
     mesh_marker = get_mesh_marker(mesh_resource)
     mesh_marker.header.stamp = rospy.Time.now()
 
-    map_manager = Map_Manager(path)
+    map_manager = Map_Manager(path+"/resources/")
     server = Server(map_manager)
     
     ref_pc_pub=rospy.Publisher("/pc_ref", PointCloud2, queue_size = 2)
