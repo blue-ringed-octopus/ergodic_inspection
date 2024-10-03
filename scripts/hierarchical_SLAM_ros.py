@@ -32,7 +32,7 @@ class Graph_SLAM_wrapper:
         self.tf_br = tf_br
         self.factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
         self.pc_pub = rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
-        
+        print(params)
         self.thres = params["Graph_SLAM"]["node_threshold"]
         #prior_feature 
         prior = read_prior()
@@ -280,7 +280,11 @@ def plot_graph(graph, pub):
 
 def read_prior():
     prior={}
-    file = path + "/resources/prior_features.yaml"
+    if is_sim:
+        param_path = path + "/resources/sim/"
+    else:
+        param_path = path +"/resources/real/"
+    file = param_path + "/prior_features.yaml"
     with open(file) as stream:
         try:
             features = yaml.unsafe_load(stream)
