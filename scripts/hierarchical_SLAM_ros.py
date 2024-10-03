@@ -24,7 +24,8 @@ from ergodic_inspection.srv import PlaceNode, PlaceNodeResponse, OptimizePoseGra
 np.float = np.float64 
 np.set_printoptions(precision=2)
 is_sim = rospy.get_param("isSim")
-
+rospack=rospkg.RosPack()
+path = rospack.get_path("ergodic_inspection")
     
 class Graph_SLAM_wrapper:
     def __init__(self, tf_br, params, localize_mode  = False):
@@ -311,8 +312,7 @@ def read_prior():
 
 if __name__ == "__main__":
     import pickle
-    rospack=rospkg.RosPack()
-    path = rospack.get_path("ergodic_inspection")
+    
     
     if is_sim:
         param_path = path + "/param/sim/"
