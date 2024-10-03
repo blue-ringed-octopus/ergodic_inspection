@@ -20,7 +20,7 @@ from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Float32MultiArray 
 from visualization_msgs.msg import Marker
 from ergodic_inspection.msg import Graph
-from nav_msgs.msg import OccupancyGrid 
+from nav_msgs.msg import OccupancyGrid, MapMetaData
 from ergodic_inspection.msg import RegionPointIndex
 
 import rospkg
@@ -40,7 +40,7 @@ class Server:
         rospy.Service('get_reference_cloud_region', PointCloudWithEntropy, self.send_pc)
         rospy.Service('set_entropy', SetBelief, self.set_entropy)
         rospy.Service('GetGraphStructure', GetGraphStructure, self.send_graph)
-        rospy.Service('map', GetMap, self.send_costmap)
+        rospy.Service('static_map', GetMap, self.send_costmap)
         rospy.Service('get_region', GetRegion, self.send_region)
         rospy.Service('get_region_index', GetRegionPointIndex, self.send_region_idx)
 
@@ -227,6 +227,7 @@ if __name__ == "__main__":
     cad_pub = rospy.Publisher("/ref", Marker, queue_size = 2)
     # ref_pc_pub=rospy.Publisher("/pc_map", PointCloud2, queue_size = 2)
     costmap_pub=rospy.Publisher("/map", OccupancyGrid, queue_size = 2)
+    costmap_meta_pub=rospy.Publisher("/map_metadata", MapMetaData, queue_size = 2)
 
     
     rate = rospy.Rate(30) 
@@ -236,6 +237,7 @@ if __name__ == "__main__":
         costmap_msg = server.get_map_msg()
         
         costmap_pub.publish(costmap_msg)
+        costmap_meta_pub.publish(costmap_msg.info)
         cad_pub.publish(mesh_marker)
         ref_pc_pub.publish(ref_pc_msg)
         rate.sleep()
