@@ -29,14 +29,17 @@ import matplotlib.pyplot as plt
 
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
-with open(path+'/param/control_param.yaml', 'r') as file:
-    control_params = yaml.safe_load(file)
-with open(path+'/param/estimation_param.yaml', 'r') as file:
-    est_params = yaml.safe_load(file) 
+# with open(path+'/param/control_param.yaml', 'r') as file:
+#     control_params = yaml.safe_load(file)
+# with open(path+'/param/estimation_param.yaml', 'r') as file:
+#     est_params = yaml.safe_load(file) 
        
 class Waypoint_Placement_Wrapper:
-    def __init__(self):
-        strategy = control_params["waypoint_placement"]['strategy']
+    def __init__(self, ctrl_params, est_params):
+        self.ctrl_params = ctrl_params
+        self.est_params = est_params
+        
+        strategy = ctrl_params["waypoint_placement"]['strategy']
         rospy.init_node('waypoint_planner',anonymous=False)
         rospy.wait_for_service('get_reference_cloud_region')
         rospy.wait_for_service('static_map')
@@ -70,8 +73,8 @@ class Waypoint_Placement_Wrapper:
     def get_current_region(self):
         pose_msg = Pose()
         try:
-            self.listener.waitForTransform("map",est_params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
-            (trans, rot) = self.listener.lookupTransform("map", est_params["EKF"]["robot_frame"], rospy.Time(0))
+            self.listener.waitForTransform("map",self.est_params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
+            (trans, rot) = self.listener.lookupTransform("map", self.est_params["EKF"]["robot_frame"], rospy.Time(0))
             pose_msg.position.x = trans[0]
             pose_msg.position.y = trans[1]
             rospy.wait_for_service('get_region')
@@ -228,7 +231,19 @@ def plot_waypoint(wrapper):
         time.sleep(1)	
                
 if __name__ == "__main__":
-    wrapper = Waypoint_Placement_Wrapper()
+    is_sim = rospy.get_param("isSim")
+    
+    if is_sim:
+        param_path = path + "/param/sim/"
+    else:
+        param_path = path +"/param/real/"
+        
+    with open(param_path+'control_param.yaml', 'r') as file:
+        crtl_params = yaml.safe_load(file) 
+    with open(param_path+'estimation_param.yaml', 'r') as file:
+        est_params = yaml.safe_load(file) 
+        
+    wrapper = Waypoint_Placement_Wrapper(crtl_params, est_params)
     waypoint_thread = threading.Thread(target = plot_waypoint,daemon=True, args = (wrapper,))
     wrapper.update()
     waypoint_thread.start()

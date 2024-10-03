@@ -16,11 +16,11 @@ import yaml
 
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
-with open(path+'/param/control_param.yaml', 'r') as file:
-    params = yaml.safe_load(file)
+# with open(path+'/param/control_param.yaml', 'r') as file:
+#     params = yaml.safe_load(file)
     
 class Graph_Planner_Server:
-    def __init__(self):
+    def __init__(self, params):
         strategy = params["graph_planner"]['strategy']
         rospy.wait_for_service('GetGraphStructure')
         self.get_graph = rospy.ServiceProxy('GetGraphStructure', GetGraphStructure)
@@ -53,6 +53,16 @@ class Graph_Planner_Server:
         return id_map, nodes, edges, w
 
 if __name__ == '__main__':
+    is_sim = rospy.get_param("isSim")
+    
+    if is_sim:
+        param_path = path + "/param/sim/"
+    else:
+        param_path = path +"/param/real/"
+        
+    with open(param_path+'control_param.yaml', 'r') as file:
+        params = yaml.safe_load(file)    
+        
     rospy.init_node('graph_planner',anonymous=False)
-    Graph_Planner_Server()
+    Graph_Planner_Server(params)
     rospy.spin()
