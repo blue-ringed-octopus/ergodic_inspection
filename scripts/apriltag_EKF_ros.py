@@ -27,11 +27,12 @@ np.set_printoptions(precision=2)
 
 class EKF_Wrapper:
     def __init__(self, node_id, tf_br, params ,landmarks={}):
+        self.params = params
         self.tf_listener = tf.TransformListener()
         self.tf_br = tf_br
         self.bridge = CvBridge()
 
-        T_c_to_r = self.get_camera_to_robot_tf(params)
+        T_c_to_r = self.get_camera_to_robot_tf()
         self.lock=threading.Lock()
         camera_info = self.get_message(params["EKF"]["camera_info"], CameraInfo)
 
@@ -67,9 +68,9 @@ class EKF_Wrapper:
         ts = message_filters.ApproximateTimeSynchronizer([rgbsub, depthsub], 10, 0.1, allow_headerless=True)
         ts.registerCallback(self.camera_callback)
 
-    def get_camera_to_robot_tf(self, params):
-        self.tf_listener.waitForTransform(params["EKF"]["robot_frame"],params["EKF"]["optical_frame"],rospy.Time(), rospy.Duration(4.0))
-        (trans, rot) = self.tf_listener.lookupTransform(params["EKF"]["robot_frame"], params["EKF"]["optical_frame"], rospy.Time(0))
+    def get_camera_to_robot_tf(self):
+        self.tf_listener.waitForTransform(self.params["EKF"]["robot_frame"],self.params["EKF"]["optical_frame"],rospy.Time(), rospy.Duration(4.0))
+        (trans, rot) = self.tf_listener.lookupTransform(self.params["EKF"]["robot_frame"], self.params["EKF"]["optical_frame"], rospy.Time(0))
         T_c_to_r = self.tf_listener.fromTranslationRotation(trans, rot)
         return T_c_to_r
     
@@ -84,7 +85,7 @@ class EKF_Wrapper:
         print("EKF initialized") 
     
     def get_point_cloud(self):
-        pc_msg=rospy.wait_for_message(params["EKF"]["depth_pointcloud_topic"],PointCloud2)
+        pc_msg=rospy.wait_for_message(self.params["EKF"]["depth_pointcloud_topic"],PointCloud2)
         pc_info = self.msg2pc(pc_msg)
         return pc_info
     

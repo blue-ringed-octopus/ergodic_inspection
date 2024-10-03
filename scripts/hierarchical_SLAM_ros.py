@@ -29,12 +29,12 @@ path = rospack.get_path("ergodic_inspection")
     
 class Graph_SLAM_wrapper:
     def __init__(self, tf_br, params, localize_mode  = False):
+        self.params = params 
         self.place_node_req = False
         self.lock=threading.Lock()
         self.tf_br = tf_br
         self.factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
         self.pc_pub = rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
-        print(params)
         self.thres = params["Graph_SLAM"]["node_threshold"]
         #prior_feature 
         prior = read_prior()
