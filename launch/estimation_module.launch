@@ -1,6 +1,4 @@
 <launch>
- <include file="$(find ergodic_inspection)/launch/depth.launch" ></include>
-
 <node pkg="ergodic_inspection" name="anomaly_detector_ros" type="anomaly_detector_ros.py" output="screen">
   </node> 
 
