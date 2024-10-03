@@ -208,14 +208,19 @@ def get_mesh_marker(mesh_resource):
     return marker
  
 if __name__ == "__main__":
-    sys_type = sys.argv[1]
-    print(sys_type)
+    is_sim = rospy.get_param("isSim")
+    
+    if is_sim:
+        path = path + "/resources/sim/"
+    else:
+        path = path +"/resources/real/"
+        
     rospy.init_node('map_manager',anonymous=False)
-    mesh_resource = "file:///" + path + "/resources/ballast.STL"
+    mesh_resource = "file:///" + path + "ballast.STL"
     mesh_marker = get_mesh_marker(mesh_resource)
     mesh_marker.header.stamp = rospy.Time.now()
 
-    map_manager = Map_Manager(path+"/resources/")
+    map_manager = Map_Manager(path)
     server = Server(map_manager)
     
     ref_pc_pub=rospy.Publisher("/pc_ref", PointCloud2, queue_size = 2)
