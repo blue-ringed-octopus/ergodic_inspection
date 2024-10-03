@@ -27,7 +27,7 @@ from ergodic_inspection.srv import PointCloudWithEntropy, SetBelief, GetRegionPo
 from std_msgs.msg import Float32MultiArray 
 
 class Anomaly_Detector_Wrapper:
-    def __init__(self, anomaly_thres):
+    def __init__(self, anomaly_thres, params):
         self.detected_node = []
         self.anomaly_thres = anomaly_thres
         rospy.wait_for_service('get_reference_cloud_region')
