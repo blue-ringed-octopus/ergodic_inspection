@@ -42,7 +42,7 @@ class Waypoint_Placement_Wrapper:
         strategy = ctrl_params["waypoint_placement"]['strategy']
         rospy.init_node('waypoint_planner',anonymous=False)
         rospy.wait_for_service('get_reference_cloud_region')
-        rospy.wait_for_service('static_map')
+        rospy.wait_for_service('map')
         rospy.wait_for_service('get_region')
         rospy.wait_for_service('plan_region')
         rospy.wait_for_service('optimize_pose_graph')
@@ -50,7 +50,7 @@ class Waypoint_Placement_Wrapper:
         self.get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         self.plan_region = rospy.ServiceProxy('plan_region', PlanRegion)
         self.get_region = rospy.ServiceProxy('get_region', GetRegion)
-        self.get_cost_map = rospy.ServiceProxy('static_map', GetMap)
+        self.get_cost_map = rospy.ServiceProxy('map', GetMap)
         self.place_node = rospy.ServiceProxy('place_node', PlaceNode)
         self.optimize = rospy.ServiceProxy('optimize_pose_graph', OptimizePoseGraph)
 
