@@ -31,7 +31,7 @@ class EKF_Wrapper:
         self.tf_br = tf_br
         self.bridge = CvBridge()
 
-        T_c_to_r = self.get_camera_to_robot_tf()
+        T_c_to_r = self.get_camera_to_robot_tf(params)
         self.lock=threading.Lock()
         camera_info = self.get_message(params["EKF"]["camera_info"], CameraInfo)
 
@@ -67,7 +67,7 @@ class EKF_Wrapper:
         ts = message_filters.ApproximateTimeSynchronizer([rgbsub, depthsub], 10, 0.1, allow_headerless=True)
         ts.registerCallback(self.camera_callback)
 
-    def get_camera_to_robot_tf(self):
+    def get_camera_to_robot_tf(self, params):
         self.tf_listener.waitForTransform(params["EKF"]["robot_frame"],params["EKF"]["optical_frame"],rospy.Time(), rospy.Duration(4.0))
         (trans, rot) = self.tf_listener.lookupTransform(params["EKF"]["robot_frame"], params["EKF"]["optical_frame"], rospy.Time(0))
         T_c_to_r = self.tf_listener.fromTranslationRotation(trans, rot)
