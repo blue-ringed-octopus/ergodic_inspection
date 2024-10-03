@@ -2,5 +2,5 @@
 <launch>
 <arg name="isSim" default="true" />
 
-  <param name="isSim" type="bool" value="$(arg sysType)" />
+  <param name="isSim" type="bool" value="$(arg isSim)" />
 </launch>
