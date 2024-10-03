@@ -40,7 +40,7 @@ class Server:
         rospy.Service('get_reference_cloud_region', PointCloudWithEntropy, self.send_pc)
         rospy.Service('set_entropy', SetBelief, self.set_entropy)
         rospy.Service('GetGraphStructure', GetGraphStructure, self.send_graph)
-        rospy.Service('static_map', GetMap, self.send_costmap)
+        rospy.Service('map', GetMap, self.send_costmap)
         rospy.Service('get_region', GetRegion, self.send_region)
         rospy.Service('get_region_index', GetRegionPointIndex, self.send_region_idx)
 
@@ -216,7 +216,7 @@ if __name__ == "__main__":
         path = path +"/resources/real/"
         
     rospy.init_node('map_manager',anonymous=False)
-    mesh_resource = "file:///" + path + "ballast.STL"
+    mesh_resource = "file:///" + path + "Ballast.STL"
     mesh_marker = get_mesh_marker(mesh_resource)
     mesh_marker.header.stamp = rospy.Time.now()
 
