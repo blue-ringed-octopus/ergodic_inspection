@@ -130,11 +130,13 @@ def decode_msg(msg):
     rgb[:,2]=pc['b'].reshape(-1)
     h = pc["h"]
 
+    n = np.asarray(pc['n'].reshape(-1))
     # p = {"points": points, "colors": np.asarray(rgb/255), "h": h}
     # print(h)
     p=o3d.geometry.PointCloud()
     p.points=o3d.utility.Vector3dVector(points)
     p.colors=o3d.utility.Vector3dVector(np.asarray(rgb/255))
+    p.normals = o3d.utility.Vector3dVector(n)
     return h, p
 
 def simple_move(waypoint):
