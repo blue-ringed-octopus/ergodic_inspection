@@ -317,7 +317,6 @@ if __name__ == "__main__":
         
     with open(param_path+'estimation_param.yaml', 'r') as file:
         params = yaml.safe_load(file)    
-    print(params)    
     localization_mode = True
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)

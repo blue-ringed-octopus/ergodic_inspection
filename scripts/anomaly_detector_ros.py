@@ -168,7 +168,8 @@ if __name__ == "__main__":
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
-    
+    print(params)    
+
     graph_slam_wrapper = Graph_SLAM_wrapper(br, localization_mode, params)
        
     rate = rospy.Rate(30) 
