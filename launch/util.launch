@@ -4,6 +4,15 @@
 
   <param name="isSim" type="bool" value="$(arg isSim)" />
 
+<group unless="$(arg isSim)">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find ballast_sim)/urdf/turtlebot3_burger_custom.urdf.xacro" />
+ <node
+    name="robot_state_publisher"
+    pkg="robot_state_publisher"
+    type="robot_state_publisher" />
+
+</group>
+
  <rosparam file="$(find ergodic_inspection)/param/sim/move_base/costmap_common_params_burger_custom.yaml" command="load" ns="global_costmap" />
     <rosparam file="$(find ergodic_inspection)/param/sim/move_base/costmap_common_params_burger_custom.yaml" command="load" ns="local_costmap" />
     <rosparam file="$(find ergodic_inspection)/param/sim/move_base/local_costmap_params.yaml" command="load" />
@@ -24,5 +33,6 @@
     <remap from="rgb/camera_info" to="/camera/color/camera_info"/>
     <remap from="depth_registered/image_rect" to="/camera/aligned_depth_to_color/image_raw"/>
     <remap from="rgb/image_rect_color" to="/camera/color/image_raw"/>
-  </node>	
+  </node>
+	
 </launch>
