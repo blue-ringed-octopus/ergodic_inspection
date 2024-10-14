@@ -228,6 +228,9 @@ class EKF:
         sigma=self.sigma.copy() #current covariance
         feature_map = self.features.copy()
         for feature_id in features:
+            print("obsv: ", feature_id)
+            print("landmarks: ", self.fixed_landmarks)
+
             if (not feature_id in self.features.keys()) or (not feature_id in self.fixed_landmarks):
                 if feature_id in self.landmarks.keys():
                     M = self.landmarks[feature_id]
@@ -254,9 +257,7 @@ class EKF:
         Q=np.zeros((6*n,6*n))
         dz = np.zeros(6*n)
  
-        
         for i,feature_id in enumerate(features):  
-            
             # udpate robot pose based on ground truth landmarks
             if feature_id in self.fixed_landmarks:
                 feature=features[feature_id]
@@ -266,9 +267,12 @@ class EKF:
                 Z_bar = inv(mu[0])@M_tag  #feature location in camera frame
                 z_bar = SE3.Log(Z_bar)
           
+                #observed feature pose
                 Z = feature["M"]
                 z = SE3.Log(Z)
-                dz[6*i:6*i+6] = SE3.Log(SE3.Exp(z - z_bar)) #measurement error 
+                
+                #measurement error 
+                dz[6*i:6*i+6] = SE3.Log(SE3.Exp(z - z_bar)) 
     
                 Jr=-SE3.Jl_inv(z_bar) #jacobian of robot pose
                 
@@ -293,10 +297,12 @@ class EKF:
                 Z_bar = inv(mu[0])@M_tag_bar  #feature location in camera frame
                 z_bar = SE3.Log(Z_bar)
           
+                #observed feature pose
                 Z = feature["M"]
                 z = SE3.Log(Z)
                 
-                dz[6*i:6*i+6] = SE3.Log(SE3.Exp(z - z_bar)) #measurement error 
+                #measurement error 
+                dz[6*i:6*i+6] = SE3.Log(SE3.Exp(z - z_bar))
     
                 Jr=-SE3.Jl_inv(z_bar) #jacobian of robot pose
                 Jtag=SE3.Jr_inv(z_bar)   #jacobian of tag pose
@@ -318,6 +324,7 @@ class EKF:
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
         sigma=(np.eye(len(mu)*6)-K@H)@(sigma)
         dmu=K@(dz)
+        
         for i in range(len(mu)):
             self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
         

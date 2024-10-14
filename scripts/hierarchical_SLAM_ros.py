@@ -312,8 +312,6 @@ def read_prior():
 
 if __name__ == "__main__":
     import pickle
-    
-    
     if is_sim:
         param_path = path + "/param/sim/"
     else:
