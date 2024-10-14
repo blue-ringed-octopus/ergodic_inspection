@@ -252,7 +252,7 @@ if __name__ == "__main__":
         params = yaml.safe_load(file)
         
     with open(resource_path+'prior_features.yaml', 'r') as file:
-        prior =  yaml.safe_load(file)
+        prior =  yaml.unsafe_load(file)
     
     landmarks = {}
     fixed_landmarks=[]
