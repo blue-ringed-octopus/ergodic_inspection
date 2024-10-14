@@ -231,7 +231,7 @@ class EKF:
             print("obsv: ", feature_id)
             print("landmarks: ", self.fixed_landmarks)
 
-            if (not feature_id in self.features.keys()) or (not feature_id in self.fixed_landmarks):
+            if (not feature_id in self.features.keys()) and (not feature_id in self.fixed_landmarks):
                 if feature_id in self.landmarks.keys():
                     M = self.landmarks[feature_id]
                 else:
