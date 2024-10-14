@@ -272,7 +272,6 @@ if __name__ == "__main__":
 
     wrapper = EKF_Wrapper(0, br, params, landmarks=landmarks, fixed_landmarks = fixed_landmarks)
     rate = rospy.Rate(30) # 10hz
-    prior = {}
     while not rospy.is_shutdown():
         pc = wrapper.ekf.cloud["pc"]
         pc_pub.publish(pc_to_msg(pc))
@@ -283,13 +282,15 @@ if __name__ == "__main__":
                         rospy.Time.now(),
                         "ekf",
                         "map")
-        for tag_id, idx in wrapper.ekf.features.items():
+
+        rate.sleep()
+        
+    print("saving features to prior")
+
+    for tag_id, idx in wrapper.ekf.features.items():
             T = wrapper.ekf.mu[idx]
             rot = R.from_matrix(T[0:3, 0:3]).as_euler("xyz") 
             t = T[0:3, 3]
-            prior[tag_id] = {"position": t, "orientation": rot}
-            
-        with open('tag_loc.yaml', 'w') as file:
-            yaml.dump(prior, file)
-        rate.sleep()
-        
+            prior[tag_id] = {"position": t, "orientation": rot}    
+    with open('tag_loc.yaml', 'w') as file:
+        yaml.dump(prior, file)
