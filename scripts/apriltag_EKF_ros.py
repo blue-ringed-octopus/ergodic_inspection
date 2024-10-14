@@ -291,6 +291,6 @@ if __name__ == "__main__":
             T = wrapper.ekf.mu[idx]
             rot = R.from_matrix(T[0:3, 0:3]).as_euler("xyz") 
             t = T[0:3, 3]
-            prior[tag_id] = {"position": t, "orientation": rot}    
+            prior[tag_id] = {"position": t.tolist(), "orientation": rot.tolist()}    
     with open('tag_loc.yaml', 'w') as file:
         yaml.dump(prior, file)
