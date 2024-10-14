@@ -233,8 +233,8 @@ def pc_to_msg(pc):
 
 if __name__ == "__main__":
     from scipy.spatial.transform import Rotation as R
-    remap_tag_ids = [-1]
     remap_tag_ids = rospy.get_param("remapTags")
+    remap_tag_ids = remap_tag_ids.split(',')
     remap_tag_ids = [int(id_) for id_ in remap_tag_ids]
     
     rospack=rospkg.RosPack()

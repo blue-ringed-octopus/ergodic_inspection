@@ -1,5 +1,5 @@
 <launch>
-<arg name="remap_tags" default="[-1]" />
+<arg name="remap_tags" default="-1" />
 <param name="remapTags" type="string" value="$(arg remap_tags)" />
 
 <node pkg="ergodic_inspection" name="anomaly_detector_ros" type="apriltag_EKF_ros.py" output="screen">
