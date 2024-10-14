@@ -26,7 +26,7 @@ np.set_printoptions(precision=2)
 
 
 class EKF_Wrapper:
-    def __init__(self, node_id, tf_br, params , landmarks={}, update_landmarks=[-1]):
+    def __init__(self, node_id, tf_br, params , landmarks={}, fixed_landmarks=[-1]):
         self.params = params
         self.tf_listener = tf.TransformListener()
         self.tf_br = tf_br
@@ -59,7 +59,7 @@ class EKF_Wrapper:
         self.ekf = EKF(node_id, T_c_to_r, K, M, 
                        params["EKF"]["tag_size"],
                        params["EKF"]["tag_families"],
-                       update_landmarks)
+                       fixed_landmarks)
         self.reset(node_id, landmarks)
 
         rospy.Subscriber(params["EKF"]["odom_topic"], Odometry, self.odom_callback)
