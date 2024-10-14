@@ -105,7 +105,8 @@ def draw_frame(img, tag, K):
 
 
 class EKF:
-    def __init__(self, node_id, T_c_to_r, K, odom, tag_size, tag_family = "tag36h11"):
+    def __init__(self, node_id, T_c_to_r, K, odom, tag_size, tag_family = "tag36h11", fixed_landmarks=[]):
+        self.fixed_landmarks = fixed_landmarks
         self.features={}
         self.tag_size = tag_size
         self.T_c_to_r=T_c_to_r
@@ -153,7 +154,7 @@ class EKF:
     def reset(self, node_id, pc_info, landmarks={}):
         self.id = node_id
         self.mu=[np.eye(4)]
-        self.sigma=np.zeros((6,6))
+        self.sigma=np.zeros((6,6))            
         self.features={}
         self.landmarks=landmarks
         self.cloud = {"pc": {"points": [], "colors":[] }, "cov": [], "depth": [], "rgb": [], "features": {} ,"cam_param": self.K.copy(), "cam_transform": self.T_c_to_r.copy()}
@@ -227,7 +228,7 @@ class EKF:
         sigma=self.sigma.copy() #current covariance
         feature_map = self.features.copy()
         for feature_id in features:
-            if not feature_id in self.features.keys():
+            if (not feature_id in self.features.keys()) or (not feature_id in self.fixed_landmarks):
                 if feature_id in self.landmarks.keys():
                     M = self.landmarks[feature_id]
                 else:
@@ -252,49 +253,67 @@ class EKF:
         H=np.zeros((6*n,6*len(mu)))
         Q=np.zeros((6*n,6*n))
         dz = np.zeros(6*n)
-        # dmu = np.zeros(6)
-        # for i,feature_id in enumerate(features):    
-        #     feature=features[feature_id]
-        #     idx=self.features[feature_id]
-            
-        #     #global feature location
-        #     M_tag_bar = mu[idx].copy() 
-        #     Z_bar = inv(mu[0])@M_tag_bar  #feature location in camera frame
-      
-        #     Z = feature["M"]
-        #     dmu += SE3.Log(M_tag_bar@inv(Z))
-        # self.mu[0] = SE3.Exp(dmu/n)
+ 
         
-        for i,feature_id in enumerate(features):    
-            feature=features[feature_id]
-            idx=self.features[feature_id]
+        for i,feature_id in enumerate(features):  
             
-            #global feature location
-            M_tag_bar = mu[idx].copy() 
-            Z_bar = inv(mu[0])@M_tag_bar  #feature location in camera frame
-            z_bar = SE3.Log(Z_bar)
-      
-            Z = feature["M"]
-            z = SE3.Log(Z)
-            
-            dz[6*i:6*i+6] = SE3.Log(SE3.Exp(z - z_bar)) #measurement error 
-
-            Jr=-SE3.Jl_inv(z_bar) #jacobian of robot pose
-            Jtag=SE3.Jr_inv(z_bar)   #jacobian of tag pose
-            
-            #number of obervation: 6, number of local state:12 
-            h=np.zeros((6,12))
-            h[0:6, 0:6] = Jr
-            h[0:6:, 6:12] = Jtag
-            
-            #number local state, number of global state 
-            F=np.zeros((12,6*len(mu)))
-            F[0:6,0:6]=np.eye(6)
-            F[6:12, 6*idx:6*idx+6]=np.eye(6) 
-
-            
-            H[6*i:6*i+6,:] += h@F
-            Q[6*i:6*i+6, 6*i:6*i+6] =self.Q.copy()
+            # udpate robot pose based on ground truth landmarks
+            if feature_id in self.fixed_landmarks:
+                feature=features[feature_id]
+                
+                #ground truth feature location
+                M_tag = self.landmarks[feature_id]
+                Z_bar = inv(mu[0])@M_tag  #feature location in camera frame
+                z_bar = SE3.Log(Z_bar)
+          
+                Z = feature["M"]
+                z = SE3.Log(Z)
+                dz[6*i:6*i+6] = SE3.Log(SE3.Exp(z - z_bar)) #measurement error 
+    
+                Jr=-SE3.Jl_inv(z_bar) #jacobian of robot pose
+                
+                #number of obervation: 6, number of local state:6 
+                h=np.zeros((6,6))
+                h[0:6, 0:6] = Jr
+                
+                #number local state, number of global state 
+                F=np.zeros((6,6*len(mu)))
+                F[0:6,0:6]=np.eye(6)    
+                
+                H[6*i:6*i+6,:] += h@F
+                Q[6*i:6*i+6, 6*i:6*i+6] =self.Q.copy()
+                
+            # udpate robot pose and features simultaneously     
+            else:
+                feature=features[feature_id]
+                idx=self.features[feature_id]
+                
+                #global feature location
+                M_tag_bar = mu[idx].copy() 
+                Z_bar = inv(mu[0])@M_tag_bar  #feature location in camera frame
+                z_bar = SE3.Log(Z_bar)
+          
+                Z = feature["M"]
+                z = SE3.Log(Z)
+                
+                dz[6*i:6*i+6] = SE3.Log(SE3.Exp(z - z_bar)) #measurement error 
+    
+                Jr=-SE3.Jl_inv(z_bar) #jacobian of robot pose
+                Jtag=SE3.Jr_inv(z_bar)   #jacobian of tag pose
+                
+                #number of obervation: 6, number of local state:12 
+                h=np.zeros((6,12))
+                h[0:6, 0:6] = Jr
+                h[0:6:, 6:12] = Jtag
+                
+                #number local state, number of global state 
+                F=np.zeros((12,6*len(mu)))
+                F[0:6,0:6]=np.eye(6)
+                F[6:12, 6*idx:6*idx+6]=np.eye(6) 
+    
+                
+                H[6*i:6*i+6,:] += h@F
+                Q[6*i:6*i+6, 6*i:6*i+6] =self.Q.copy()
             
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
         sigma=(np.eye(len(mu)*6)-K@H)@(sigma)
@@ -338,5 +357,21 @@ class EKF:
         pos = {"mu":  self.mu.copy(), "sigma":self.sigma.copy(),  "features": self.features.copy()}
         return pos 
     
-# if __name__ == "__main__":
+if __name__ == "__main__":
+    import sys
+    import yaml
+    from scipy.spatial.transform import Rotation as R
 
+    if len(sys.argv) > 1:
+        tag_ids = sys.argv[1].split(",")
+        
+    with open('../resources/real/prior_features.yaml', 'r') as file:
+        prior =  yaml.unsafe_load(file)
+        
+    landmarks = {}
+    for id_, tag in prior.items():
+        M = np.eye(4)
+        M[0:3,0:3] = R.from_euler('xyz', tag["orientation"]).as_matrix()
+        M[0:3,3] =  tag["position"]
+        landmarks[id_] = M
+            

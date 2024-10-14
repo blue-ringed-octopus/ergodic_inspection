@@ -1,5 +1,6 @@
 <launch>
- <include file="$(find ergodic_inspection)/launch/depth.launch" ></include>
+<arg name="remap_tags" default="[-1]" />
+<param name="remap" type="string" value="$(arg remap_tags)" />
 
 <node pkg="ergodic_inspection" name="anomaly_detector_ros" type="apriltag_EKF_ros.py" output="screen">
   </node> 

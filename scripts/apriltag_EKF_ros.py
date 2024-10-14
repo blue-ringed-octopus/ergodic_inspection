@@ -26,7 +26,7 @@ np.set_printoptions(precision=2)
 
 
 class EKF_Wrapper:
-    def __init__(self, node_id, tf_br, params ,landmarks={}):
+    def __init__(self, node_id, tf_br, params , landmarks={}, update_landmarks=[-1]):
         self.params = params
         self.tf_listener = tf.TransformListener()
         self.tf_br = tf_br
@@ -58,7 +58,8 @@ class EKF_Wrapper:
         
         self.ekf = EKF(node_id, T_c_to_r, K, M, 
                        params["EKF"]["tag_size"],
-                       params["EKF"]["tag_families"])
+                       params["EKF"]["tag_families"],
+                       update_landmarks)
         self.reset(node_id, landmarks)
 
         rospy.Subscriber(params["EKF"]["odom_topic"], Odometry, self.odom_callback)
@@ -232,6 +233,9 @@ def pc_to_msg(pc):
 
 if __name__ == "__main__":
     from scipy.spatial.transform import Rotation as R
+    remap_tag_ids = [-1]
+    remap_tag_ids = rospy.get_param("remapTags")
+    remap_tag_ids = [int(id_) for id_ in remap_tag_ids]
     
     rospack=rospkg.RosPack()
     path = rospack.get_path("ergodic_inspection")
@@ -239,18 +243,34 @@ if __name__ == "__main__":
     
     if is_sim:
         param_path = path + "/param/sim/"
+        resource_path = path + "/resources/sim/"
     else:
         param_path = path +"/param/real/"
-        
+        resource_path = path + "/resources/real/"
+
     with open(param_path+'estimation_param.yaml', 'r') as file:
         params = yaml.safe_load(file)
+        
+    with open(resource_path+'prior_features.yaml', 'r') as file:
+        prior =  yaml.safe_load(file)
+    
+    landmarks = {}
+    fixed_landmarks=[]
+    for id_, tag in prior.items():
+        M = np.eye(4)
+        M[0:3,0:3] = R.from_euler('xyz', tag["orientation"]).as_matrix()
+        M[0:3,3] =  tag["position"]
+        landmarks[id_] = M
+        if not remap_tag_ids[0] == -1:
+            if (id_ not in remap_tag_ids):
+                fixed_landmarks.append(id_)
         
     rospy.init_node('EKF',anonymous=False)
     pc_pub=rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
     factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
     br = tf.TransformBroadcaster()
 
-    wrapper = EKF_Wrapper(0, br, params)
+    wrapper = EKF_Wrapper(0, br, params, landmarks=landmarks, fixed_landmarks = fixed_landmarks)
     rate = rospy.Rate(30) # 10hz
     prior = {}
     while not rospy.is_shutdown():

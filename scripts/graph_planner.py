@@ -132,7 +132,7 @@ if __name__ == '__main__':
     from map_manager import Map_Manager   
     import matplotlib.pyplot as plt 
     
-    manager = Map_Manager("../")
+    manager = Map_Manager("../resources/sim/")
     nodes, edges, _ = manager.get_graph(1)     
     edges.remove([1,4])
     nodes = [0,1,2]
