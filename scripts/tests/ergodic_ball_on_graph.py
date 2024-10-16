@@ -58,10 +58,13 @@ def UBFMMC(weight, edges, transform=True):
 
     return P
 
-def DEMC(weight, edges):
+def discounted_ergodic_markov_chain(weight, edges):
     w=weight/sum(weight)
+    
     n = len(w)
     P= cp.Variable((n,n))
+    
+    
     q = np.sqrt(w)
     Q=np.diag(q)
 
@@ -75,10 +78,12 @@ def DEMC(weight, edges):
         for j in range(n):
             if ([i,j] not in edges):
                 constrains.append(P[j,i]==0)
+    # P_tilde = P - 2*outer(w,np.ones(n))
     P_tilde = np.linalg.inv(Q)@P@(Q)-2*outer(q,q)
     
 
     objective = cp.lambda_max(1/2*(P_tilde+P_tilde.T))
+
     prob = cp.Problem(cp.Minimize(objective),
                       constrains)
 
@@ -98,13 +103,13 @@ class Region:
         self.reset(p_red)
         self.neighbor=[]
         self.id = _id
+        
     def reset(self, p_red):
         self.p_red=p_red 
           
     def sample(self):
         return np.random.rand()<self.p_red
 
-    
     def detect(self):
         pass
     
@@ -144,7 +149,7 @@ num_trial = 100
 cutoff=0.2
 num_regions=7
 graph= Graph(num_regions)
-
+regions=[]
 truth=[]
 for i in range(num_regions):
     p_red=np.random.rand()*0.5
@@ -274,7 +279,5 @@ print("random", str(np.mean(error_random))+"+-"+ str(np.std(error_random)))
 
 print("max entr.", str(np.mean(error_max_entropy))+"+-"+ str(np.std(error_max_entropy)))
 
-print("ergodic", str(np.mean(error_fmmc))+"+-"+ str(np.std(error_fmmc)))
-
-print("ergodic2", str(np.mean(error_demc))+"+-"+ str(np.std(error_demc)))
+print("ergodic", str(np.mean(error_demc))+"+-"+ str(np.std(error_demc)))
 

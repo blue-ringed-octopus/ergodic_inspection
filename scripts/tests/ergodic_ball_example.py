@@ -25,7 +25,7 @@ class Bucket:
         pass
 buckets=[]
 n=10
-num_buckets=10
+num_buckets=7
 truth=[]
 for i in range(num_buckets):
     n_red=np.random.randint(0,n)
