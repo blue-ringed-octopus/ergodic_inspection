@@ -68,21 +68,22 @@ class Map_Manager:
         self.region_idx = region_idx
         
     def build_region_graph(self):
-        with open(self.path+"region_bounds.yaml") as stream:
+        with open(self.path+"region.yaml") as stream:
             try:
-                region_bounds = yaml.safe_load(stream)
+                region = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)  
-        self.region_bounds = region_bounds
-        mask = cv2.threshold(self.costmap["costmap"].copy(), 50, 100,  cv2.THRESH_BINARY)[1]
+        self.region_bounds = region["bounds"]
+        
+        mask = cv2.threshold(self.costmap["costmap"].copy(), 99, 100,  cv2.THRESH_BINARY)[1]
         root_node = Hierarchical_Graph.Node(0,[0,0], 0)
         root_grid = mask.astype(np.int32)
         root_grid[root_grid==100] = -1
         root_graph = Graph({0:root_node} , 0 ,root_grid)
-        h_graph = Hierarchical_Graph(root_graph)
+        h_graph = Hierarchical_Graph(root_graph,region["remove_edges"] )
         
         region_map = np.zeros(root_grid.shape)
-        for region_id, bounds in region_bounds.items():
+        for region_id, bounds in self.region_bounds.items():
             min_idx = self.get_index(bounds["min_bound"][0:2])
             max_idx = self.get_index(bounds["max_bound"][0:2])
             region_map[min_idx[0]:max_idx[0],min_idx[1]:max_idx[1]] = region_id
@@ -92,7 +93,7 @@ class Map_Manager:
 
         region_nodes={}
         region_idx=[]
-        for i, x in enumerate(region_bounds):
+        for i, x in enumerate(self.region_bounds):
            idx= np.array(np.where(idx_map==x)).T
            region_idx.append(idx)
            region_nodes[i] = Hierarchical_Graph.Node(i,np.mean(idx,0), 1)
@@ -192,7 +193,9 @@ class Map_Manager:
     
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    manager = Map_Manager("../resources/sim/")
+    manager = Map_Manager("../resources/real/")
+    ids, edges , h = manager.get_graph(1)
+
     with open('tests/detections.pickle', 'rb') as f:
         dat = pickle.load(f)
         
@@ -206,7 +209,6 @@ if __name__ == '__main__':
     img = manager.get_region_graph_img()
     plt.figure(dpi=1200)   
     plt.imshow(img)    
-    ids, edges , h = manager.get_graph(1)
     region = manager.coord_to_region([2.57,-0.75], 1)
     img2 = manager.draw_graph_entropy()
     plt.figure()   

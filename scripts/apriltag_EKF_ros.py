@@ -293,4 +293,4 @@ if __name__ == "__main__":
             t = T[0:3, 3]
             prior[tag_id] = {"position": t.tolist(), "orientation": rot.tolist()}    
     with open('tag_loc.yaml', 'w') as file:
-        yaml.dump(prior, file)
+        yaml.safe_dump(prior, file)

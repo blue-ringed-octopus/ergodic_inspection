@@ -37,24 +37,17 @@ class Graph:
         for i, node in enumerate(self.nodes.values()):
             textsize = cv2.getTextSize(str(node.id), cv2.FONT_HERSHEY_SIMPLEX, 1, 2)[0]
             pos = (int(scale/w*node.coord[1]), int(scale/w*node.coord[0]))
+            #draw nodes 
             img = cv2.circle(img, pos ,20, 0, -1)
-            pos = (int(scale/w*node.coord[1]-textsize[1]/2), int(scale/w*node.coord[0]+textsize[0]/2))
+            pos = (int(scale/w*node.coord[1]-textsize[1]/2), int(scale/w*node.coord[0]+textsize[0]/2))        
             img = cv2.putText(img, str(node.id), pos, cv2.FONT_HERSHEY_SIMPLEX , 1, region_color[i] , 2)
+            
+            #draw edges    
             for neighbor in node.neighbor_nodes.values():
                 pos2 = (int(scale/w*neighbor.coord[1]), int(scale/w*neighbor.coord[0]))
                 img = cv2.arrowedLine(img, pos, pos2, 0)
         return img
-    def get_edges(self):
-        if len(self.edges):
-            return self.edges.copy()
-        else:
-            edges=[]
-            for i, node in self.nodes.items():
-                edges.append([i,i])
-                for j in node.neighbor_nodes.keys():
-                    edges.append([i,j])
-            self.edges = edges
-            return edges
+
         
 class Hierarchical_Graph:
     class Node:
@@ -82,19 +75,30 @@ class Hierarchical_Graph:
                 if neighbor.parent.id not in self.parent.neighbor_nodes.keys():
                     self.parent.add_neighbor(neighbor.parent)
                     
-    def __init__(self, root):
+    def __init__(self, root, directed_edge={}):
         self.levels={}
         self.levels[0] = {0:root}
+        self.directed_edge = directed_edge
         
     def level_to_graph(level):
         pass 
     
     def compute_edges(self, level):
+        directed_edge=[]
+        if level in self.directed_edge.keys():
+            directed_edge = self.directed_edge[level]
+            
         edges=[]
         for i, node in self.levels[level].nodes.items():
+            remove_neighbor=[]
             edges.append([i,i])
             for j in node.neighbor_nodes.keys():
-                edges.append([i,j])
+                if [i,j] in directed_edge:
+                    remove_neighbor.append(j)
+                else:
+                    edges.append([i,j])
+            for neighbor in remove_neighbor:
+                node.neighbor_nodes.pop(neighbor)
         self.levels[level].edges = edges
         
     def get_edges(self, level):
@@ -105,6 +109,8 @@ class Hierarchical_Graph:
             return self.levels[level].edges
         
     def grid2graph(self, stencil, level):
+       
+            
         parent_level = self.levels[level-1]
         parent_ids = parent_level.id_map
         parent_nodes = parent_level.nodes
