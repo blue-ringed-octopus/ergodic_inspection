@@ -26,3 +26,5 @@ bounds:
     6:
         min_bound: [0.0382, -6.20, 0.02]
         max_bound: [3 ,-5.34 , 0.5 ]
+
+remove_edges:
