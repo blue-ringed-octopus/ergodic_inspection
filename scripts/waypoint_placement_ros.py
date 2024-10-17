@@ -11,9 +11,9 @@ import actionlib
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import PoseArray, Pose
 from sensor_msgs.msg import CameraInfo
-
-import ros_numpy
 import numpy as np
+np.float = np.float64 
+import ros_numpy
 from ergodic_inspection.srv import PointCloudWithEntropy, PlanRegion, GetRegion, PlaceNode, OptimizePoseGraph
 from nav_msgs.srv import GetMap
 import tf 

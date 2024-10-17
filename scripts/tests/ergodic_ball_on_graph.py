@@ -58,8 +58,9 @@ def UBFMMC(weight, edges, transform=True):
 
     return P
 
-def discounted_ergodic_markov_chain(weight, edges):
-    w=weight/sum(weight)
+def DEMC(weight, edges):
+    w = weight.copy()
+    w=w/sum(w)
     
     n = len(w)
     P= cp.Variable((n,n))
@@ -107,8 +108,8 @@ class Region:
     def reset(self, p_red):
         self.p_red=p_red 
           
-    def sample(self):
-        return np.random.rand()<self.p_red
+    def sample(self, num):
+        return np.random.rand(num)<self.p_red
 
     def detect(self):
         pass
@@ -118,166 +119,217 @@ class Region:
         self.neighbor = edges[edges[:,0]==self.id][:,1]
 
 class Graph:
-    def __init__(self, num_regions):
+    def __init__(self):
+        self.n = 7
         self.regions=[]
-        self.edges=[[0,0],
-                    [1,1],
-                    [2,2],
-                    [3,3],
-                    [4,4],
-                    [5,5],
-                    [6,6],
-                     
-                     [0,1],
-                     [0,3],
-                     [1,0], 
-                     [1,2],
-                     [1,4],
-                     [2,1],
-                     [2,3],
-                     [3,0],
-                     [3,2],
-                     [3,5],
-                    #[4,1],
-                     [4,5],
-                     [5,3],
-                     [5,4],
-                     [5,6],
-                     [6,5]]
-# params     
-num_trial = 100
-cutoff=0.2
-num_regions=7
-graph= Graph(num_regions)
-regions=[]
-truth=[]
-for i in range(num_regions):
-    p_red=np.random.rand()*0.5
-    regions.append(Region(i, p_red))
-    truth.append((p_red)>cutoff)
-    regions[i].add_neighbor(edges)
 
-
-samples=[[] for i in range(num_regions)]
-print(truth)
-
-
-steps_range=np.arange(1,10)
-#%% random
-error_random=[]
-steps=10
-for _ in range(num_trial):
-
-    P_anomaly=np.ones(num_regions)*0.5
-    P_normal=np.ones(num_regions)*0.5
-    samples=[[] for i in range(num_regions)]
-    region=0
-    for i in range(steps):    
-        region=np.random.choice(regions[region].neighbor)
-        sample=regions[region].sample()
-        samples[region].append(sample)
-        if sample:
-            P_anomaly[region]*=(1+cutoff)/2
-            P_normal[region]*=(cutoff)/2
-        else:
-            P_anomaly[region]*=(1-cutoff)/2
-            P_normal[region]*=(2-cutoff)/2
             
-        px=P_anomaly[region]+P_normal[region]
-        P_anomaly[region]/=px
-        P_normal[region]/=px
+        self.edges=[[0, 0],
+                     [0, 3],
+                     [0, 1],
+                     [1, 1],
+                     [1, 2],
+                     [1, 0],
+                     [2, 2],
+                     [2, 3],
+                     [2, 1],
+                     [3, 3],
+                     [3, 0],
+                     [3, 5],
+                     [3, 2],
+                     [4, 4],
+                     [4, 5],
+                     [4, 1],
+                     [5, 5],
+                     [5, 3],
+                     [5, 6],
+                     [5, 4],
+                     [6, 6],
+                     [6, 5]]
         
+        for i in range(self.n):
+            self.regions.append(Region(i, 0.5))
+            self.regions[i].add_neighbor(self.edges)
+            
+    def reset(self,p_reds):
+        for p_red, region in zip(p_reds, self.regions):
+            region.reset(p_red)
+
+def detect(samples,P_normal, P_anomaly, region, cutoff):
+    if sample:
+        P_anomaly[region]*=(1+cutoff)/2
+        P_normal[region]*=(cutoff)/2
+    else:
+        P_anomaly[region]*=(1-cutoff)/2
+        P_normal[region]*=(2-cutoff)/2   
+        
+    px=P_anomaly[region]+P_normal[region]
+    P_anomaly[region]/=px
+    P_normal[region]/=px
+    return  P_normal,  P_anomaly      
+
+# params     
+num_trial = 300
+cutoff=0.2
+graph= Graph()
+p_reds=np.random.rand(graph.n)
+graph.reset(p_reds)
+truth=(p_reds)>cutoff
+num_sample = 10
+#%% random
+print("random")
+error_random=[[] for _ in range(num_trial)]
+steps=30
+for i in range(num_trial):
+    p_reds=np.random.rand(graph.n)*0.5
+    graph.reset(p_reds)
+    truth=(p_reds)>cutoff
+    
+    P_anomaly=np.ones(graph.n)*0.5
+    P_normal=np.ones(graph.n)*0.5
+    region=0
+    for _ in range(steps):    
+        region=np.random.choice(graph.regions[region].neighbor)
+        sample=graph.regions[region].sample()
+
+        P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
+
     # error_random.append(max(abs(P_anomaly-truth)))
-    error_random.append(np.linalg.norm(P_anomaly-truth))
+        error_random[i].append(np.linalg.norm(P_anomaly-truth))
 
 #%% max entropy
-error_max_entropy=[]
+error_max_entropy=[[] for _ in range(num_trial)]
+print("max_ent")
 
-for _ in range(num_trial):
-
-    P_anomaly=np.ones(num_regions)*0.5
-    P_normal=np.ones(num_regions)*0.5
-    h=np.ones(num_regions)*bernoulli.entropy(0.5)
-    samples=[[] for i in range(num_regions)]
+for i in range(num_trial):
+    p_reds=np.random.rand(graph.n)*0.5
+    graph.reset(p_reds)
+    truth=(p_reds)>cutoff
+    
+    P_anomaly=np.ones(graph.n)*0.5
+    P_normal=np.ones(graph.n)*0.5
+    h=np.ones(graph.n)*bernoulli.entropy(0.5)
     region=0
-    for i in range(steps):
-        neighbors = regions[region].neighbor
+    for _ in range(steps):
+        neighbors = graph.regions[region].neighbor
         region=neighbors[np.argmax(h[neighbors])]
-        sample=regions[region].sample()
-        samples[region].append(sample)
-        if sample:
-            P_anomaly[region]*=(1+cutoff)/2
-            P_normal[region]*=(cutoff)/2
-        else:
-            P_anomaly[region]*=(1-cutoff)/2
-            P_normal[region]*=(2-cutoff)/2
-            
-        px=P_anomaly[region]+P_normal[region]
-        P_anomaly[region]/=px
-        P_normal[region]/=px
+        sample=graph.regions[region].sample()
+        
+        P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
+
         h[region]=bernoulli.entropy(P_anomaly[region])
         
     # error_max_entropy.append(max(abs(P_anomaly-truth)))
-    error_max_entropy.append(np.linalg.norm(P_anomaly-truth))
-#%% fastest mixing 
-error_fmmc=[]
-for _ in range(num_trial):
-    P_anomaly=np.ones(num_regions)*0.5
-    P_normal=np.ones(num_regions)*0.5
-    h=np.ones(num_regions)*bernoulli.entropy(0.5)
-    samples=[[] for i in range(num_regions)]
-    region=0
-    for i in range(steps):    
-        h=h/sum(h)
-        P = UBFMMC(h, edges)
-        region=np.random.choice(range(num_regions),p=P[:,region])
-        sample=regions[region].sample()
-        samples[region].append(sample)
-        if sample:
-            P_anomaly[region]*=(1+cutoff)/2
-            P_normal[region]*=(cutoff)/2
-        else:
-            P_anomaly[region]*=(1-cutoff)/2
-            P_normal[region]*=(2-cutoff)/2
-            
-        px=P_anomaly[region]+P_normal[region]
-        P_anomaly[region]/=px
-        P_normal[region]/=px
-        h[region]=bernoulli.entropy(P_anomaly[region])
-    # error_fmmc.append(max(abs(P_anomaly-truth)))
-    error_fmmc.append(np.linalg.norm(P_anomaly-truth))
+        error_max_entropy[i].append(np.linalg.norm(P_anomaly-truth))
+
 #%% dicounted ergodic 
-error_demc=[]
-for _ in range(num_trial):
-    P_anomaly=np.ones(num_regions)*0.5
-    P_normal=np.ones(num_regions)*0.5
-    h=np.ones(num_regions)*bernoulli.entropy(0.5)
-    samples=[[] for i in range(num_regions)]
+print("erg")
+
+error_demc=[[] for _ in range(num_trial)]
+for i in range(num_trial):
+    print(i)
+    p_reds=np.random.rand(graph.n)*0.5
+    graph.reset(p_reds)
+    truth=(p_reds)>cutoff
+    
+    P_anomaly=np.ones(graph.n)*0.5
+    P_normal=np.ones(graph.n)*0.5
+    h=np.ones(graph.n)*bernoulli.entropy(0.5)
     region=0
-    for i in range(steps):    
-        h=h/sum(h)
-        P = DEMC(h, edges)
-        region=np.random.choice(range(num_regions),p=P[:,region])
-        sample=regions[region].sample()
-        samples[region].append(sample)
-        if sample:
-            P_anomaly[region]*=(1+cutoff)/2
-            P_normal[region]*=(cutoff)/2
-        else:
-            P_anomaly[region]*=(1-cutoff)/2
-            P_normal[region]*=(2-cutoff)/2
-            
-        px=P_anomaly[region]+P_normal[region]
-        P_anomaly[region]/=px
-        P_normal[region]/=px
+    for _ in range(steps):    
+        P = DEMC(h, graph.edges)
+        region=np.random.choice(range(graph.n),p=P[:,region])
+        sample=graph.regions[region].sample()
+        P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
+           
         h[region]=bernoulli.entropy(P_anomaly[region])
-    # error_demc.append(max(abs(P_anomaly-truth)))
-    error_demc.append(np.linalg.norm(P_anomaly-truth))
+        error_demc[i].append(np.linalg.norm(P_anomaly-truth))
+#%% 
+error_uniform=[[] for _ in range(num_trial)]
+for i in range(num_trial):
+    print(i)
+    p_reds=np.random.rand(graph.n)*0.5
+    graph.reset(p_reds)
+    truth=(p_reds)>cutoff
+    
+    P_anomaly=np.ones(graph.n)*0.5
+    P_normal=np.ones(graph.n)*0.5
+    h=np.ones(graph.n)*bernoulli.entropy(0.5)
+    region=0
+    P = DEMC(h, graph.edges)
 
+    for _ in range(steps):    
+        region=np.random.choice(range(graph.n),p=P[:,region])
+        sample=graph.regions[region].sample()
+        P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
+           
+        error_uniform[i].append(np.linalg.norm(P_anomaly-truth))
+        
 #%%
-print("random", str(np.mean(error_random))+"+-"+ str(np.std(error_random)))
+error_tenstep = [[] for _ in range(num_trial)]
+for i in range(num_trial):
+    print(i)
+    p_reds=np.random.rand(graph.n)*0.5
+    graph.reset(p_reds)
+    truth=(p_reds)>cutoff
+    
+    P_anomaly=np.ones(graph.n)*0.5
+    P_normal=np.ones(graph.n)*0.5
+    h=np.ones(graph.n)*bernoulli.entropy(0.5)
+    samples=[[] for i in range(graph.n)]
+    region=0
+    for j in range(steps):  
+        if not j%10:
+            P = DEMC(h, graph.edges)
+        region=np.random.choice(range(graph.n),p=P[:,region])
+        sample=graph.regions[region].sample()
+        samples[region].append(sample)
+        P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
+        h[region]=bernoulli.entropy(P_anomaly[region])
+   
+        error_tenstep[i].append(np.linalg.norm(P_anomaly-truth))        
+#%%
+error_random = np.array(error_random)
+error_max_entropy = np.array(error_max_entropy)
+error_demc = np.array(error_demc)
 
-print("max entr.", str(np.mean(error_max_entropy))+"+-"+ str(np.std(error_max_entropy)))
+def box_plot(dat, pos):
+    bp = plt.boxplot(dat, positions=pos, meanline=True, showfliers=False, patch_artist=True)
+    for patch in bp['boxes']:
+        patch.set_facecolor([1,0.2,0.2,0.5])
+        patch.set(edgecolor =[0.5,0.2,0.2, 0.5],
+                linewidth = 1.5,
+                )
+    for whisker in bp['whiskers']:
+        whisker.set(color =[0.5,0.2,0.2, 0.5],
+                linewidth = 1.5,
+                )
+    for cap in bp['caps']:
+        cap.set(color =[0.5,0.2,0.2, 0.5],
+                linewidth = 1.5)
+        
+    for median in bp['medians']:
+        median.set(color =[0.5,0.2,0.2, 0.5],
+                   linewidth = 1.5)
+# print("random", str(np.mean(error_random))+"+-"+ str(np.std(error_random)))
 
-print("ergodic", str(np.mean(error_demc))+"+-"+ str(np.std(error_demc)))
+# print("max entr.", str(np.mean(error_max_entropy))+"+-"+ str(np.std(error_max_entropy)))
 
+# print("ergodic", str(np.mean(error_demc))+"+-"+ str(np.std(error_demc)))
+plt.plot(range(steps),np.mean(error_random, 0), "--", color = "blue")
+plt.plot(range(steps),np.mean(error_max_entropy, 0), "--", color = "green")
+plt.plot(range(steps),np.mean(error_demc, 0), "--", color = "red")
+plt.plot(range(steps),np.mean(error_uniform, 0), "--", color = "pink")
+plt.plot(range(steps),np.mean(error_tenstep, 0), "--", color = "black")
+
+# for i in range(num_trial):
+#     plt.plot(range(steps),error_demc[i,:], "--", color = "red", alpha=0.1)
+#     plt.plot(range(steps),error_max_entropy[i,:], "--", color = "green", alpha=0.1)
+#     plt.plot(range(steps),error_random[i,:], "--", color = "blue", alpha=0.1)
+
+
+# for i in  range(steps):  
+#     box_plot(error_random[:,i], [i])
+#     box_plot(error_max_entropy[:,i], [i])
+#     box_plot(error_demc[:,i], [i])
+   
