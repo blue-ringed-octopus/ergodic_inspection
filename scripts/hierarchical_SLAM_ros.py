@@ -39,7 +39,7 @@ class Graph_SLAM_wrapper:
         self.thres = params["Graph_SLAM"]["node_threshold"]
         #prior_feature 
         prior = read_prior()
-        self.ekf_wrapper = EKF_Wrapper(0, tf_br, params)
+        self.ekf_wrapper = EKF_Wrapper(0, tf_br, params, fixed_landmarks = list(prior["children"].keys()))
         ekf = self.ekf_wrapper.ekf
         intersection = [id_  for id_ in ekf.features.keys() if id_ in prior["children"]]
         while not len(intersection) and not rospy.is_shutdown():
@@ -74,7 +74,7 @@ class Graph_SLAM_wrapper:
             T = np.linalg.inv(self.graph_slam.get_node_est()@posterior['mu'][0])
             for id_, M in landmarks.items():
                 landmarks[id_] = T@M
-            self.ekf_wrapper.reset(self.graph_slam.current_node_id, landmarks,fixed_landmarks = list(landmarks.keys()), get_point_cloud=key_node)
+            self.ekf_wrapper.reset(self.graph_slam.current_node_id, landmarks, get_point_cloud=key_node)
             self.graph_slam.place_node(posterior, cloud, key_node)
             global_map = self.graph_slam.global_map_assemble(key_only = True)
         pc_msg = pc_to_msg(global_map)
