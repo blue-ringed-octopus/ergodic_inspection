@@ -55,7 +55,7 @@ class Graph_SLAM_wrapper:
         for id_, M_prior in prior["children"].items():
             graph_slam.factor_graph.add_node(M_prior,"feature", id_)
             
-        self.reset_ekf(self, M_init, prior["children"].copy())
+        self.reset_ekf(robot_pose = M_init, features = prior["children"].copy())
         if not localize_mode:
             graph_slam.factor_graph.add_prior_factor(prior['z'], prior["cov"] , {} , {"features": prior["idx_map"]})
         self.graph_slam=graph_slam
