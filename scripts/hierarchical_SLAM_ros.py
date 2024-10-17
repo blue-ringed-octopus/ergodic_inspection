@@ -71,7 +71,7 @@ class Graph_SLAM_wrapper:
         with self.lock:
             features = self.graph_slam.get_features_est()
             cloud = self.ekf_wrapper.ekf.cloud.copy()
-            self.reset_ekf(node_id = self.graph_slam.current_node_id, pose = self.graph_slam.get_node_est()@posterior['mu'][0], features = features ,get_cloud = key_node)
+            self.reset_ekf(node_id = self.graph_slam.current_node_id, robot_pose = self.graph_slam.get_node_est()@posterior['mu'][0], features = features ,get_cloud = key_node)
             self.graph_slam.place_node(posterior, cloud, key_node)
             global_map = self.graph_slam.global_map_assemble(key_only = True)
         pc_msg = pc_to_msg(global_map)
