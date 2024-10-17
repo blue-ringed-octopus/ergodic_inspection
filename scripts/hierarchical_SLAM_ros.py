@@ -35,6 +35,7 @@ class Graph_SLAM_wrapper:
         self.tf_br = tf_br
         self.factor_graph_marker_pub = rospy.Publisher("/factor_graph", MarkerArray, queue_size = 2)
         self.pc_pub = rospy.Publisher("/pc_rgb", PointCloud2, queue_size = 2)
+        print(params)
         self.thres = params["Graph_SLAM"]["node_threshold"]
         #prior_feature 
         prior = read_prior()
