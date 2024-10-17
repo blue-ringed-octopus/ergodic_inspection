@@ -151,14 +151,16 @@ class EKF:
                     )        
         self.odom_prev = odom   
         
-    def reset(self, node_id, pc_info, landmarks={}):
+    def reset(self, node_id, pc_info, landmarks={}, fixed_landmarks=None):
+        if not fixed_landmarks == None:
+            self.fixed_landmarks = fixed_landmarks
         self.id = node_id
         self.mu=[np.eye(4)]
         self.sigma=np.zeros((6,6))            
         self.features={}
         self.landmarks=landmarks
         self.cloud = {"pc": {"points": [], "colors":[] }, "cov": [], "depth": [], "rgb": [], "features": {} ,"cam_param": self.K.copy(), "cam_transform": self.T_c_to_r.copy()}
-
+        
         if not pc_info == None:
             self._process_pointcloud(pc_info)
         
