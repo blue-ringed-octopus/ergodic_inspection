@@ -13,7 +13,7 @@ EKF:
   
 
 Graph_SLAM:
-  node_threshold: 1
+  node_threshold: 900
   forgetting_factor: 5
   horizon: 5
   max_iteration: 50
