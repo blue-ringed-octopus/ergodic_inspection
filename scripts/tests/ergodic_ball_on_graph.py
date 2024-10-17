@@ -60,6 +60,7 @@ def UBFMMC(weight, edges, transform=True):
 
 def DEMC(weight, edges):
     w = weight.copy()
+    w += np.ones(len(w))*0.0001
     w=w/sum(w)
     
     n = len(w)
@@ -156,12 +157,13 @@ class Graph:
             region.reset(p_red)
 
 def detect(samples,P_normal, P_anomaly, region, cutoff):
-    if sample:
-        P_anomaly[region]*=(1+cutoff)/2
-        P_normal[region]*=(cutoff)/2
-    else:
-        P_anomaly[region]*=(1-cutoff)/2
-        P_normal[region]*=(2-cutoff)/2   
+    for sample in samples:
+        if sample:
+            P_anomaly[region]*=(1+cutoff)/2
+            P_normal[region]*=(cutoff)/2
+        else:
+            P_anomaly[region]*=(1-cutoff)/2
+            P_normal[region]*=(2-cutoff)/2   
         
     px=P_anomaly[region]+P_normal[region]
     P_anomaly[region]/=px
@@ -175,7 +177,7 @@ graph= Graph()
 p_reds=np.random.rand(graph.n)
 graph.reset(p_reds)
 truth=(p_reds)>cutoff
-num_sample = 10
+num_sample = 3
 #%% random
 print("random")
 error_random=[[] for _ in range(num_trial)]
@@ -190,7 +192,7 @@ for i in range(num_trial):
     region=0
     for _ in range(steps):    
         region=np.random.choice(graph.regions[region].neighbor)
-        sample=graph.regions[region].sample()
+        sample=graph.regions[region].sample(num_sample)
 
         P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
 
@@ -213,7 +215,7 @@ for i in range(num_trial):
     for _ in range(steps):
         neighbors = graph.regions[region].neighbor
         region=neighbors[np.argmax(h[neighbors])]
-        sample=graph.regions[region].sample()
+        sample=graph.regions[region].sample(num_sample)
         
         P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
 
@@ -239,7 +241,7 @@ for i in range(num_trial):
     for _ in range(steps):    
         P = DEMC(h, graph.edges)
         region=np.random.choice(range(graph.n),p=P[:,region])
-        sample=graph.regions[region].sample()
+        sample=graph.regions[region].sample(num_sample)
         P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
            
         h[region]=bernoulli.entropy(P_anomaly[region])
@@ -260,7 +262,7 @@ for i in range(num_trial):
 
     for _ in range(steps):    
         region=np.random.choice(range(graph.n),p=P[:,region])
-        sample=graph.regions[region].sample()
+        sample=graph.regions[region].sample(num_sample)
         P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
            
         error_uniform[i].append(np.linalg.norm(P_anomaly-truth))
@@ -276,14 +278,12 @@ for i in range(num_trial):
     P_anomaly=np.ones(graph.n)*0.5
     P_normal=np.ones(graph.n)*0.5
     h=np.ones(graph.n)*bernoulli.entropy(0.5)
-    samples=[[] for i in range(graph.n)]
     region=0
     for j in range(steps):  
         if not j%10:
             P = DEMC(h, graph.edges)
         region=np.random.choice(range(graph.n),p=P[:,region])
-        sample=graph.regions[region].sample()
-        samples[region].append(sample)
+        sample=graph.regions[region].sample(num_sample)
         P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
         h[region]=bernoulli.entropy(P_anomaly[region])
    

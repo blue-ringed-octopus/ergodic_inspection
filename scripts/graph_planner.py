@@ -111,7 +111,7 @@ class Graph_Planner:
     
     def get_next_region(self, weight, current_region):
         if self.strategy == "ergodic":
-            P = self.FMMC(weight, self.edges)
+            P = self.discounted_ergodic_markov_chain(weight, self.edges)
             region = np.random.choice(range(self.num_regions),p=P[:,current_region])
             
         elif self.strategy == "random":
