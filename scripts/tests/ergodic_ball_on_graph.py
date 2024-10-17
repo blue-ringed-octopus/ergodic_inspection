@@ -106,11 +106,20 @@ class Region:
         self.neighbor=[]
         self.id = _id
         
-    def reset(self, p_red):
-        self.p_red=p_red 
-          
+    def reset(self, cutoff):
+        anomaly =np.random.rand()<0.5
+        if anomaly:
+            self.p_red = np.random.uniform(low=cutoff, high=1)
+        else:
+            self.p_red = np.random.uniform(low=0, high=cutoff)
+        return anomaly 
+
     def sample(self, num):
-        return np.random.rand(num)<self.p_red
+        samples =  np.random.rand(num)<self.p_red
+        for i in range(num):
+            if np.random.rand()<0.2:
+                samples[i] = not samples[i]
+        return samples
 
     def detect(self):
         pass
@@ -152,10 +161,12 @@ class Graph:
             self.regions.append(Region(i, 0.5))
             self.regions[i].add_neighbor(self.edges)
             
-    def reset(self,p_reds):
-        for p_red, region in zip(p_reds, self.regions):
-            region.reset(p_red)
-
+    def reset(self,cutoff):
+        anomaly = []
+        for region in self.regions:
+            anomaly.append(region.reset(cutoff))
+        return anomaly
+    
 def detect(samples,P_normal, P_anomaly, region, cutoff):
     for sample in samples:
         if sample:
@@ -178,15 +189,13 @@ p_reds=np.random.rand(graph.n)
 graph.reset(p_reds)
 truth=(p_reds)>cutoff
 num_sample = 3
+steps=100
+
 #%% random
 print("random")
 error_random=[[] for _ in range(num_trial)]
-steps=30
 for i in range(num_trial):
-    p_reds=np.random.rand(graph.n)*0.5
-    graph.reset(p_reds)
-    truth=(p_reds)>cutoff
-    
+    truth=graph.reset(cutoff)
     P_anomaly=np.ones(graph.n)*0.5
     P_normal=np.ones(graph.n)*0.5
     region=0
@@ -197,16 +206,14 @@ for i in range(num_trial):
         P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
 
     # error_random.append(max(abs(P_anomaly-truth)))
-        error_random[i].append(np.linalg.norm(P_anomaly-truth))
-
+        # error_random[i].append(np.linalg.norm(P_anomaly-truth))
+        error_random[i].append(np.sqrt(((P_anomaly - truth) ** 2).mean()))
 #%% max entropy
-error_max_entropy=[[] for _ in range(num_trial)]
 print("max_ent")
+error_max_entropy=[[] for _ in range(num_trial)]
 
 for i in range(num_trial):
-    p_reds=np.random.rand(graph.n)*0.5
-    graph.reset(p_reds)
-    truth=(p_reds)>cutoff
+    truth=graph.reset(cutoff)
     
     P_anomaly=np.ones(graph.n)*0.5
     P_normal=np.ones(graph.n)*0.5
@@ -222,7 +229,8 @@ for i in range(num_trial):
         h[region]=bernoulli.entropy(P_anomaly[region])
         
     # error_max_entropy.append(max(abs(P_anomaly-truth)))
-        error_max_entropy[i].append(np.linalg.norm(P_anomaly-truth))
+        # error_max_entropy[i].append(np.linalg.norm(P_anomaly-truth))
+        error_max_entropy[i].append(np.sqrt(((P_anomaly - truth) ** 2).mean()))
 
 #%% dicounted ergodic 
 print("erg")
@@ -230,9 +238,7 @@ print("erg")
 error_demc=[[] for _ in range(num_trial)]
 for i in range(num_trial):
     print(i)
-    p_reds=np.random.rand(graph.n)*0.5
-    graph.reset(p_reds)
-    truth=(p_reds)>cutoff
+    truth = graph.reset(cutoff)
     
     P_anomaly=np.ones(graph.n)*0.5
     P_normal=np.ones(graph.n)*0.5
@@ -245,36 +251,35 @@ for i in range(num_trial):
         P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
            
         h[region]=bernoulli.entropy(P_anomaly[region])
-        error_demc[i].append(np.linalg.norm(P_anomaly-truth))
+        # error_demc[i].append(np.linalg.norm(P_anomaly-truth))
+        error_demc[i].append(np.sqrt(((P_anomaly - truth) ** 2).mean()))
+
 #%% 
+P = DEMC(np.ones(graph.n), graph.edges)
+
 error_uniform=[[] for _ in range(num_trial)]
 for i in range(num_trial):
-    print(i)
-    p_reds=np.random.rand(graph.n)*0.5
-    graph.reset(p_reds)
-    truth=(p_reds)>cutoff
-    
+    truth=graph.reset(cutoff)
+   
     P_anomaly=np.ones(graph.n)*0.5
     P_normal=np.ones(graph.n)*0.5
     h=np.ones(graph.n)*bernoulli.entropy(0.5)
     region=0
-    P = DEMC(h, graph.edges)
 
     for _ in range(steps):    
         region=np.random.choice(range(graph.n),p=P[:,region])
         sample=graph.regions[region].sample(num_sample)
         P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
            
-        error_uniform[i].append(np.linalg.norm(P_anomaly-truth))
-        
+        # error_uniform[i].append(np.linalg.norm(P_anomaly-truth))
+        error_uniform[i].append(np.sqrt(((P_anomaly - truth) ** 2).mean()))
+
 #%%
 error_tenstep = [[] for _ in range(num_trial)]
 for i in range(num_trial):
     print(i)
-    p_reds=np.random.rand(graph.n)*0.5
-    graph.reset(p_reds)
-    truth=(p_reds)>cutoff
-    
+    truth=graph.reset(cutoff)
+   
     P_anomaly=np.ones(graph.n)*0.5
     P_normal=np.ones(graph.n)*0.5
     h=np.ones(graph.n)*bernoulli.entropy(0.5)
@@ -287,7 +292,9 @@ for i in range(num_trial):
         P_normal,  P_anomaly = detect(sample,P_normal, P_anomaly, region, cutoff)  
         h[region]=bernoulli.entropy(P_anomaly[region])
    
-        error_tenstep[i].append(np.linalg.norm(P_anomaly-truth))        
+        # error_tenstep[i].append(np.linalg.norm(P_anomaly-truth))       
+        error_tenstep[i].append(np.sqrt(((P_anomaly - truth) ** 2).mean()))
+
 #%%
 error_random = np.array(error_random)
 error_max_entropy = np.array(error_max_entropy)
@@ -316,11 +323,11 @@ def box_plot(dat, pos):
 # print("max entr.", str(np.mean(error_max_entropy))+"+-"+ str(np.std(error_max_entropy)))
 
 # print("ergodic", str(np.mean(error_demc))+"+-"+ str(np.std(error_demc)))
-plt.plot(range(steps),np.mean(error_random, 0), "--", color = "blue")
-plt.plot(range(steps),np.mean(error_max_entropy, 0), "--", color = "green")
-plt.plot(range(steps),np.mean(error_demc, 0), "--", color = "red")
-plt.plot(range(steps),np.mean(error_uniform, 0), "--", color = "pink")
-plt.plot(range(steps),np.mean(error_tenstep, 0), "--", color = "black")
+plt.plot(range(steps),np.median(error_random, 0), "--", color = "blue")
+plt.plot(range(steps),np.median(error_max_entropy, 0), "--", color = "green")
+plt.plot(range(steps),np.median(error_demc, 0), "--", color = "red")
+plt.plot(range(steps),np.median(error_uniform, 0), "--", color = "pink")
+plt.plot(range(steps),np.median(error_tenstep, 0), "--", color = "black")
 
 # for i in range(num_trial):
 #     plt.plot(range(steps),error_demc[i,:], "--", color = "red", alpha=0.1)

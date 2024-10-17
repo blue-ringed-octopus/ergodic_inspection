@@ -33,6 +33,7 @@ class Graph_Planner:
         w=weight/sum(weight)
         
         n = self.num_regions
+        edges = self.edges
         P= cp.Variable((n,n))
         
         
@@ -111,7 +112,7 @@ class Graph_Planner:
     
     def get_next_region(self, weight, current_region):
         if self.strategy == "ergodic":
-            P = self.discounted_ergodic_markov_chain(weight, self.edges)
+            P = self.discounted_ergodic_markov_chain(weight)
             region = np.random.choice(range(self.num_regions),p=P[:,current_region])
             
         elif self.strategy == "random":
@@ -134,7 +135,7 @@ if __name__ == '__main__':
     
     manager = Map_Manager("../resources/sim/")
     nodes, edges, _ = manager.get_graph(1)     
-    edges.remove([1,4])
+    # edges.remove([1,4])
     nodes = [0,1,2]
     edges = [[0,0], [0,1], [1,0], [1,1], [1,2],[2,1] ,[2,2], [0,2]]
     n = len(nodes)
