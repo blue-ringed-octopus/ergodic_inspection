@@ -56,7 +56,7 @@ class Graph_SLAM_wrapper:
         for id_, M_prior in prior["children"].items():
             graph_slam.factor_graph.add_node(M_prior,"feature", id_)
             
-        self.reset_ekf(robot_pose = M_init, features = prior["children"].copy())
+        self.reset_ekf(node_id = 0, robot_pose = M_init, features = prior["children"].copy())
         if not localization_mode:
             graph_slam.factor_graph.add_prior_factor(prior['z'], prior["cov"] , {} , {"features": prior["idx_map"]})
         self.graph_slam=graph_slam
@@ -71,20 +71,20 @@ class Graph_SLAM_wrapper:
         with self.lock:
             features = self.graph_slam.get_features_est()
             cloud = self.ekf_wrapper.ekf.cloud.copy()
-            self.reset_ekf(pose = self.graph_slam.get_node_est()@posterior['mu'][0], features = features ,get_cloud = key_node)
+            self.reset_ekf(node_id = self.graph_slam.current_node_id, pose = self.graph_slam.get_node_est()@posterior['mu'][0], features = features ,get_cloud = key_node)
             self.graph_slam.place_node(posterior, cloud, key_node)
             global_map = self.graph_slam.global_map_assemble(key_only = True)
         pc_msg = pc_to_msg(global_map)
         self.pc_pub.publish(pc_msg)
         
-    def reset_ekf(self, robot_pose, features ,get_cloud = False):
+    def reset_ekf(self, node_id,robot_pose, features ,get_cloud = False):
         T = np.linalg.inv(robot_pose)
         for id_, M in features.items():
             features[id_] = T@M
         if self.localization_mode:    
-            self.ekf_wrapper.reset(self.graph_slam.current_node_id, features, fixed_landmarks = list(features.keys()) ,get_point_cloud=get_cloud)
+            self.ekf_wrapper.reset(node_id, features, fixed_landmarks = list(features.keys()) ,get_point_cloud=get_cloud)
         else:
-            self.ekf_wrapper.reset(self.graph_slam.current_node_id, features, get_point_cloud=get_cloud)
+            self.ekf_wrapper.reset(node_id, features, get_point_cloud=get_cloud)
 
     def place_node_server(self, req):
         print("place keynode")
