@@ -28,7 +28,8 @@ rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
     
 class Graph_SLAM_wrapper:
-    def __init__(self, tf_br, params, localize_mode  = False):
+    def __init__(self, tf_br, params, localization_mode  = False):
+        self.localization_mode = localization_mode
         self.params = params 
         self.place_node_req = False
         self.lock=threading.Lock()
@@ -48,7 +49,7 @@ class Graph_SLAM_wrapper:
         M_feature = ekf.mu[ekf.features[feature_id]]
         M_prior = prior["children"][feature_id]
         M_init = M_prior@np.linalg.inv(M_feature)
-        graph_slam=Graph_SLAM(M_init, localize_mode,params["Graph_SLAM"]["horizon"], 
+        graph_slam=Graph_SLAM(M_init, localization_mode,params["Graph_SLAM"]["horizon"], 
                               params["Graph_SLAM"]["forgetting_factor"], 
                               params["Graph_SLAM"]["max_iteration"],
                               params["Graph_SLAM"]["step_size"])
@@ -56,7 +57,7 @@ class Graph_SLAM_wrapper:
             graph_slam.factor_graph.add_node(M_prior,"feature", id_)
             
         self.reset_ekf(robot_pose = M_init, features = prior["children"].copy())
-        if not localize_mode:
+        if not localization_mode:
             graph_slam.factor_graph.add_prior_factor(prior['z'], prior["cov"] , {} , {"features": prior["idx_map"]})
         self.graph_slam=graph_slam
         rospy.Service('place_node', PlaceNode, self.place_node_server)
