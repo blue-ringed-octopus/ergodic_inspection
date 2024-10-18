@@ -139,6 +139,7 @@ class Graph_SLAM:
  
                 H+=F@(J.T@omega@J)@F.T
                 b+=F@J.T@omega@e
+            print("precision:", H)
             return H, b
         
         @staticmethod
@@ -411,7 +412,6 @@ class Graph_SLAM:
 
     
         M, H, idx_map = self.back_end.optimize(self.factor_graph, self.localize_mode)
-        print("precision matrix:", H)
         print("apply results")
         self.update_nodes(M, H, idx_map)
 
