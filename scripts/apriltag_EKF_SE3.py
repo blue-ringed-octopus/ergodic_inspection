@@ -310,7 +310,6 @@ class EKF:
             self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
         
         self.sigma=(sigma+sigma.T)/2
-        print("ekf sigma", self.sigma)
     def camera_update(self, rgb, depth):    
         features=self._detect_apriltag(rgb, depth, 2)
         for feature in features.values():
