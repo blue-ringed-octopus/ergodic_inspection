@@ -306,7 +306,6 @@ class Graph_SLAM:
             z[6*i:6*i+6] = tau
             J[6*i:6*i+6, 6*i:6*i+6] = SE3.Jr_inv(tau)
         sigma = J@sigma@J.T 
-        print("factor sigma:", sigma)
         self.factor_graph.add_factor(self.current_node_id,new_node_id,feature_node_id, z,sigma, idx_map)
         self.factor_graph.pose_nodes[self.current_node_id].in_progress = False 
         self.current_node_id=new_node_id      
@@ -396,7 +395,8 @@ class Graph_SLAM:
         if np.linalg.det(H)==0:
             H += np.eye(len(H))*0.001
             
-        cov = inv(H)            
+        cov = inv(H) 
+        print("graph cov:", cov)           
         for node_id, idx in idx_map["pose"].items():
             self.factor_graph.pose_nodes[node_id].M = M[idx]
             self.factor_graph.pose_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
