@@ -164,24 +164,6 @@ class EKF:
         if not pc_info == None:
             self._process_pointcloud(pc_info)
         
-            
-        # self._initialize_landmarks(landmark)
-    
-    # def _initialize_landmarks(self, landmarks):
-    #    mu=self.mu.copy()       #current point estimates 
-    #    sigma=self.sigma.copy() #current covariance
-    #    feature_map = self.features.copy()
-    #    for landmarks_id, M in landmarks.items():         
-    #         feature_map[landmarks_id]=len(mu)
-    #         mu.append(M)
-    #         sigma_new=np.diag(np.ones(sigma.shape[0]+6)*99999999)
-    #         sigma_new[0:sigma.shape[0], 0:sigma.shape[0]]=sigma.copy()
-    #         sigma=sigma_new
-               
-    #    self.sigma=sigma
-    #    self.mu=mu
-    #    self.features = feature_map 
-        
     def _process_pointcloud(self, pc_info):
         cloud, depth, pc_img = pc_info
         K_inv = np.ascontiguousarray(self.K_inv.copy())
@@ -328,7 +310,6 @@ class EKF:
             self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
         
         self.sigma=(sigma+sigma.T)/2
-    
     def camera_update(self, rgb, depth):    
         features=self._detect_apriltag(rgb, depth, 2)
         for feature in features.values():

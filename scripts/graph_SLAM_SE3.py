@@ -139,6 +139,7 @@ class Graph_SLAM:
  
                 H+=F@(J.T@omega@J)@F.T
                 b+=F@J.T@omega@e
+            print("precision:", H)
             return H, b
         
         @staticmethod
@@ -395,7 +396,7 @@ class Graph_SLAM:
         if np.linalg.det(H)==0:
             H += np.eye(len(H))*0.001
             
-        cov = inv(H)            
+        cov = inv(H) 
         for node_id, idx in idx_map["pose"].items():
             self.factor_graph.pose_nodes[node_id].M = M[idx]
             self.factor_graph.pose_nodes[node_id].cov = cov[6*idx:6*idx+6,6*idx:6*idx+6].copy()
@@ -411,7 +412,6 @@ class Graph_SLAM:
 
     
         M, H, idx_map = self.back_end.optimize(self.factor_graph, self.localize_mode)
-    
         print("apply results")
         self.update_nodes(M, H, idx_map)
 
