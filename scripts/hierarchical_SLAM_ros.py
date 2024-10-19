@@ -340,7 +340,10 @@ if __name__ == "__main__":
             #     pickle.dump(graph_slam_wrapper.graph_slam.factor_graph, handle)
             rate.sleep()
     except KeyboardInterrupt: 
+        print("saving key nodes")
         with open('key_nodes.pickle', 'wb') as handle:
             pickle.dump(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes, handle)
+        print("saving factor-graph")
+
         with open('graph.pickle', 'wb') as handle:
             pickle.dump(graph_slam_wrapper.graph_slam.factor_graph, handle)
