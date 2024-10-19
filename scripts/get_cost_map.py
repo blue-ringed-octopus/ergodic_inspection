@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 from numba import cuda
 import pickle
-# mesh_path = "../resources/Ballast.STL"
-# output_path = '../resources/costmap.pickle'
-mesh_path = "../resources/Ballast_physical.STL"
-output_path = '../resources/costmap_physical.pickle'
+mesh_path = "../resources/real/Ballast.STL"
+output_path = '../resources/real/costmap.pickle'
+# mesh_path = "../resources/Ballast_physical.STL"
+# output_path = '../resources/costmap_physical.pickle'
 resolution=0.05
 kernel_size=(5,5)
 
