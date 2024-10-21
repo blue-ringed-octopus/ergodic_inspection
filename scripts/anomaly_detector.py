@@ -206,7 +206,7 @@ class Anomaly_Detector:
         # point_cov = node.local_map['cov'].copy()
         point_cov = cov
         # p, point_cov = self.random_down_sample(p, point_cov)
-        sigma_node = node.cov
+        sigma_node = node.cov *0.01
         print(sigma_node)
         points = np.asarray(p.points)
         # sigma_node = np.eye(6) 
