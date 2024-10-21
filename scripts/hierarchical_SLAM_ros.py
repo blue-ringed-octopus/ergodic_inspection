@@ -79,7 +79,7 @@ class Graph_SLAM_wrapper:
         
     def reset_ekf(self, node_id,robot_pose, features ,get_cloud = False):
         recent_features = self.ekf_wrapper.get_recent_features()
-        landmarks = [tag_id for tag_id in recent_features.keys() if tag_id in self.features.keys() ]
+        landmarks = [tag_id for tag_id in recent_features.keys() if tag_id in features.keys() ]
         T = np.linalg.inv(robot_pose)
         for id_, M in features.items():
             features[id_] = T@M
