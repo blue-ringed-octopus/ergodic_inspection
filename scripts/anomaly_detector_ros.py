@@ -173,15 +173,23 @@ if __name__ == "__main__":
     graph_slam_wrapper = Graph_SLAM_wrapper(br, params, localization_mode)
        
     rate = rospy.Rate(30) 
-    while not rospy.is_shutdown():
-        graph_slam_wrapper.update() 
-     
-        features = graph_slam_wrapper.graph_slam.factor_graph.feature_nodes
-        if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)> 1: 
-            for node in list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.values())[:-1]:  
-               detector_wrapper.detect(node, features)
-               # del graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[node.id]
+    try:
+        while not rospy.is_shutdown():
+            graph_slam_wrapper.update() 
+         
+            features = graph_slam_wrapper.graph_slam.factor_graph.feature_nodes
+            if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)> 1: 
+                for node in list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.values())[:-1]:  
+                   detector_wrapper.detect(node, features)
+                   # del graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[node.id]
+    
+    
+            rate.sleep()
+    except KeyboardInterrupt: 
+        print("saving key nodes")
+        with open('key_nodes.pickle', 'wb') as handle:
+            pickle.dump(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes, handle)
+        print("saving factor-graph")
 
-
-        rate.sleep()
-
+        with open('graph.pickle', 'wb') as handle:
+            pickle.dump(graph_slam_wrapper.graph_slam.factor_graph, handle)
