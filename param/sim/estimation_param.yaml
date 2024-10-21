@@ -8,15 +8,25 @@ EKF:
   rgb_detected: "/camera/color/image_detected"
   odom_topic: "/odom" 
   apriltag_marker_topic: "/apriltags" 
-  #tag_size: 0.1
   tag_size: 0.16
   tag_families: tag36h11
-  
+  motion_noise: [[0.01,0,0,0,0,0],
+                 [0, 0.01,0,0,0,0],
+                 [0, 0, 0.0001, 0,0,0],
+                 [0, 0, 0,  2.467,0,0],
+                 [0, 0, 0, 0,  2.467,0],
+                [0, 0, 0, 0, 0,  2.467]]
+  observation_noise: [[1,0,0,0,0,0],
+                      [0, 1,0,0,0,0],
+                      [0, 0, 1, 0,0,0],
+                      [0, 0, 0,  4.467,0,0],
+                      [0, 0, 0, 0,  4.467,0],
+                      [0, 0, 0, 0, 0,  4.467]]
 
 Graph_SLAM:
   node_threshold: 1
-  forgetting_factor: 5
-  horizon: 5
+  forgetting_factor: 0.1
+  horizon: 10
   max_iteration: 50
   step_size: 0.5
 

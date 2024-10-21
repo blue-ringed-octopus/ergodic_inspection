@@ -78,13 +78,15 @@ class Graph_SLAM_wrapper:
         self.pc_pub.publish(pc_msg)
         
     def reset_ekf(self, node_id,robot_pose, features ,get_cloud = False):
+        recent_features = self.ekf_wrapper.get_recent_features()
+        landmarks = [tag_id for tag_id in recent_features.keys() if tag_id in self.features.keys() ]
         T = np.linalg.inv(robot_pose)
         for id_, M in features.items():
             features[id_] = T@M
         if self.localization_mode:    
-            self.ekf_wrapper.reset(node_id, features, fixed_landmarks = list(features.keys()) ,get_point_cloud=get_cloud)
+            self.ekf_wrapper.reset(node_id, features, fixed_landmarks = landmarks ,get_point_cloud=get_cloud)
         else:
-            self.ekf_wrapper.reset(node_id, features, get_point_cloud=get_cloud)
+            self.ekf_wrapper.reset(node_id, features, get_point_cloud=get_cloud, fixed_landmarks=landmarks)
 
     def place_node_server(self, req):
         print("place keynode")

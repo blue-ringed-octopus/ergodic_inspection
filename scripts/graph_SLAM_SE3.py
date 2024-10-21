@@ -139,7 +139,10 @@ class Graph_SLAM:
  
                 H+=F@(J.T@omega@J)@F.T
                 b+=F@J.T@omega@e
-            print("precision:", H)
+            # global test
+            # test = H
+            # print("precision:", H)
+            # print("cov:", inv(H))
             return H, b
         
         @staticmethod
@@ -147,11 +150,7 @@ class Graph_SLAM:
             if np.linalg.det(A) == 0:
                 # A+=np.eye(len(b))*0.0001
                 print("sigular")
-            # A=(A+A.T)/2
-            # L=np.linalg.cholesky(A)
-            # y=solve_triangular(L,b, lower=True)
-            
-            # return solve_triangular(L.T, y)
+ 
             return lstsq(A,b)[0]
     
         def optimize(self, graph, localize_mode = False):
@@ -419,15 +418,21 @@ class Graph_SLAM:
         # self.global_map_assemble()
         self.optimized = True
         print("start prune")
-        self.back_end.prune(self.factor_graph, 10, self.localize_mode)
+        self.back_end.prune(self.factor_graph, self.horizon, self.localize_mode)
         print("optimize end")
-        # with open('graph.pickle', 'wb') as handle:
-        #     pickle.dump(self.factor_graph, handle)
-        
+
 if __name__ == "__main__":
     graph_slam = Graph_SLAM(np.zeros(4), True, 1, 0, 1000)
     with open('tests/graph.pickle', 'rb') as f:
         graph = pickle.load(f)
+        
+    # for id_, factor in graph.factors.items():
+    #     factor.omega = np.eye(len(factor.omega))
+    graph.prior_factor.omega = np.eye(6)   
     graph_slam.factor_graph = graph
-    graph_slam.factor_graph.prune(5, True)
-    graph_slam.back_end.optimize(graph_slam.factor_graph,  localize_mode = True)
+    # graph_slam.factor_graph.prune(5, True)
+    M, H, idx = graph_slam.back_end.optimize(graph_slam.factor_graph,  localize_mode = True)
+    # H += np.eye(len(H))*0.001
+    cov = inv(H)
+    
+    H1 = H[0:6,0:6]-H[0:6,6:]@inv(H[6:,6:])@H[6:,0:6]

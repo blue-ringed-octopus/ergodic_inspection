@@ -56,10 +56,15 @@ class EKF_Wrapper:
                   odom.pose.pose.position.y,
                   odom.pose.pose.position.z]
         
-        self.ekf = EKF(node_id, T_c_to_r, K, M, 
-                       params["EKF"]["tag_size"],
-                       params["EKF"]["tag_families"],
-                       fixed_landmarks)
+        self.ekf = EKF(node_id=node_id, 
+                       T_c_to_r = T_c_to_r, 
+                       K = K, 
+                       odom = M, 
+                       R = params["EKF"]["motion_noise"],
+                       Q = params["EKF"]["observation_noise"],
+                       tag_size = params["EKF"]["tag_size"],
+                       tag_family = params["EKF"]["tag_families"],
+                       fixed_landmarks = fixed_landmarks)
         self.reset(node_id, landmarks)
 
         rospy.Subscriber(params["EKF"]["odom_topic"], Odometry, self.odom_callback)
@@ -76,6 +81,7 @@ class EKF_Wrapper:
         return T_c_to_r
     
     def reset(self, node_id, landmarks={}, get_point_cloud = True, fixed_landmarks=None):
+        self.recent_features={}
         print("reseting EKF")
         with self.lock:
             pc_info = None
@@ -84,7 +90,7 @@ class EKF_Wrapper:
             self.id = node_id
             self.ekf.reset(node_id, pc_info, landmarks, fixed_landmarks = fixed_landmarks)
         print("EKF initialized") 
-    
+        
     def get_point_cloud(self):
         pc_msg=rospy.wait_for_message(self.params["EKF"]["depth_pointcloud_topic"],PointCloud2)
         pc_info = self.msg2pc(pc_msg)
@@ -158,10 +164,12 @@ class EKF_Wrapper:
         with self.lock:
             rgb = self.bridge.imgmsg_to_cv2(rgb_msg,"bgr8")
             depth = self.bridge.imgmsg_to_cv2(depth_msg,"32FC1")
-            self.ekf.camera_update(rgb, depth)
-            
+            features_obsv = self.ekf.camera_update(rgb, depth)
+        self.recent_features = features_obsv
     def tf_callback(self, msg):
         pass
+    def get_recent_features(self):
+        return self.recent_features.copy()
     
 def get_pose_marker(tags, mu):
     markers=[]
@@ -252,7 +260,7 @@ if __name__ == "__main__":
         params = yaml.safe_load(file)
         
     with open(resource_path+'prior_features.yaml', 'r') as file:
-        prior =  yaml.unsafe_load(file)
+        prior =  yaml.safe_load(file)
     
     landmarks = {}
     fixed_landmarks=[]

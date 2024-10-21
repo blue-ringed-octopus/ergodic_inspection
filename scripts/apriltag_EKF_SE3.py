@@ -92,20 +92,20 @@ def get_cloud_covariance_par(depth, Q, K_inv, T):
 
 np.set_printoptions(precision=2)
 
-def draw_frame(img, tag, K):
-    img=cv2.circle(img, (int(tag["xp"]), int(tag["yp"])), 5, (0, 0, 255), -1)
-    M=tag["M"].copy()
+# def draw_frame(img, tag, K):
+#     img=cv2.circle(img, (int(tag["xp"]), int(tag["yp"])), 5, (0, 0, 255), -1)
+#     M=tag["M"].copy()
     
-    x_axis=K@M[0:3,:]@np.array([0.06,0,0,1])
-    x_axis=x_axis/(x_axis[2])
+#     x_axis=K@M[0:3,:]@np.array([0.06,0,0,1])
+#     x_axis=x_axis/(x_axis[2])
     
-    img=cv2.arrowedLine(img, (int(tag["xp"]), int(tag["yp"])), (int(x_axis[0]), int(x_axis[1])), 
-                                     (0,0,255), 5)  
-    return img
+#     img=cv2.arrowedLine(img, (int(tag["xp"]), int(tag["yp"])), (int(x_axis[0]), int(x_axis[1])), 
+#                                      (0,0,255), 5)  
+#     return img
 
 
 class EKF:
-    def __init__(self, node_id, T_c_to_r, K, odom, tag_size, tag_family = "tag36h11", fixed_landmarks=[]):
+    def __init__(self, node_id, R, Q ,  T_c_to_r, K, odom, tag_size, tag_family = "tag36h11", fixed_landmarks=[]):
         self.fixed_landmarks = fixed_landmarks
         self.features={}
         self.tag_size = tag_size
@@ -116,26 +116,20 @@ class EKF:
         self.t=time.time()
 
         #motion covariance
-        self.R=np.eye(6)
-        self.R[0,0]=0.01 #x
-        self.R[1,1]=0.01 #y
-        self.R[2,2]=0.0001 #z
-        self.R[3:5, 3:5] *= 0.0001
-        self.R[5,5] *= (np.pi/2)**2
         # self.R=np.eye(6)
-        # self.R[0,0]=999 #x
-        # self.R[1,1]=999 #y
-        # self.R[2,2]=999 #z
-        # self.R[3:5, 3:5] *= 999
-        # self.R[5,5] *= 999
-
+        # self.R[0,0]=0.01 #x
+        # self.R[1,1]=0.01 #y
+        # self.R[2,2]=0.0001 #z
+        # self.R[3:5, 3:5] *= 0.0001
+        # self.R[5,5] *= (np.pi/2)**2
+        self.R = R
         #observation covariance
-        self.Q=np.eye(6)
-        self.Q[0,0]=1**2 # 
-        self.Q[1,1]=1**2 # 
-        self.Q[2,2]=1**2 #
-        self.Q[3:6, 3:6] *= (np.pi/2)**2 #axis angle
-        
+        # self.Q=np.eye(6)
+        # self.Q[0,0]=1**2 # 
+        # self.Q[1,1]=1**2 # 
+        # self.Q[2,2]=1**2 #
+        # self.Q[3:6, 3:6] *= (np.pi/2)**2 #axis angle
+        self.Q = Q
         self.Q_img = np.eye(3)
         self.Q_img[0,0]=1**2 #x-pixel
         self.Q_img[1,1]=1**2 #y-pixel
@@ -232,7 +226,7 @@ class EKF:
     def _correction(self,features):
         mu=self.mu.copy()
         sigma=self.sigma.copy()
-        
+                
         n = len(features)
         H=np.zeros((6*n,6*len(mu)))
         Q=np.zeros((6*n,6*n))
@@ -312,22 +306,23 @@ class EKF:
         self.sigma=(sigma+sigma.T)/2
     def camera_update(self, rgb, depth):    
         features=self._detect_apriltag(rgb, depth, 2)
-        for feature in features.values():
-            rgb=draw_frame(rgb, feature, self.K)
+        # for feature in features.values():
+        #     rgb=draw_frame(rgb, feature, self.K)
         self._initialize_new_features(features)
         self._correction(features)
-            
+        return features.copy()
+    
     def motion_update(self, odom, Rv):
         #get relative transformation
         U = np.linalg.inv(self.odom_prev)@odom
         u = SE3.Log(U)
-        
+
         #apply transformation
         mu=self.mu.copy()
-        M_prev=mu[0]
-        M = M_prev@U
-        mu[0] = M
-        
+        # M_prev=mu[0]
+        # M = M_prev@U
+        # mu[0] = M
+        mu[0] = mu[0]@U
         F=np.zeros((6,6*len(mu)))
         F[0:6,0:6]=np.eye(6)
         
@@ -345,26 +340,136 @@ class EKF:
         return pos 
     
 if __name__ == "__main__":
-    import sys
     import yaml
-    from scipy.spatial.transform import Rotation as R
+    # from scipy.spatial.transform import Rotation as R
+    import pyrealsense2 as rs
+    import os
+    os.add_dll_directory(r"C:\Users\hibad\anaconda3\lib\site-packages\pupil_apriltags.libs")
 
-    if len(sys.argv) > 1:
-        tag_ids = sys.argv[1].split(",")
+    with open('../param/sim/estimation_param.yaml', 'r') as file:
+        params = yaml.safe_load(file)
         
-    with open('../resources/real/prior_features.yaml', 'r') as file:
-        prior =  yaml.unsafe_load(file)
+    with open('../resources/sim/prior_features.yaml', 'r') as file:
+        prior =  yaml.safe_load(file)
+    def get_rs_param(cfg):
+        profile = cfg.get_stream(rs.stream.color)
+        intr = profile.as_video_stream_profile().get_intrinsics()
+        return [intr.fx, intr.fy, intr.ppx, intr.ppy]
+    
+    def draw_frame(img, R,t, K):
+        T=K@np.concatenate((R,t),1)
+        x=T@[0,0,0,1]
+        x=x/x[2]
+        xp=x[0]
+        yp=x[1]
+        x_axis=T@np.array([0.06,0,0,1])
+        x_axis=x_axis/(x_axis[2])
+        y_axis=T@np.array([0,0.06,0,1])
+        y_axis=y_axis/(y_axis[2])
+        z_axis=T@np.array([0,0,0.06,1])
+        z_axis=z_axis/(z_axis[2])
         
-    landmarks = {}
-    for id_, tag in prior.items():
-        M = np.eye(4)
-        M[0:3,0:3] = R.from_euler('xyz', tag["orientation"]).as_matrix()
-        M[0:3,3] =  tag["position"]
-        landmarks[id_] = M
-        
-    for tag_id, T in landmarks.items():
-             rot = R.from_matrix(T[0:3, 0:3]).as_euler("xyz") 
-             t = T[0:3, 3]
-             prior[tag_id] = {"position": t.tolist(), "orientation": rot.tolist()}    
-    with open('test.yaml', 'w') as file:
-         yaml.safe_dump(prior, file)
+      
+        img=cv2.arrowedLine(img, (int(xp), int(yp)), (int(y_axis[0]), int(y_axis[1])), 
+                                (0,255,0), 2)  
+        img=cv2.arrowedLine(img, (int(xp), int(yp)), (int(z_axis[0]), int(z_axis[1])), 
+                                  (255,0,0), 2)  
+        img=cv2.circle(img, (int(xp), int(yp)), 5, (0, 0, 0), -1)
+        img=cv2.arrowedLine(img, (int(xp), int(yp)), (int(x_axis[0]), int(x_axis[1])), 
+                                  (0,0,255), 2)   
+
+        return img
+
+    
+    cv2.destroyAllWindows()
+    WINDOW_SCALE=1
+    TAG_SIZE=0.06 #meter
+    screenWidth=640; #pixel
+    screenHeight=480; #pixel
+    # Configure depth and color streams
+    pipeline = rs.pipeline()
+    config = rs.config()
+    
+    config.enable_stream(rs.stream.color, screenWidth, screenHeight, rs.format.bgr8, 30)
+    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+
+    align_to = rs.stream.color
+    align = rs.align(align_to)
+    # Start streaming
+    cfg=pipeline.start(config)
+    cam_param=get_rs_param(cfg)
+    at_detector = Detector(families='tag36h11',
+                            nthreads=1,
+                            quad_decimate=1.0,
+                            quad_sigma=0.0,
+                            refine_edges=1,
+                            decode_sharpening=0.25,
+                            debug=0)
+    
+    
+    K=np.array([[cam_param[0], 0, cam_param[2]],
+                [0, cam_param[1], cam_param[3]],
+                [0,0,1]])
+    landmarks={0:np.eye(4)}
+
+    ekf = EKF(node_id=0, 
+              T_c_to_r = np.eye(4), 
+              K = K, 
+              odom = np.eye(4), 
+            R = np.array(params["EKF"]["motion_noise"]),
+            Q = np.array(params["EKF"]["observation_noise"]),
+            tag_size = params["EKF"]["tag_size"],
+            tag_family = params["EKF"]["tag_families"],
+            fixed_landmarks = [0])
+    ekf.reset(0, landmarks=landmarks, fixed_landmarks = [0], pc_info=None)
+
+    n=12
+    mu=np.zeros(n)
+
+    sigma=np.eye(n)*0
+    # sigma=np.zeros((n,n))
+    # sigma[3:6,3:6]*=0
+ 
+    tags={}
+    init=True
+    try:
+        while True:
+            ekf.motion_update(np.eye(4), np.zeros((6,6)))
+            # Wait for a coherent pair of frames: depth and color
+            frames = pipeline.wait_for_frames()
+            aligned_frames = align.process(frames)
+            aligned_depth_frame = aligned_frames.get_depth_frame() # aligned_depth_frame is a 640x480 depth image
+            color_frame = aligned_frames.get_color_frame()
+
+            depth = np.asanyarray(aligned_depth_frame.get_data())
+            rgb = np.asanyarray(color_frame.get_data())
+
+            
+            rgb_raw=rgb.copy()
+            rgb_kalman=rgb.copy()
+
+            tags = ekf.camera_update(rgb, depth)
+            M_camera = ekf.mu[0]
+            
+            tag_M = []
+            for M in ekf.mu[1:]:
+                tag_M.append(inv(M_camera)@M)
+            rgb_raw = cv2.putText(rgb_raw, "Raw", (50,50),cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), thickness=2)
+            
+            for M in tag_M:
+                rgb_kalman= draw_frame(rgb_kalman,M[0:3,0:3],M[0:3,3].reshape(3,1), K)
+                
+            rgb_kalman= draw_frame(rgb_kalman,inv(M_camera)[0:3,0:3],inv(M_camera)[0:3,3].reshape(3,1), K)
+
+            rgb_kalman = cv2.putText(rgb_kalman, "Kalman", (50,50),cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), thickness=2)
+
+            for tag in tags.values():
+                rgb_raw = draw_frame(rgb_raw,tag["M"][0:3,0:3],tag["M"][0:3,3].reshape(3,1), K)
+            img=np.hstack((rgb_raw, rgb_kalman))
+                # image=cv2.circle(image, (int(x[0]),int(x[1])), radius=5, color=[0,0,255], thickness=-1)
+            cv2.imshow('Raw', img)
+
+            cv2.waitKey(1)
+    except KeyboardInterrupt:
+        cv2.destroyAllWindows()
+        pipeline.stop()

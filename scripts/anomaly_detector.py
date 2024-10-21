@@ -330,10 +330,13 @@ class Local_Detector:
 
 if __name__ == "__main__":
     from map_manager import Map_Manager
-    manager = Map_Manager("../")
+   
+    manager = Map_Manager("../resources/sim/")
     detector = Anomaly_Detector(manager.reference, manager.region_idx, 0.04)
     with open('tests/graph.pickle', 'rb') as f:
         graph = pickle.load(f)
+    graph.prior_factor.omega = np.eye(6)   
+
     for node in graph.pose_nodes.values():
         if not node.local_map == None:
     # node = graph.pose_nodes[0]
