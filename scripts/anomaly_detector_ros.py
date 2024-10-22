@@ -162,7 +162,7 @@ if __name__ == "__main__":
         params = yaml.safe_load(file)    
         
     localization_mode = True
-    anomaly_thres = 0.05
+    anomaly_thres = params["Anomaly_Detector"]["anoamly_threshold"]
 
     detector_wrapper = Anomaly_Detector_Wrapper(anomaly_thres, params)
     
