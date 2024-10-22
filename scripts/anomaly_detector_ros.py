@@ -27,9 +27,10 @@ from ergodic_inspection.srv import PointCloudWithEntropy, SetBelief, GetRegionPo
 from std_msgs.msg import Float32MultiArray 
 
 class Anomaly_Detector_Wrapper:
-    def __init__(self, anomaly_thres, params):
+    def __init__(self, params):
         self.detected_node = []
-        self.anomaly_thres = anomaly_thres
+        anomaly_thres = params["Anomaly_Detector"]["anoamly_threshold"]
+
         rospy.wait_for_service('get_reference_cloud_region')
         rospy.wait_for_service('set_entropy')
         rospy.wait_for_service('get_region_index')
@@ -47,7 +48,7 @@ class Anomaly_Detector_Wrapper:
         # bound = [box.max_bound[0],box.max_bound[1], 0.5 ]
         # box.max_bound = bound
 
-        self.detector = Anomaly_Detector(reference_cloud, region_idx, 0.04)
+        self.detector = Anomaly_Detector(reference_cloud, region_idx, thre = anomaly_thres)
     
     def detect(self, node, features):
         if node.id not in self.detected_node:
@@ -162,9 +163,8 @@ if __name__ == "__main__":
         params = yaml.safe_load(file)    
         
     localization_mode = True
-    anomaly_thres = params["Anomaly_Detector"]["anoamly_threshold"]
 
-    detector_wrapper = Anomaly_Detector_Wrapper(anomaly_thres, params)
+    detector_wrapper = Anomaly_Detector_Wrapper(params)
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
