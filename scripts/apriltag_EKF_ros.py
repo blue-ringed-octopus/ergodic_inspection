@@ -60,8 +60,8 @@ class EKF_Wrapper:
                        T_c_to_r = T_c_to_r, 
                        K = K, 
                        odom = M, 
-                       R = params["EKF"]["motion_noise"],
-                       Q = params["EKF"]["observation_noise"],
+                       R = np.array(params["EKF"]["motion_noise"]),
+                       Q = np.array(params["EKF"]["observation_noise"]),
                        tag_size = params["EKF"]["tag_size"],
                        tag_family = params["EKF"]["tag_families"],
                        fixed_landmarks = fixed_landmarks)
