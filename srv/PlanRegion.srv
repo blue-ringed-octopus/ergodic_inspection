@@ -1,3 +1,4 @@
 string current_region
+bool replan
 ---
 string next_region

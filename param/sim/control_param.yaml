@@ -2,7 +2,9 @@ waypoint_placement:
     strategy: "ergodic"
     #strategy: "random"
     #strategy: "greedy"
+
 graph_planner:
     strategy: "ergodic"
     #strategy: "random"
     #strategy: "greedy"
+    horizon: 10 

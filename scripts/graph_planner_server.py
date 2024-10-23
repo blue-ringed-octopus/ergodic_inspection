@@ -29,13 +29,18 @@ class Graph_Planner_Server:
         self.id_map, nodes, edges, w = self.parse_graph_msg(msg)
         self.planner = Graph_Planner(nodes, edges, strategy = strategy)
         rospy.Service('plan_region', PlanRegion, self.plan_region_handler)
-
-
-    def plan_region_handler(self, req):
         msg = self.get_graph(1)
         _, _, _, w = self.parse_graph_msg(msg)
+        self.w = w
+
+    def plan_region_handler(self, req):
         region = self.id_map[req.current_region]
-        next_region, _ = self.planner.get_next_region(w, region)
+        if req.replan:
+            msg = self.get_graph(1)
+            _, _, _, w = self.parse_graph_msg(msg)
+            next_region, _ = self.planner.get_next_region(w, region)
+        else:
+            next_region, _ = self.planner.get_next_region(None, region)
         return PlanRegionResponse(str(next_region))
     
     def parse_graph_msg(self, msg):

@@ -6,3 +6,4 @@ graph_planner:
     strategy: "ergodic"
     #strategy: "random"
     #strategy: "greedy"
+    horizon: 10

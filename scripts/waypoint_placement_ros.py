@@ -38,7 +38,7 @@ class Waypoint_Placement_Wrapper:
     def __init__(self, ctrl_params, est_params):
         self.ctrl_params = ctrl_params
         self.est_params = est_params
-        
+        self.horizon = ctrl_params["graph_planner"]["horizon"]
         strategy = ctrl_params["waypoint_placement"]['strategy']
         rospy.init_node('waypoint_planner',anonymous=False)
         rospy.wait_for_service('get_reference_cloud_region')
@@ -68,7 +68,7 @@ class Waypoint_Placement_Wrapper:
         self.next_region = "0"
     
         self.planner = Waypoint_Planner(strategy, costmap, T_camera, K, (w,h))
-        self.count = 0 
+        self.step = 0 
         
     def get_current_region(self):
         pose_msg = Pose()
@@ -91,7 +91,13 @@ class Waypoint_Placement_Wrapper:
         # try:
             pose, region = self.get_current_region()
             # rospy.wait_for_service('plan_region')
-            self.next_region = self.plan_region(region).next_region
+            if self.step==0:
+                self.next_region = region
+            elif self.step%self.horizon:
+                self.next_region = self.plan_region(region, False).next_region
+            else:
+                self.next_region = self.plan_region(region, True).next_region
+
             msg = self.get_reference(self.next_region)
             h, region_cloud = decode_msg(msg.ref)
             waypoint = self.planner.get_optimal_waypoint(1000, region_cloud, h)
@@ -112,7 +118,7 @@ class Waypoint_Placement_Wrapper:
         # except Exception as e: 
         #     print(e)
             self.place_node()
-            self.count += 1
+            self.step += 1
         # self.optimize()
     
 def decode_msg(msg):

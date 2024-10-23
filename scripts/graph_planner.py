@@ -109,21 +109,38 @@ class Graph_Planner:
         P=P/sum(P, 0)
 
         return P
-    
-    def get_next_region(self, weight, current_region):
+    def set_weights(self, weight):
+        self.w = weight.copy()
         if self.strategy == "ergodic":
             P = self.discounted_ergodic_markov_chain(weight)
-            region = np.random.choice(range(self.num_regions),p=P[:,current_region])
             
         elif self.strategy == "random":
             P = self.adjacency.copy()
             P=P/sum(P, 0)
-            region = np.random.choice(range(self.num_regions),p=P[:,current_region])
             
         elif self.strategy == "greedy":
-            P =  self.adjacency.copy()[:,current_region]
-            P = P * weight 
-            region = np.argmax(P)
+            P =  self.adjacency.copy()
+            for i in self.num_regions:
+                P[:, i] = P[:, i] * weight 
+                P[:, i]= P[:, i]==np.max(P[:, i])
+        self.P= P
+        
+    def get_next_region(self, weight, current_region):
+        # if self.strategy == "ergodic":
+        #     P = self.discounted_ergodic_markov_chain(weight)
+        #     region = np.random.choice(range(self.num_regions),p=P[:,current_region])
+            
+        # elif self.strategy == "random":
+        #     P = self.adjacency.copy()
+        #     P=P/sum(P, 0)
+        #     region = np.random.choice(range(self.num_regions),p=P[:,current_region])
+            
+        # elif self.strategy == "greedy":
+        #     P =  self.adjacency.copy()[:,current_region]
+        #     P = P * weight 
+        #     region = np.argmax(P)
+        P = self.P.copy()
+        region = np.random.choice(range(self.num_regions),p=P[:,current_region])
         return region, P
     
 
