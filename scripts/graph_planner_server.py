@@ -38,9 +38,10 @@ class Graph_Planner_Server:
         if req.replan:
             msg = self.get_graph(1)
             _, _, _, w = self.parse_graph_msg(msg)
-            next_region, _ = self.planner.get_next_region(w, region)
+            self.planner.set_weights(w)
+            next_region, _ = self.planner.get_next_region(region)
         else:
-            next_region, _ = self.planner.get_next_region(None, region)
+            next_region, _ = self.planner.get_next_region( region)
         return PlanRegionResponse(str(next_region))
     
     def parse_graph_msg(self, msg):
