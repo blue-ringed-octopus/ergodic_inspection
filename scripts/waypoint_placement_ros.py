@@ -92,6 +92,7 @@ class Waypoint_Placement_Wrapper:
             pose, region = self.get_current_region()
             # rospy.wait_for_service('plan_region')
             if self.step==0:
+                self.plan_region(region, replan = True)
                 self.next_region = region
             elif self.step%self.horizon:
                 self.next_region = self.plan_region(region, False).next_region
