@@ -14,15 +14,24 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 from numba import cuda
 import pickle
-mesh_path = "../resources/real/Ballast.STL"
-output_path = '../resources/real/costmap.pickle'
+
+sim = False
+if sim:
+    mesh_path = "../resources/sim/Ballast.STL"
+    output_path = '../resources/sim/costmap.pickle'
+else:
+    mesh_path = "../resources/real/Ballast.STL"
+    output_path = '../resources/real/costmap.pickle'
 resolution=0.05
 kernel_size=(5,5)
 
 robot_radius=0.175/2/resolution
-inflation_radius= 0.5/resolution
-cost_scaling_factor = 2* resolution
-
+if sim:
+    inflation_radius= 0.5/resolution
+    cost_scaling_factor = 2* resolution
+else:
+    inflation_radius= 0.5/resolution
+    cost_scaling_factor = 1.5* resolution
 #%% Import FOD clouds
 mesh = o3d.io.read_triangle_mesh(mesh_path)
 # frame = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
