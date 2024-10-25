@@ -14,16 +14,14 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 from numba import cuda
 import pickle
-mesh_path = "../resources/real/Ballast.STL"
-output_path = '../resources/real/costmap.pickle'
-# mesh_path = "../resources/Ballast_physical.STL"
-# output_path = '../resources/costmap_physical.pickle'
+mesh_path = "../resources/sim/Ballast.STL"
+output_path = '../resources/sim/costmap.pickle'
 resolution=0.05
 kernel_size=(5,5)
 
 robot_radius=0.175/2/resolution
-inflation_radius= 0.2/resolution
-cost_scaling_factor = 5.0* resolution
+inflation_radius= 0.5/resolution
+cost_scaling_factor = 2* resolution
 
 #%% Import FOD clouds
 mesh = o3d.io.read_triangle_mesh(mesh_path)
@@ -106,13 +104,17 @@ def inflation_par(image, inflation_radius, cost_scaling_factor,robot_radius):
     return d_out.copy_to_host()
 
 
-
 cost = inflation_par(masked_map, inflation_radius, cost_scaling_factor,robot_radius)
 # cost=cost.T
+occupancy = cost.copy()
+occupancy[occupancy != 255] =0 
+plt.figure()
+plt.imshow(occupancy.T, origin="lower")
+plt.figure()
 plt.imshow(cost.T, origin="lower")
 
 resolution = (max_bound-min_bound)[0:2]
 resolution = resolution/[x_shape, y_shape]
 
 with open(output_path, 'wb') as handle:
-    pickle.dump({"costmap": cost/255*100, "resolution": resolution,"origin":voxel_grid.origin, "bounds":{"min": min_bound, "max": max_bound} }, handle)
+    pickle.dump({"occupancy_map": occupancy/255*100, "costmap": cost/255*100, "resolution": resolution,"origin":voxel_grid.origin, "bounds":{"min": min_bound, "max": max_bound} }, handle)
