@@ -10,22 +10,22 @@ EKF:
   apriltag_marker_topic: "/apriltags" 
   tag_size: 0.1
   tag_families: tag36h11
-  motion_noise: [[0.005,0,0,0,0,0],
-                 [0, 0.005,0,0,0,0],
+  motion_noise: [[0.001,0,0,0,0,0],
+                 [0, 0.001,0,0,0,0],
                  [0, 0, 0.0001, 0,0,0],
                  [0, 0, 0,  0.001,0,0],
                  [0, 0, 0, 0,  0.001,0],
-                 [0, 0, 0, 0, 0,  0.05]]
-  observation_noise: [[5,0,0,0,0,0],
-                      [0, 5,0,0,0,0],
-                      [0, 0, 5, 0,0,0],
+                 [0, 0, 0, 0, 0,  0.002]]
+  observation_noise: [[1,0,0,0,0,0],
+                      [0, 1,0,0,0,0],
+                      [0, 0, 1, 0,0,0],
                       [0, 0, 0,  1.467,0,0],
                       [0, 0, 0, 0,  1.467,0],
                       [0, 0, 0, 0, 0,  1.467]]
 
 
 Graph_SLAM:
-  node_threshold: 1
+  node_threshold: 0.75
   forgetting_factor: 5
   horizon: 5
   max_iteration: 50
@@ -33,5 +33,5 @@ Graph_SLAM:
 
 Anomaly_Detector:
   neightbor_count: 20
-  anoamly_threshold: 0.02
+  anoamly_threshold: 0.01
   smoothing_factor: 0.01
