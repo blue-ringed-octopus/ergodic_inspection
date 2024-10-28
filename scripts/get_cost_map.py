@@ -25,7 +25,7 @@ else:
 resolution=0.05
 kernel_size=(5,5)
 
-robot_radius=0.175/2/resolution
+robot_radius=0.225/2/resolution
 if sim:
     inflation_radius= 0.5/resolution
     cost_scaling_factor = 2* resolution
@@ -119,8 +119,10 @@ occupancy = cost.copy()
 occupancy[occupancy != 255] =0 
 plt.figure()
 plt.imshow(occupancy.T, origin="lower")
+plt.title("occupancy")
 plt.figure()
 plt.imshow(cost.T, origin="lower")
+plt.title("cost")
 
 resolution = (max_bound-min_bound)[0:2]
 resolution = resolution/[x_shape, y_shape]
