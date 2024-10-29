@@ -305,7 +305,7 @@ class EKF:
         
         self.sigma=(sigma+sigma.T)/2
     def camera_update(self, rgb, depth):    
-        features=self._detect_apriltag(rgb, depth, 2)
+        features=self._detect_apriltag(rgb, depth, 1)
         # for feature in features.values():
         #     rgb=draw_frame(rgb, feature, self.K)
         self._initialize_new_features(features)
