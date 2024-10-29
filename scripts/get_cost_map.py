@@ -25,11 +25,12 @@ else:
 resolution=0.05
 kernel_size=(5,5)
 
-robot_radius=0.225/2/resolution
 if sim:
+    robot_radius=0.175/2/resolution
     inflation_radius= 0.5/resolution
     cost_scaling_factor = 2* resolution
 else:
+    robot_radius=0.3/2/resolution
     inflation_radius= 0.25/resolution
     cost_scaling_factor = 0.75* resolution
 #%% Import FOD clouds
