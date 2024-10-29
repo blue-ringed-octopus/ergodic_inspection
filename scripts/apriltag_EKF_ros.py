@@ -135,7 +135,7 @@ class EKF_Wrapper:
 
             odom = np.eye(4)
             odom[0:3,0:3] = R
-            odom[0:3,3]=[data.pose.pose.position.x,
+            odom[0:3,3]=-[data.pose.pose.position.x,
                               data.pose.pose.position.y,
                               data.pose.pose.position.z]
             
