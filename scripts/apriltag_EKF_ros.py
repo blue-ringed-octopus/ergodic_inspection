@@ -135,7 +135,7 @@ class EKF_Wrapper:
 
             odom = np.eye(4)
             odom[0:3,0:3] = R
-            odom[0:3,3]=- np.array([data.pose.pose.position.x,
+            odom[0:3,3]= np.array([data.pose.pose.position.x,
                               data.pose.pose.position.y,
                               data.pose.pose.position.z])
             
@@ -145,7 +145,7 @@ class EKF_Wrapper:
             Rv[2,2] =  data.twist.twist.linear.z**2 
             Rv[3,3] =  data.twist.twist.angular.x**2 
             Rv[4,4] =  data.twist.twist.angular.y**2
-            Rv[5,5] =  5 * data.twist.twist.angular.z**2
+            Rv[5,5] =  data.twist.twist.angular.z**2
             with self.lock:
                 self.ekf.motion_update(odom.copy(), Rv)
                 
