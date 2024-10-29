@@ -12,8 +12,8 @@ DWAPlannerROS:
   min_vel_trans:  -0.01
 
   #max_vel_theta: 1
-  max_vel_theta: 0.1
-  min_vel_theta: -0.1
+  max_vel_theta: 0.2
+  min_vel_theta: -0.2
   
   #acc_lim_x: 2.5
   acc_lim_x: 1
@@ -26,14 +26,14 @@ DWAPlannerROS:
   latch_xy_goal_tolerance: false
 
 # Forward Simulation Parameters
-  sim_time: 1.5
-  vx_samples: 20
+  sim_time: 2
+  vx_samples: 30
   vy_samples: 0
   vth_samples: 40
   controller_frequency: 10.0
 
 # Trajectory Scoring Parameters
-  path_distance_bias: 20
+  path_distance_bias: 15
   goal_distance_bias: 10.0
   occdist_scale: 0.02
   forward_point_distance: 0.325
