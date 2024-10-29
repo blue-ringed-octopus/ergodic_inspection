@@ -304,7 +304,8 @@ class EKF:
             for i in range(len(mu)):
                 self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
             self.sigma=(sigma+sigma.T)/2
-            
+        else:
+            print("nan correntions")
     def camera_update(self, rgb, depth):    
         features=self._detect_apriltag(rgb, depth, 2)
         # for feature in features.values():
@@ -336,7 +337,9 @@ class EKF:
             self.mu = mu
             self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@(self.R+0.01*self.R@Rv)@(Ju.T)@F
             self.odom_prev=odom
-        
+        else:
+             print("nan motion updates")
+             
     def get_posterior(self):
         pos = {"mu":  self.mu.copy(), "sigma":self.sigma.copy(),  "features": self.features.copy()}
         return pos 
