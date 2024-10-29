@@ -1,6 +1,6 @@
 local_costmap:
   global_frame: map
-  robot_base_frame: base_footprint_rf2o" 
+  robot_base_frame: base_footprint_rf2o
 
 
   update_frequency: 10.0
