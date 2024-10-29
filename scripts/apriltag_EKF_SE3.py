@@ -300,10 +300,11 @@ class EKF:
         sigma=(np.eye(len(mu)*6)-K@H)@(sigma)
         dmu=K@(dz)
         
-        for i in range(len(mu)):
-            self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
-        
-        self.sigma=(sigma+sigma.T)/2
+        if not np.isnan(dmu).all():
+            for i in range(len(mu)):
+                self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
+            self.sigma=(sigma+sigma.T)/2
+            
     def camera_update(self, rgb, depth):    
         features=self._detect_apriltag(rgb, depth, 2)
         # for feature in features.values():
@@ -331,9 +332,10 @@ class EKF:
         Jx = F.T@Jx@F
         Jx[6:,6:]=np.eye(Jx[6:,6:].shape[0])
         Ju=SE3.Jr(u)
-        self.mu = mu
-        self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@(self.R+0.01*self.R@Rv)@(Ju.T)@F
-        self.odom_prev=odom
+        if not np.isnan(mu).all():
+            self.mu = mu
+            self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@(self.R+0.01*self.R@Rv)@(Ju.T)@F
+            self.odom_prev=odom
         
     def get_posterior(self):
         pos = {"mu":  self.mu.copy(), "sigma":self.sigma.copy(),  "features": self.features.copy()}
