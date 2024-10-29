@@ -7,6 +7,7 @@ EKF:
   depth_pointcloud_topic: "/depth_registered/points"
   rgb_detected: "/camera/color/image_detected"
   odom_topic: "/odom_rf2o" 
+  odom_frame: "odom_rf2o"
   apriltag_marker_topic: "/apriltags" 
   tag_size: 0.1
   tag_families: tag36h11

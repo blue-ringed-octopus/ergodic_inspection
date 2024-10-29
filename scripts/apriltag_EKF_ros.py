@@ -149,15 +149,15 @@ class EKF_Wrapper:
             with self.lock:
                 self.ekf.motion_update(odom.copy(), Rv)
                 
-            self.tf_listener.waitForTransform("odom","base_footprint",rospy.Time(), rospy.Duration(4.0))
-            (trans, rot) = self.tf_listener.lookupTransform("odom","base_footprint", rospy.Time(0))
+            self.tf_listener.waitForTransform(self.params["EKF"]["odom_frame"],self.params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
+            (trans, rot) = self.tf_listener.lookupTransform(self.params["EKF"]["odom_frame"],self.params["EKF"]["robot_frame"], rospy.Time(0))
             odom = self.tf_listener.fromTranslationRotation(trans, rot)
             M = self.ekf.mu[0].copy()
             M = M@inv(odom)
             self.tf_br.sendTransform((M[0,3], M[1,3] , M[2,3]),
                             tf.transformations.quaternion_from_matrix(M),
                             rospy.Time.now(),
-                            "odom",
+                            self.params["EKF"]["odom_frame"],
                             "ekf")
             
     def camera_callback(self, rgb_msg, depth_msg):
