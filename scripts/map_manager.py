@@ -193,7 +193,7 @@ class Map_Manager:
     
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    manager = Map_Manager("../resources/sim/")
+    manager = Map_Manager("../resources/real/")
     ids, edges , h = manager.get_graph(1)
 
     with open('tests/detections.pickle', 'rb') as f:
