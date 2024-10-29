@@ -5,10 +5,10 @@
   <material name="purple">
        <color rgba="0.77 0.76 0.89 1"/>
       </material>
-  <link name="base_footprint"/>
+  <link name="base_footprint_rf2o"/>
 
   <joint name="base_joint" type="fixed">
-    <parent link="base_footprint"/>
+    <parent link="base_footprint_rf2o"/>
     <child link="base_link"/>
     <origin xyz="0.0 0.0 0.010" rpy="0 0 0"/>
   </joint>
