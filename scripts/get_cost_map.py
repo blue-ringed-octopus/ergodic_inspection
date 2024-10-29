@@ -30,9 +30,9 @@ if sim:
     inflation_radius= 0.5/resolution
     cost_scaling_factor = 2* resolution
 else:
-    robot_radius=0.25/2/resolution
+    robot_radius=0.3/2/resolution
     inflation_radius= 0.25/resolution
-    cost_scaling_factor = 0.75* resolution
+    cost_scaling_factor = 1.5* resolution
 #%% Import FOD clouds
 mesh = o3d.io.read_triangle_mesh(mesh_path)
 # frame = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
