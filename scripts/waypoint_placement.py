@@ -127,7 +127,10 @@ if __name__ == '__main__':
     import open3d as o3d
     from scipy.stats import bernoulli 
     import colorsys
-    
+    with open('../resources/real/edge_waypoints.yaml', 'r') as file:
+        edge_waypoints = yaml.safe_load(file)  
+        
+        
     manager = Map_Manager("../resources/sim/")
     # with open('tests/detections.pickle', 'rb') as f:
     #     dat = pickle.load(f)
