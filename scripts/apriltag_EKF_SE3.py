@@ -298,9 +298,11 @@ class EKF:
             
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
         sigma=(np.eye(len(mu)*6)-K@H)@(sigma)
+        if np.isnan(dz).any():
+            print(dz)
         dmu=K@(dz)
         sigma[6:, 6:] += np.eye(len( sigma[6:, 6:]))* 0.001
-        if not np.isnan(dmu).all():
+        if not np.isnan(dmu).any():
             for i in range(len(mu)):
                 self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
             self.sigma=(sigma+sigma.T)/2
@@ -333,7 +335,7 @@ class EKF:
         Jx = F.T@Jx@F
         Jx[6:,6:]=np.eye(Jx[6:,6:].shape[0])
         Ju=SE3.Jr(u)
-        if not np.isnan(mu).all():
+        if not np.isnan(mu).any():
             self.mu = mu
             self.sigma=(Jx)@self.sigma@(Jx.T)+F.T@(Ju)@(self.R+0.01*self.R@Rv)@(Ju.T)@F
             self.odom_prev=odom
