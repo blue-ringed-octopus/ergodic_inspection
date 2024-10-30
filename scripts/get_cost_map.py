@@ -125,6 +125,12 @@ plt.figure()
 plt.imshow(cost.T, origin="lower")
 plt.title("cost")
 
+waypotint_cost =  cost.copy()*100/255
+waypotint_cost [waypotint_cost < 20] =0 
+plt.figure()
+plt.imshow(waypotint_cost.T, origin="lower")
+plt.title("waypotint_cost")
+
 resolution = (max_bound-min_bound)[0:2]
 resolution = resolution/[x_shape, y_shape]
 

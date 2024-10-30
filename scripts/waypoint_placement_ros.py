@@ -35,7 +35,8 @@ path = rospack.get_path("ergodic_inspection")
 #     est_params = yaml.safe_load(file) 
        
 class Waypoint_Placement_Wrapper:
-    def __init__(self, ctrl_params, est_params):
+    def __init__(self, ctrl_params, est_params, edge_waypoints=None):
+        self.edge_waypoints = edge_waypoints
         self.ctrl_params = ctrl_params
         self.est_params = est_params
         self.horizon = ctrl_params["graph_planner"]["horizon"]
@@ -87,6 +88,14 @@ class Waypoint_Placement_Wrapper:
             pose = self.waypoint
         return pose, region 
     
+    def navigate_intermediate_waypoint(self, p1, p2):
+        alpha = np.arctan2(p2[1]-p1[1], p2[0]-p1[0]) - p1[2]
+        alpha = np.arctan2(np.sin(alpha), np.cos(alpha))
+        if abs(alpha)>np.pi/2:
+            intermediate_waypoint = p1.copy()
+            intermediate_waypoint += [0.01*np.cos(p2[2]), 0.01*np.sin(p2[2]), alpha]
+            navigate2point(intermediate_waypoint)
+            
     def update(self):
         # try:
             pose, region = self.get_current_region()
@@ -98,22 +107,18 @@ class Waypoint_Placement_Wrapper:
                 self.next_region = self.plan_region(region, False).next_region
             else:
                 self.next_region = self.plan_region(region, True).next_region
-
+                
+            
+                
             msg = self.get_reference(self.next_region)
             h, region_cloud = decode_msg(msg.ref)
             waypoint = self.planner.get_optimal_waypoint(1000, region_cloud, h)
+            self.navigate_intermediate_waypoint(pose, waypoint)
             
-            alpha = np.arctan2(waypoint[1]-pose[1], waypoint[0]-pose[0]) - pose[2]
-            alpha = np.arctan2(np.sin(alpha), np.cos(alpha))
-            if abs(alpha)>np.pi/2:
-                intermediate_waypoint = pose.copy()
-                intermediate_waypoint += [0.01*np.cos(pose[2]), 0.01*np.sin(pose[2]), alpha]
-                # im = self.planner.plot_waypoints([waypoint, intermediate_waypoint])
-                # plt.imshow(im, origin="lower")
-                # plt.pause(0.05)
-                # plt.show()
-                navigate2point(intermediate_waypoint)
-
+            if self.next_region in self.edge_waypoints[region].keys():
+                edge_waypoints = self.edge_waypoints[region][self.next_region]
+                simple_move(edge_waypoints)
+                
             self.waypoint = waypoint
             navigate2point(waypoint)
         # except Exception as e: 
@@ -248,15 +253,20 @@ if __name__ == "__main__":
     
     if is_sim:
         param_path = path + "/param/sim/"
+        resource_path =  path + "/resource/sim/"
     else:
         param_path = path +"/param/real/"
-        
+        resource_path =  path + "/resource/real/"
+
     with open(param_path+'control_param.yaml', 'r') as file:
         crtl_params = yaml.safe_load(file) 
     with open(param_path+'estimation_param.yaml', 'r') as file:
         est_params = yaml.safe_load(file) 
         
-    wrapper = Waypoint_Placement_Wrapper(crtl_params, est_params)
+    with open(resource_path+'edge_waypoints.yaml', 'r') as file:
+        edge_waypoints = yaml.safe_load(file)  
+        
+    wrapper = Waypoint_Placement_Wrapper(crtl_params, est_params, edge_waypoints)
     waypoint_thread = threading.Thread(target = plot_waypoint,daemon=True, args = (wrapper,))
     wrapper.update()
     waypoint_thread.start()
