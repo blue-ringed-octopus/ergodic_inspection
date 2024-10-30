@@ -253,10 +253,10 @@ if __name__ == "__main__":
     
     if is_sim:
         param_path = path + "/param/sim/"
-        resource_path =  path + "/resource/sim/"
+        resource_path =  path + "/resources/sim/"
     else:
         param_path = path +"/param/real/"
-        resource_path =  path + "/resource/real/"
+        resource_path =  path + "/resources/real/"
 
     with open(param_path+'control_param.yaml', 'r') as file:
         crtl_params = yaml.safe_load(file) 
