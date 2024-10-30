@@ -115,9 +115,13 @@ class Waypoint_Placement_Wrapper:
             waypoint = self.planner.get_optimal_waypoint(1000, region_cloud, h)
             self.navigate_intermediate_waypoint(pose, waypoint)
             
-            if self.next_region in self.edge_waypoints[region].keys():
-                edge_waypoints = self.edge_waypoints[region][self.next_region]
-                simple_move(edge_waypoints)
+            if self.next_region in self.edge_waypoints[str(region)].keys():
+                edge_waypoint = self.edge_waypoints[str(region)][str(self.next_region)]
+                edge_waypoint = [edge_waypoint["x"], 
+                                 edge_waypoint["y"], 
+                                 edge_waypoint["z"],
+                                 edge_waypoint["w"],]
+                simple_move(edge_waypoint)
                 
             self.waypoint = waypoint
             navigate2point(waypoint)
