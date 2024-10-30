@@ -140,40 +140,40 @@ if __name__ == '__main__':
     # manager.process_reference(pc)
     # manager.set_entropy(dat["p"][-1], np.array(range(len(dat["p"][-1]))))
      
-    T_camera = np.eye(4)
-    T_camera[0:3,3]= [0.077, -0.000, 0.218]
-    T_camera[0:3,0:3] =  [[0.0019938, -0.1555174, 0.9878311],
-                          [-0.999998, -0.000156, 0.0019938],
-                          [-0.000156, -0.9878331, -0.1555174]]
+    # T_camera = np.eye(4)
+    # T_camera[0:3,3]= [0.077, -0.000, 0.218]
+    # T_camera[0:3,0:3] =  [[0.0019938, -0.1555174, 0.9878311],
+    #                       [-0.999998, -0.000156, 0.0019938],
+    #                       [-0.000156, -0.9878331, -0.1555174]]
     
-    K = np.array([[872.2853801540007, 0.0, 604.5],
-                 [0.0, 872.2853801540007, 360.5],
-                 [ 0.0, 0.0, 1.0]])
+    # K = np.array([[872.2853801540007, 0.0, 604.5],
+    #              [0.0, 872.2853801540007, 360.5],
+    #              [ 0.0, 0.0, 1.0]])
 
-    w, h = 1208, 720
-    region = 4
-    entropy, cloud = manager.get_region_entropy(region)  
-    for _ in range(10):
-        v = 1 - entropy/bernoulli.entropy(0.5)
-        rgb = [colorsys.hsv_to_rgb(0, 0, v[i]) for i in range(len(entropy))]
-        cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
+    # w, h = 1208, 720
+    # region = 4
+    # entropy, cloud = manager.get_region_entropy(region)  
+    # for _ in range(10):
+    #     v = 1 - entropy/bernoulli.entropy(0.5)
+    #     rgb = [colorsys.hsv_to_rgb(0, 0, v[i]) for i in range(len(entropy))]
+    #     cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
         
-        planner = Waypoint_Planner("ergodic", manager.costmap,T_camera, K, (w,h))    
-        waypoint = planner.get_optimal_waypoint(1000, cloud, entropy)
-        idx = planner.camera_projection(waypoint, cloud)
-        colors = np.asarray(cloud.colors)
-        colors[idx] = [255,0,0]
-        cloud.colors = o3d.utility.Vector3dVector(colors)
-        T_robot = np.eye(4)
-        T_robot[0:2,3] = waypoint[0:2]
-        T_robot[0:2,0:2] = [[np.cos(waypoint[2]), -np.sin(waypoint[2])],
-                           [np.sin(waypoint[2]), np.cos(waypoint[2])]]
-        robot_frame  = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
-        robot_frame = robot_frame.transform(T_robot)
-        o3d.visualization.draw_geometries([cloud, robot_frame])
+    #     planner = Waypoint_Planner("ergodic", manager.costmap,T_camera, K, (w,h))    
+    #     waypoint = planner.get_optimal_waypoint(1000, cloud, entropy)
+    #     idx = planner.camera_projection(waypoint, cloud)
+    #     colors = np.asarray(cloud.colors)
+    #     colors[idx] = [255,0,0]
+    #     cloud.colors = o3d.utility.Vector3dVector(colors)
+    #     T_robot = np.eye(4)
+    #     T_robot[0:2,3] = waypoint[0:2]
+    #     T_robot[0:2,0:2] = [[np.cos(waypoint[2]), -np.sin(waypoint[2])],
+    #                        [np.sin(waypoint[2]), np.cos(waypoint[2])]]
+    #     robot_frame  = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
+    #     robot_frame = robot_frame.transform(T_robot)
+    #     o3d.visualization.draw_geometries([cloud, robot_frame])
         
-        im = planner.plot_waypoints([waypoint])
-        plt.imshow(im, origin="lower")
+    #     im = planner.plot_waypoints([waypoint])
+    #     plt.imshow(im, origin="lower")
         
-        entropy[idx] = 0
+    #     entropy[idx] = 0
    
