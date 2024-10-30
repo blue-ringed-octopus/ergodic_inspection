@@ -299,7 +299,7 @@ class EKF:
         K=sigma@(H.T)@inv((H@sigma@(H.T)+Q))
         sigma=(np.eye(len(mu)*6)-K@H)@(sigma)
         dmu=K@(dz)
-        
+        sigma[6:, 6:] += np.eye(len( sigma[6:, 6:]))* 0.001
         if not np.isnan(dmu).all():
             for i in range(len(mu)):
                 self.mu[i]=mu[i]@SE3.Exp(dmu[6*i:6*i+6])
