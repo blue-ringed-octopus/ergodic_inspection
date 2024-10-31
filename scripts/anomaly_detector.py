@@ -23,6 +23,7 @@ from numpy.linalg import  inv
 from  math import sqrt
 from copy import deepcopy
 from scipy.stats import bernoulli 
+from scipy.cluster import hierarchy
 
 np.float = np.float64
 np.set_printoptions(precision=2)
@@ -243,6 +244,26 @@ class Local_Detector:
         self.md_ref = np.zeros((n, 2))
         self.chi2 = np.zeros((n, 2))
 
+    # def anomaly_clustering(self, minsize, cutoff, dist=[]):
+    #     points=np.asarray(cloud.points)
+    #     if len(points)<=minsize:
+    #         print("no fod")
+    #         return [],[]
+    #     labels=hierarchy.fclusterdata(points, criterion='distance',t=cutoff)-1
+    #     num_point=np.bincount(labels)
+    #     clouds=[]
+    #     dists=[]
+    #     for i in range(max(labels)+1):
+    #         if num_point[i]>=minsize:
+    #             pointlist=[points[j] for j in range(len(points)) if i==labels[j]]
+    #             if len(dist)!=0:
+    #                 dists+=[[dist[j] for j in range(len(points)) if i==labels[j]]]
+    #             clouds.append(Cloud_from_points(pointlist))
+    #     for i in range(len(clouds)):
+    #         rgb=cs.hsv_to_rgb(float(i)/len(clouds),1,1)
+    #         clouds[i].paint_uniform_color(rgb)
+    #     return clouds, dists    
+    
     def _calculate_self_neighbor(self):
         _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
         self.self_neighbor = corr.astype(np.uint32)
