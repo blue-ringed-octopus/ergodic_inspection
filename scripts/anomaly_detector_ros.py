@@ -62,7 +62,7 @@ class Anomaly_Detector_Wrapper:
             msg = CandidatePoints()
             msg.region_id = region
             if len(candidate>0):
-                msg.points = candidates.rehape(-1)
+                msg.points = candidate.rehape(-1)
             msgs.append(msg)
         return GetCandidatesResponse(msgs)
     
