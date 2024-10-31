@@ -30,7 +30,8 @@ from ergodic_inspection.msg import CandidatePoints
 from std_msgs.msg import Float32MultiArray 
 
 class Anomaly_Detector_Wrapper:
-    def __init__(self, params):
+    def __init__(self, params, save_dir):
+        self.save_dir = save_dir
         self.detected_node = []
         self.candidates={}
         rospy.Service('get_anomaly_candidates', GetCandidates, self.get_candidates)
@@ -74,7 +75,6 @@ class Anomaly_Detector_Wrapper:
         if node.id not in self.detected_node:
             print("detecting node: ", node.id)
 
-            self.detected_node.append(node.id)
             pose_msg = Pose()
             pose_msg.position.x = node.M[0,3]
             pose_msg.position.y = node.M[1,3]
@@ -88,6 +88,13 @@ class Anomaly_Detector_Wrapper:
                 msg.data = p
                 # try:
                 self.set_h(idx.astype(np.uint64), msg)
+            else:
+                print("no valid points")
+                
+            with open(self.save_dir+"key_node_"+str(len(self.detected_node))+'.pickle', 'wb') as handle:
+                pickle.dump(node, handle)
+            self.detected_node.append(node.id)
+            node.local_map = {}
             # except:
             #     print("failed to send entropy")
                 
@@ -209,19 +216,19 @@ if __name__ == "__main__":
             if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)> 1: 
                 for node in list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.values())[:-1]:  
                    detector_wrapper.detect(node, features)
+                   
                    # del graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[node.id]
-            if not len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)%10:
-                with open(save_dir+'key_nodes.pickle', 'wb') as handle:
-                    pickle.dump(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes, handle) 
             if len(detector_wrapper.candidates)> 0:
                 marker = get_candidate_marker(detector_wrapper.candidates)
                 candidate_pub.publish(marker)
             rate.sleep()
     except KeyboardInterrupt: 
-        print("saving key nodes")
-        with open(save_dir+'key_nodes.pickle', 'wb') as handle:
-            pickle.dump(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes, handle)
+        # print("saving key nodes")
+        # with open(save_dir+'key_nodes.pickle', 'wb') as handle:
+        #     pickle.dump(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes, handle)
         print("saving factor-graph")
-
-        with open('graph.pickle', 'wb') as handle:
+        with open(save_dir+'graph.pickle', 'wb') as handle:
             pickle.dump(graph_slam_wrapper.graph_slam.factor_graph, handle)
+        print("saving global map")
+      
+        o3d.io.write_point_cloud(save_dir+"global_map.ply", graph_slam_wrapper.graph_slam.global_map )
