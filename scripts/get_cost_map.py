@@ -31,7 +31,7 @@ if sim:
     cost_scaling_factor = 2* resolution
 else:
     robot_radius=0.25/2/resolution
-    inflation_radius= 0.25/resolution
+    inflation_radius= 0.3/resolution
     cost_scaling_factor = 1.5* resolution
 #%% Import FOD clouds
 mesh = o3d.io.read_triangle_mesh(mesh_path)
@@ -126,7 +126,7 @@ plt.imshow(cost.T, origin="lower")
 plt.title("cost")
 
 waypotint_cost =  cost.copy()*100/255
-waypotint_cost [waypotint_cost < 20] =0 
+# waypotint_cost [waypotint_cost < 20] =0 
 plt.figure()
 plt.imshow(waypotint_cost.T, origin="lower")
 plt.title("waypotint_cost")
