@@ -153,6 +153,7 @@ if __name__ == "__main__":
     rospack=rospkg.RosPack()
     path = rospack.get_path("ergodic_inspection")
     is_sim = rospy.get_param("isSim")
+    save_dir= rospy.get_param("save_dir")
     
     if is_sim:
         param_path = path + "/param/sim/"
@@ -188,7 +189,7 @@ if __name__ == "__main__":
             rate.sleep()
     except KeyboardInterrupt: 
         print("saving key nodes")
-        with open('key_nodes.pickle', 'wb') as handle:
+        with open(save_dir+'key_nodes.pickle', 'wb') as handle:
             pickle.dump(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes, handle)
         print("saving factor-graph")
 

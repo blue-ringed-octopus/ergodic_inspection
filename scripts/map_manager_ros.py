@@ -35,7 +35,9 @@ rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
 
 class Server:
-    def __init__(self, map_manager):
+    def __init__(self, map_manager, save_dir=""):
+        self.step = 0 
+        self.save_dir = save_dir
         self.map_manager = map_manager
         rospy.Service('get_reference_cloud_region', PointCloudWithEntropy, self.send_pc)
         rospy.Service('set_entropy', SetBelief, self.set_entropy)
@@ -112,9 +114,10 @@ class Server:
         idx = np.array(req.indices)
         self.map_manager.set_entropy(p, idx)
         self.dat["p"].append(map_manager.p.copy())
-        with open('detections.pickle', 'wb') as handle:
+        with open(save_dir+'detection'+str(self.step)+'.pickle', 'wb') as handle:
             pickle.dump(self.dat, handle)
         # print(self.map_manager.h)
+        self.step+=1
         return SetBeliefResponse(True)
     
     def send_pc(self, req):
@@ -209,7 +212,8 @@ def get_mesh_marker(mesh_resource):
  
 if __name__ == "__main__":
     is_sim = rospy.get_param("isSim")
-    
+    save_dir= rospy.get_param("save_dir")
+
     if is_sim:
         path = path + "/resources/sim/"
     else:
@@ -221,7 +225,7 @@ if __name__ == "__main__":
     mesh_marker.header.stamp = rospy.Time.now()
 
     map_manager = Map_Manager(path)
-    server = Server(map_manager)
+    server = Server(map_manager, save_dir)
     
     ref_pc_pub=rospy.Publisher("/pc_ref", PointCloud2, queue_size = 2)
     cad_pub = rospy.Publisher("/ref", Marker, queue_size = 2)
@@ -230,7 +234,7 @@ if __name__ == "__main__":
     costmap_meta_pub=rospy.Publisher("/map_metadata", MapMetaData, queue_size = 2)
 
     
-    rate = rospy.Rate(30) 
+    rate = rospy.Rate(1) 
     while not rospy.is_shutdown():
         ref_pc = map_manager.visualize_entropy()
         ref_pc_msg = server.get_pc_msg(ref_pc)
