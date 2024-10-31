@@ -24,11 +24,16 @@ import tf
 import pickle
 import yaml
 from ergodic_inspection.srv import PointCloudWithEntropy, SetBelief, GetRegionPointIndex, GetRegion
+from ergodic_inspection.srv import GetCandidates, GetCandidatesResponse
+from ergodic_inspection.msg import CandidatePoints
+
 from std_msgs.msg import Float32MultiArray 
 
 class Anomaly_Detector_Wrapper:
     def __init__(self, params):
         self.detected_node = []
+        rospy.Service('get_anomaly_candidates', GetCandidates, self.get_candidates)
+
         anomaly_thres = params["Anomaly_Detector"]["anoamly_threshold"]
 
         rospy.wait_for_service('get_reference_cloud_region')
@@ -50,10 +55,16 @@ class Anomaly_Detector_Wrapper:
 
         self.detector = Anomaly_Detector(reference_cloud, region_idx, thres = anomaly_thres)
         
-    def get_cluster(self):
+    def get_candidates(self):
         candidates = self.detector.cluster_anomalies()
-        
-        
+        msgs = []
+        for region, candidate in candidates.items():
+            msg = CandidatePoints()
+            msg.region_id = region
+            msg.points = candidates.rehape(-1)
+            msgs.append(msg)
+        return GetCandidatesResponse(msgs)
+    
     def detect(self, node, features):
         if node.id not in self.detected_node:
             print("detecting node: ", node.id)
