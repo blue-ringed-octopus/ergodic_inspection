@@ -263,7 +263,7 @@ class Local_Detector:
              print("no fod")
              return []
          else:
-             labels=hierarchy.fclusterdata(points, criterion='distance',t=0.1)-1
+             labels=hierarchy.fclusterdata(points, criterion='distance',t=0.5)-1
              num_point=np.bincount(labels)
              clusters=[]
              for i in range(max(labels)+1):
@@ -379,8 +379,8 @@ if __name__ == "__main__":
     # o3d.visualization.draw_geometries([cloud])
     #%%
     import colorsys as cs
-
-    with open('tests/detection3.pickle', 'rb') as f:
+    import matplotlib.pyplot as plt
+    with open('tests/test_resource/detection11.pickle', 'rb') as f:
         cloud = pickle.load(f)
     p_anomaly =  cloud['p']
     # detector = Anomaly_Detector(cloud["cloud"], cloud["region"], 0.04)
@@ -390,7 +390,7 @@ if __name__ == "__main__":
         print("no fod")
     
     minsize = 0
-    labels=hierarchy.fclusterdata(points, criterion='distance',t=0.1)-1
+    labels=hierarchy.fclusterdata(points, criterion='distance',t=0.5)-1
     num_point=np.bincount(labels)
     clusters=[]
     for i in range(max(labels)+1):
@@ -413,3 +413,25 @@ if __name__ == "__main__":
         sphere.translate(centroid)
         fods.append(sphere)
     o3d.visualization.draw_geometries([pc]+fods)
+   
+    img = [] 
+    with open('tests/test_resource/key_nodes.pickle', 'rb') as f:
+        key_nodes = pickle.load(f)
+    for _, node in key_nodes.items():
+        K = node.local_map["cam_param"]
+        T_camera = node.local_map["cam_transform"]
+        M = node.M@T_camera
+        h,w,_ = node.local_map["rgb"].shape
+        for centroid in centroids:
+            p = (inv(M)@np.concatenate((centroid,[1])))[0:3]
+            pixel = (K@p.T).T
+            pixel_x = pixel[0]/pixel[2]
+            pixel_y = pixel[1]/pixel[2]
+            if ((p[2]<2) & (p[2]>0.05) & 
+                            (pixel_x>=0) & (pixel_x<w) &
+                            (pixel_y>=0) & (pixel_y<h)) :
+                img.append(node.local_map["rgb"])
+                
+    for im in img:
+        plt.figure()
+        plt.imshow(im)

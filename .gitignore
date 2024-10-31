@@ -1,5 +1,6 @@
 *.pyc
 **/graph.pickle
 **/tests/*.pickle
+**/tests/test_resource/*.pickle
 __pycache__/
 

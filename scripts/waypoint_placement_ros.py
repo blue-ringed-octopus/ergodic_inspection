@@ -37,6 +37,7 @@ path = rospack.get_path("ergodic_inspection")
        
 class Waypoint_Placement_Wrapper:
     def __init__(self, ctrl_params, est_params, edge_waypoints=None):
+        self.running = True
         self.edge_waypoints = edge_waypoints
         self.ctrl_params = ctrl_params
         self.est_params = est_params
@@ -96,42 +97,52 @@ class Waypoint_Placement_Wrapper:
             intermediate_waypoint = p1.copy()
             intermediate_waypoint += [0.01*np.cos(p2[2]), 0.01*np.sin(p2[2]), alpha]
             navigate2point(intermediate_waypoint)
+      
+    def inspect(self):
+        pose, region = self.get_current_region()
+        # rospy.wait_for_service('plan_region')
+        if self.step==0:
+            self.plan_region(region, True)
+            self.next_region = region
+        elif self.step%self.horizon:
+            self.next_region = self.plan_region(region, False).next_region
+        else:
+            self.next_region = self.plan_region(region, True).next_region
             
-    def update(self):
-        # try:
-            pose, region = self.get_current_region()
-            # rospy.wait_for_service('plan_region')
-            if self.step==0:
-                self.plan_region(region, True)
-                self.next_region = region
-            elif self.step%self.horizon:
-                self.next_region = self.plan_region(region, False).next_region
-            else:
-                self.next_region = self.plan_region(region, True).next_region
-                
+        
             
-                
-            msg = self.get_reference(self.next_region)
-            h, region_cloud = decode_msg(msg.ref)
-            waypoint = self.planner.get_optimal_waypoint(1000, region_cloud, h)
-            self.navigate_intermediate_waypoint(pose, waypoint)
+        msg = self.get_reference(self.next_region)
+        h, region_cloud = decode_msg(msg.ref)
+        waypoint = self.planner.get_optimal_waypoint(1000, region_cloud, h)
+        self.navigate_intermediate_waypoint(pose, waypoint)
+        
+        if self.next_region in self.edge_waypoints[region].keys():
+            edge_waypoint = self.edge_waypoints[region][self.next_region]
+            edge_waypoint = [edge_waypoint["x"], 
+                             edge_waypoint["y"], 
+                             edge_waypoint["z"],
+                             edge_waypoint["w"],]
+            simple_move(edge_waypoint)
             
-            if self.next_region in self.edge_waypoints[region].keys():
-                edge_waypoint = self.edge_waypoints[region][self.next_region]
-                edge_waypoint = [edge_waypoint["x"], 
-                                 edge_waypoint["y"], 
-                                 edge_waypoint["z"],
-                                 edge_waypoint["w"],]
-                simple_move(edge_waypoint)
-                
-            self.waypoint = waypoint
-            navigate2point(waypoint)
-        # except Exception as e: 
-        #     print(e)
-            self.place_node()
-            self.step += 1
-        # self.optimize()
+        self.waypoint = waypoint
+        navigate2point(waypoint)
+    # except Exception as e: 
+    #     print(e)
+        self.place_node()
+        self.step += 1     
+        
+    def collect_image(self):
+        pass
     
+    def update(self):
+        if self.step<40:
+            print("inspecting")
+            self.inspect()
+        else:
+            print("collecting images")  
+            self.collect_image()
+            self.running = False
+            
 def decode_msg(msg):
     pc=ros_numpy.numpify(msg)
     x=pc['x'].reshape(-1)
@@ -275,7 +286,7 @@ if __name__ == "__main__":
     waypoint_thread = threading.Thread(target = plot_waypoint,daemon=True, args = (wrapper,))
     wrapper.update()
     waypoint_thread.start()
-    while not rospy.is_shutdown() and wrapper.step<=40:
+    while not rospy.is_shutdown() and wrapper.running:
         wrapper.update()
         
     print("inspection done")

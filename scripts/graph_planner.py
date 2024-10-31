@@ -124,7 +124,8 @@ class Graph_Planner:
                 P[:, i] = P[:, i] * weight 
                 P[:, i]= P[:, i]==np.max(P[:, i])
         self.P= P
-        
+        return P.copy()
+    
     def get_next_region(self, current_region):
         # if self.strategy == "ergodic":
         #     P = self.discounted_ergodic_markov_chain(weight)
