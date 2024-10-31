@@ -32,6 +32,7 @@ from std_msgs.msg import Float32MultiArray
 class Anomaly_Detector_Wrapper:
     def __init__(self, params):
         self.detected_node = []
+        self.candidates={}
         rospy.Service('get_anomaly_candidates', GetCandidates, self.get_candidates)
 
         anomaly_thres = params["Anomaly_Detector"]["anoamly_threshold"]
@@ -66,13 +67,8 @@ class Anomaly_Detector_Wrapper:
             if len(candidate)>0:                
                 msg.points.data = candidate.reshape(-1)
             msgs.append(msg)
-        self.visualize_candidates(candidates)
-        return GetCandidatesResponse(msgs)
-    
-    def visualize_candidates(self, candidates):
-        pub = rospy.Publisher("/candidates", Marker, queue_size = 2)
-        marker = get_candidate_marker(candidates)
-        pub.publish(marker)
+        self.candidates = candidates
+        return GetCandidatesResponse(msgs)  
         
     def detect(self, node, features):
         if node.id not in self.detected_node:
@@ -202,7 +198,8 @@ if __name__ == "__main__":
     rospy.init_node('estimator',anonymous=False)
 
     graph_slam_wrapper = Graph_SLAM_wrapper(br, params, localization_mode)
-       
+    candidate_pub = rospy.Publisher("/candidates", Marker, queue_size = 2)
+
     rate = rospy.Rate(30) 
     try:
         while not rospy.is_shutdown():
@@ -216,7 +213,9 @@ if __name__ == "__main__":
             if not len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)%10:
                 with open(save_dir+'key_nodes.pickle', 'wb') as handle:
                     pickle.dump(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes, handle) 
-    
+            if len(detector_wrapper.candidates)> 0:
+                marker = get_candidate_marker(detector_wrapper.candidates)
+                candidate_pub.publish(marker)
             rate.sleep()
     except KeyboardInterrupt: 
         print("saving key nodes")
