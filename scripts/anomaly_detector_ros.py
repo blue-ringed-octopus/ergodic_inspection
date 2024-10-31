@@ -61,8 +61,7 @@ class Anomaly_Detector_Wrapper:
         for region, candidate in candidates.items():
             msg = CandidatePoints()
             msg.region_id = region
-            if len(candidate)>0:
-                msg.points.layout = np.array(candidate.shape)
+            if len(candidate)>0:                
                 msg.points.data = candidate.reshape(-1)
             msgs.append(msg)
         return GetCandidatesResponse(msgs)
