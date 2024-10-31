@@ -220,9 +220,14 @@ class Anomaly_Detector:
             return [], []
         
         return p_anomaly, self.region_idx[region]
-        # with open('ref_cloud_detected.pickle', 'wb') as handle:
-        #     pickle.dump({"ref_pc": self.ref_points, "p_anomaly": self.p_anomaly}, handle)
-            
+
+        
+    def cluster_anomalies(self):
+        candidates = {}
+        for region, detector in self.detectors.items():
+            candidates[region] = detector.cluster_anomalies()
+        return candidates
+    
 class Local_Detector:
     def __init__(self, pc, thres=1):
         self.bounding_box = pc.get_axis_aligned_bounding_box()
@@ -243,36 +248,40 @@ class Local_Detector:
         self.n_sample = np.zeros(n)
         self.md_ref = np.zeros((n, 2))
         self.chi2 = np.zeros((n, 2))
-
-    # def anomaly_clustering(self, minsize, cutoff, dist=[]):
-        # points=np.asarray(cloud.points)
-        # if len(points)<=minsize:
-        #     print("no fod")
-        #     return [],[]
-        # labels=hierarchy.fclusterdata(points, criterion='distance',t=cutoff)-1
-        # num_point=np.bincount(labels)
-        # clouds=[]
-        # dists=[]
-        # for i in range(max(labels)+1):
-        #     if num_point[i]>=minsize:
-        #         pointlist=[points[j] for j in range(len(points)) if i==labels[j]]
-        #         if len(dist)!=0:
-        #             dists+=[[dist[j] for j in range(len(points)) if i==labels[j]]]
-        #         clouds.append(Cloud_from_points(pointlist))
-        # for i in range(len(clouds)):
-        #     rgb=cs.hsv_to_rgb(float(i)/len(clouds),1,1)
-        #     clouds[i].paint_uniform_color(rgb)
-        # return clouds, dists    
-    
-    def _calculate_self_neighbor(self):
-        _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
-        self.self_neighbor = corr.astype(np.uint32)
-                    
+        
     def get_ref_pc(self, pc):
         self.reference = deepcopy(pc)
         self.ref_normal = np.asarray(pc.normals)
         self.ref_points = np.asarray(pc.points)
         self.num_points = len(self.ref_points)
+        
+    def cluster_anomalies(self):
+         minsize = 0
+         points = np.array(self.reference.points)
+         points = points[p_anomaly>=0.5]
+         if len(points)<=minsize:
+             print("no fod")
+         
+         labels=hierarchy.fclusterdata(points, criterion='distance',t=0.1)-1
+         num_point=np.bincount(labels)
+         clusters=[]
+         for i in range(max(labels)+1):
+             if num_point[i]>=minsize:
+                 pointlist=[points[j] for j in range(len(points)) if i==labels[j]]
+                 clusters.append(pointlist)
+                 # pc=o3d.geometry.PointCloud()
+                 # pc.points=o3d.utility.Vector3dVector(pointlist)
+                 # clouds.append(pc)
+         centroids=[]
+         for i, cluster in enumerate(clusters):
+             centroids.append(np.average(cluster,axis=0))
+         return np.asarray(centroids)  
+    
+    def _calculate_self_neighbor(self):
+        _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
+        self.self_neighbor = corr.astype(np.uint32)
+                    
+
         
     def _paint_pc(self, pc, mds):
         c = np.array([0.5 if mds[i, 0]+mds[i, 1]==0 else mds[i, 0]/(mds[i, 0]+mds[i, 1]  )
@@ -351,7 +360,6 @@ class Local_Detector:
 
 if __name__ == "__main__":
     from map_manager import Map_Manager
-    
     #manager = Map_Manager("../resources/sim/")
     #detector = Anomaly_Detector(manager.reference, manager.region_idx, 0.04)
     # with open('tests/graph.pickle', 'rb') as f:
@@ -369,24 +377,38 @@ if __name__ == "__main__":
     # cloud = manager.visualize_entropy()
     # o3d.visualization.draw_geometries([cloud])
     #%%
-    with open('tests/detection1.pickle', 'rb') as f:
+    import colorsys as cs
+
+    with open('tests/detection3.pickle', 'rb') as f:
         cloud = pickle.load(f)
-    p_anomaly =  cloud['p'][-1]   
+    p_anomaly =  cloud['p']
     # detector = Anomaly_Detector(cloud["cloud"], cloud["region"], 0.04)
-    points=cloud["cloud"]
+    points=cloud["cloud"]['points']
     points = points[p_anomaly>=0.5]
     if len(points)<=5:
         print("no fod")
     
-    minsize = 5
+    minsize = 0
     labels=hierarchy.fclusterdata(points, criterion='distance',t=0.1)-1
     num_point=np.bincount(labels)
-    clouds=[]
+    clusters=[]
     for i in range(max(labels)+1):
         if num_point[i]>=minsize:
             pointlist=[points[j] for j in range(len(points)) if i==labels[j]]
-
-            clouds.append(Cloud_from_points(pointlist))
-    for i in range(len(clouds)):
-        rgb=cs.hsv_to_rgb(float(i)/len(clouds),1,1)
-        clouds[i].paint_uniform_color(rgb)
+            clusters.append(pointlist)
+            # pc=o3d.geometry.PointCloud()
+            # pc.points=o3d.utility.Vector3dVector(pointlist)
+            # clouds.append(pc)
+    centroids=[]
+    for i, cluster in enumerate(clusters):
+        centroids.append(np.average(cluster,axis=0))
+        
+    pc=o3d.geometry.PointCloud()
+    pc.points=o3d.utility.Vector3dVector(cloud["cloud"]['points'])
+    pc = pc.paint_uniform_color([0,0,0])
+    fods=[]
+    for centroid in centroids:
+        sphere = o3d.geometry.TriangleMesh.create_sphere (radius=0.1, resolution=20)
+        sphere.translate(centroid)
+        fods.append(sphere)
+    o3d.visualization.draw_geometries([pc]+fods)

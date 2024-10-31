@@ -49,7 +49,11 @@ class Anomaly_Detector_Wrapper:
         # box.max_bound = bound
 
         self.detector = Anomaly_Detector(reference_cloud, region_idx, thres = anomaly_thres)
-    
+        
+    def get_cluster(self):
+        candidates = self.detector.cluster_anomalies()
+        
+        
     def detect(self, node, features):
         if node.id not in self.detected_node:
             print("detecting node: ", node.id)
