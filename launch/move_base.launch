@@ -4,7 +4,7 @@
   <arg name="move_forward_only" default="false"/>
 
   <!-- move_base -->
-<group if="$(arg isSim)">
+<group unless="$(arg isSim)">
     <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
         <remap from="odom" to="odom_rf2o"/>
         <param name="base_global_planner" value="global_planner/GlobalPlanner" />
@@ -19,7 +19,7 @@
         <rosparam file="$(find ergodic_inspection)/param/real/move_base/global_planner_param.yaml" command="load" /> 
   </node>
 </group>
-<group unless="$(arg isSim)">
+<group if="$(arg isSim)">
     <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
         <param name="base_global_planner" value="global_planner/GlobalPlanner" />
         <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
