@@ -1,4 +1,5 @@
 *.pyc
 **/graph.pickle
+**/tests/*.pickle
 __pycache__/
 

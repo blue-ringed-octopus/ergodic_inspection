@@ -245,24 +245,24 @@ class Local_Detector:
         self.chi2 = np.zeros((n, 2))
 
     # def anomaly_clustering(self, minsize, cutoff, dist=[]):
-    #     points=np.asarray(cloud.points)
-    #     if len(points)<=minsize:
-    #         print("no fod")
-    #         return [],[]
-    #     labels=hierarchy.fclusterdata(points, criterion='distance',t=cutoff)-1
-    #     num_point=np.bincount(labels)
-    #     clouds=[]
-    #     dists=[]
-    #     for i in range(max(labels)+1):
-    #         if num_point[i]>=minsize:
-    #             pointlist=[points[j] for j in range(len(points)) if i==labels[j]]
-    #             if len(dist)!=0:
-    #                 dists+=[[dist[j] for j in range(len(points)) if i==labels[j]]]
-    #             clouds.append(Cloud_from_points(pointlist))
-    #     for i in range(len(clouds)):
-    #         rgb=cs.hsv_to_rgb(float(i)/len(clouds),1,1)
-    #         clouds[i].paint_uniform_color(rgb)
-    #     return clouds, dists    
+        # points=np.asarray(cloud.points)
+        # if len(points)<=minsize:
+        #     print("no fod")
+        #     return [],[]
+        # labels=hierarchy.fclusterdata(points, criterion='distance',t=cutoff)-1
+        # num_point=np.bincount(labels)
+        # clouds=[]
+        # dists=[]
+        # for i in range(max(labels)+1):
+        #     if num_point[i]>=minsize:
+        #         pointlist=[points[j] for j in range(len(points)) if i==labels[j]]
+        #         if len(dist)!=0:
+        #             dists+=[[dist[j] for j in range(len(points)) if i==labels[j]]]
+        #         clouds.append(Cloud_from_points(pointlist))
+        # for i in range(len(clouds)):
+        #     rgb=cs.hsv_to_rgb(float(i)/len(clouds),1,1)
+        #     clouds[i].paint_uniform_color(rgb)
+        # return clouds, dists    
     
     def _calculate_self_neighbor(self):
         _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
@@ -351,20 +351,42 @@ class Local_Detector:
 
 if __name__ == "__main__":
     from map_manager import Map_Manager
-   
-    manager = Map_Manager("../resources/sim/")
-    detector = Anomaly_Detector(manager.reference, manager.region_idx, 0.04)
-    with open('tests/graph.pickle', 'rb') as f:
-        graph = pickle.load(f)
-    graph.prior_factor.omega = np.eye(6)   
+    
+    #manager = Map_Manager("../resources/sim/")
+    #detector = Anomaly_Detector(manager.reference, manager.region_idx, 0.04)
+    # with open('tests/graph.pickle', 'rb') as f:
+    #     graph = pickle.load(f)
+    # graph.prior_factor.omega = np.eye(6)   
 
-    for node in graph.pose_nodes.values():
-        if not node.local_map == None:
-    # node = graph.pose_nodes[0]
-            coord= [node.M[0,3], node.M[1,3]]
-            region = manager.coord_to_region(coord, 1)
-            p, idx = detector.detect(node, graph.feature_nodes ,region)
-            manager.set_entropy(p, idx)
+    # for node in graph.pose_nodes.values():
+    #     if not node.local_map == None:
+    # # node = graph.pose_nodes[0]
+    #         coord= [node.M[0,3], node.M[1,3]]
+    #         region = manager.coord_to_region(coord, 1)
+    #         p, idx = detector.detect(node, graph.feature_nodes ,region)
+    #         manager.set_entropy(p, idx)
         
-    cloud = manager.visualize_entropy()
-    o3d.visualization.draw_geometries([cloud])
+    # cloud = manager.visualize_entropy()
+    # o3d.visualization.draw_geometries([cloud])
+    #%%
+    with open('tests/detection1.pickle', 'rb') as f:
+        cloud = pickle.load(f)
+    p_anomaly =  cloud['p'][-1]   
+    # detector = Anomaly_Detector(cloud["cloud"], cloud["region"], 0.04)
+    points=cloud["cloud"]
+    points = points[p_anomaly>=0.5]
+    if len(points)<=5:
+        print("no fod")
+    
+    minsize = 5
+    labels=hierarchy.fclusterdata(points, criterion='distance',t=0.1)-1
+    num_point=np.bincount(labels)
+    clouds=[]
+    for i in range(max(labels)+1):
+        if num_point[i]>=minsize:
+            pointlist=[points[j] for j in range(len(points)) if i==labels[j]]
+
+            clouds.append(Cloud_from_points(pointlist))
+    for i in range(len(clouds)):
+        rgb=cs.hsv_to_rgb(float(i)/len(clouds),1,1)
+        clouds[i].paint_uniform_color(rgb)

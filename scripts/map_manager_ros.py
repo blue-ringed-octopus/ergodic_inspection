@@ -47,8 +47,9 @@ class Server:
         rospy.Service('get_region_index', GetRegionPointIndex, self.send_region_idx)
 
         # rospy.Service('get_region_bounds', GetRegionBounds, self.send_bounds)
-        self.dat = {"p": [self.map_manager.p.copy()],
-               "cloud": self.map_manager.ref_points,
+        self.dat = {"p": self.map_manager.p.copy(),
+               "cloud": {"points": self.map_manager.ref_points,
+                         "normals": self.map_manager.ref_normal},
                "region": self.map_manager.region_idx}
         print("Map server online")
     
@@ -113,7 +114,7 @@ class Server:
         p = np.array(req.p.data)
         idx = np.array(req.indices)
         self.map_manager.set_entropy(p, idx)
-        self.dat["p"].append(map_manager.p.copy())
+        self.dat["p"]=(map_manager.p.copy())
         with open(save_dir+'detection'+str(self.step)+'.pickle', 'wb') as handle:
             pickle.dump(self.dat, handle)
         # print(self.map_manager.h)

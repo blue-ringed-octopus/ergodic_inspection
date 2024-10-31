@@ -183,7 +183,7 @@ if __name__ == "__main__":
                    detector_wrapper.detect(node, features)
                    # del graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[node.id]
             if not len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)%10:
-                with open('key_nodes.pickle', 'wb') as handle:
+                with open(save_dir+'key_nodes.pickle', 'wb') as handle:
                     pickle.dump(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes, handle) 
     
             rate.sleep()
