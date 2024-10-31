@@ -13,7 +13,7 @@ import rospy
 import open3d as o3d
 import rospkg
 from visualization_msgs.msg import Marker, MarkerArray
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, Point
 
 import ros_numpy
 from sensor_msgs.msg import PointCloud2
@@ -59,13 +59,21 @@ class Anomaly_Detector_Wrapper:
         candidates = self.detector.cluster_anomalies()
         msgs = []
         for region, candidate in candidates.items():
+            num = len(candidate)
             msg = CandidatePoints()
             msg.region_id = region
+            msg.num_candidates = num
             if len(candidate)>0:                
                 msg.points.data = candidate.reshape(-1)
             msgs.append(msg)
+        self.visualize_candidates(candidates)
         return GetCandidatesResponse(msgs)
     
+    def visualize_candidates(self, candidates):
+        pub = rospy.Publisher("/candidates", Marker, queue_size = 2)
+        marker = get_candidate_marker(candidates)
+        pub.publish(marker)
+        
     def detect(self, node, features):
         if node.id not in self.detected_node:
             print("detecting node: ", node.id)
@@ -87,26 +95,33 @@ class Anomaly_Detector_Wrapper:
             # except:
             #     print("failed to send entropy")
                 
-
-# def get_mesh_marker(mesh_resource):
-#     marker=Marker()
-#     marker.id = 0
-#     marker.header.frame_id = "map"
-#     marker.header.stamp = rospy.Time.now()
-#     marker.mesh_resource = mesh_resource
-#     marker.type = 10
-#     marker.pose.orientation.x=0
-#     marker.pose.orientation.y=0
-#     marker.pose.orientation.z=0
-#     marker.pose.orientation.w=1
-#     marker.color.r = 0.2
-#     marker.color.g = 0.2
-#     marker.color.b = 0.2
-#     marker.color.a = 0.5
-#     marker.scale.x = 1
-#     marker.scale.y = 1
-#     marker.scale.z = 1
-#     return marker
+def get_candidate_marker(candidates):
+    marker=Marker()
+    marker.id = 0
+    marker.header.frame_id = "map"
+    marker.header.stamp = rospy.Time.now()
+    marker.type = 7
+    marker.pose.orientation.x=0
+    marker.pose.orientation.y=0
+    marker.pose.orientation.z=0
+    marker.pose.orientation.w=1
+    marker.color.r = 1
+    marker.color.g = 0
+    marker.color.b = 0
+    marker.color.a = 0
+    marker.scale.x = 0.1
+    marker.scale.y = 0.1
+    marker.scale.z = 0.1
+    points=[]
+    for candidate in candidates.value():
+        for point in candidate:
+            p = Point()
+            p.x = point[0]
+            p.y = point[1]
+            p.z = point[2]
+            points.append(p)
+    marker.points = points
+    return marker
 
 def pc_2_msg(cloud):
     points = np.array(cloud.points)
