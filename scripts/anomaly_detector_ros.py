@@ -199,7 +199,7 @@ if __name__ == "__main__":
         
     localization_mode = True
 
-    detector_wrapper = Anomaly_Detector_Wrapper(params)
+    detector_wrapper = Anomaly_Detector_Wrapper(params,save_dir)
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
