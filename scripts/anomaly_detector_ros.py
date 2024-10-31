@@ -55,7 +55,7 @@ class Anomaly_Detector_Wrapper:
 
         self.detector = Anomaly_Detector(reference_cloud, region_idx, thres = anomaly_thres)
         
-    def get_candidates(self):
+    def get_candidates(self, req):
         candidates = self.detector.cluster_anomalies()
         msgs = []
         for region, candidate in candidates.items():
