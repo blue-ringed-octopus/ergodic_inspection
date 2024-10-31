@@ -168,7 +168,6 @@ if __name__ == "__main__":
     
     br = tf.TransformBroadcaster()
     rospy.init_node('estimator',anonymous=False)
-    print(params)    
 
     graph_slam_wrapper = Graph_SLAM_wrapper(br, params, localization_mode)
        
@@ -182,7 +181,9 @@ if __name__ == "__main__":
                 for node in list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.values())[:-1]:  
                    detector_wrapper.detect(node, features)
                    # del graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[node.id]
-    
+            if not len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)%10:
+                with open('key_nodes.pickle', 'wb') as handle:
+                    pickle.dump(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes, handle) 
     
             rate.sleep()
     except KeyboardInterrupt: 

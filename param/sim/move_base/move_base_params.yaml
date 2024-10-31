@@ -7,5 +7,5 @@ planner_frequency: 5.0
 oscillation_timeout: 10.0
 oscillation_distance: 0.2
 transform_tolerence: 1
-clearing_rotation_allowed: true
+clearing_rotation_allowed: false
 TrajectoryPlannerROS/max_rotational_vel: 0.1

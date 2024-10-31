@@ -19,7 +19,6 @@ class Node:
         self.pruned = False 
         self.factor = {}
         self.in_progress = True
-       
     def copy(self):
         return deepcopy(self)
      

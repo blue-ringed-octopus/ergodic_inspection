@@ -274,7 +274,7 @@ if __name__ == "__main__":
     waypoint_thread = threading.Thread(target = plot_waypoint,daemon=True, args = (wrapper,))
     wrapper.update()
     waypoint_thread.start()
-    while not rospy.is_shutdown() and wrapper.step<=50:
+    while not rospy.is_shutdown() and wrapper.step<=40:
         wrapper.update()
         
     print("inspection done")

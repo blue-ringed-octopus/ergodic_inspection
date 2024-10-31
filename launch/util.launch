@@ -5,11 +5,14 @@
 
 <group if="$(arg isSim)">
     <node type="rviz" name="rvizscan" pkg="rviz" args="-d $(find ergodic_inspection)/rviz/viz.rviz" />
+    <rosparam file="$(find ergodic_inspection)/param/sim/common_params.yaml" command="load" />
+
 </group>
 
 <group unless="$(arg isSim)">
     <node type="rviz" name="rvizscan" pkg="rviz" args="-d $(find ergodic_inspection)/rviz/viz_real.rviz" />
- 
+    <rosparam file="$(find ergodic_inspection)/param/real/common_params.yaml" command="load" />
+
     <node pkg="rf2o_laser_odometry" type="rf2o_laser_odometry_node" name="rf2o_laser_odometry" output="screen">
         <param name="laser_scan_topic" value="/scan"/>        # topic where the lidar scans are being published
         <param name="odom_topic" value="/odom_rf2o" />              # topic where tu publish the odometry estimations
