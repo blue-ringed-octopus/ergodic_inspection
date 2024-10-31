@@ -258,7 +258,7 @@ class Local_Detector:
     def cluster_anomalies(self):
          minsize = 0
          points = np.array(self.reference.points)
-         points = points[p_anomaly>=0.5]
+         points = points[self.p_anomaly>=0.5]
          if len(points)<=minsize:
              print("no fod")
          
