@@ -113,7 +113,7 @@ def get_candidate_marker(candidates):
     marker.scale.y = 0.1
     marker.scale.z = 0.1
     points=[]
-    for candidate in candidates.value():
+    for candidate in candidates.values():
         for point in candidate:
             p = Point()
             p.x = point[0]
