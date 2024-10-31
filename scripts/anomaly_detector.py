@@ -261,21 +261,22 @@ class Local_Detector:
          points = points[self.p_anomaly>=0.5]
          if len(points)<=minsize:
              print("no fod")
-         
-         labels=hierarchy.fclusterdata(points, criterion='distance',t=0.1)-1
-         num_point=np.bincount(labels)
-         clusters=[]
-         for i in range(max(labels)+1):
-             if num_point[i]>=minsize:
-                 pointlist=[points[j] for j in range(len(points)) if i==labels[j]]
-                 clusters.append(pointlist)
-                 # pc=o3d.geometry.PointCloud()
-                 # pc.points=o3d.utility.Vector3dVector(pointlist)
-                 # clouds.append(pc)
-         centroids=[]
-         for i, cluster in enumerate(clusters):
-             centroids.append(np.average(cluster,axis=0))
-         return np.asarray(centroids)  
+             return []
+         else:
+             labels=hierarchy.fclusterdata(points, criterion='distance',t=0.1)-1
+             num_point=np.bincount(labels)
+             clusters=[]
+             for i in range(max(labels)+1):
+                 if num_point[i]>=minsize:
+                     pointlist=[points[j] for j in range(len(points)) if i==labels[j]]
+                     clusters.append(pointlist)
+                     # pc=o3d.geometry.PointCloud()
+                     # pc.points=o3d.utility.Vector3dVector(pointlist)
+                     # clouds.append(pc)
+             centroids=[]
+             for i, cluster in enumerate(clusters):
+                 centroids.append(np.average(cluster,axis=0))
+             return np.asarray(centroids)  
     
     def _calculate_self_neighbor(self):
         _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
