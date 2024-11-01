@@ -7,6 +7,7 @@ Created on Mon May  6 14:52:53 2024
 import numpy as np
 import cvxpy as cp
 import cv2
+np.set_printoptions(precision=2)
 
 
 def outer(a, b):

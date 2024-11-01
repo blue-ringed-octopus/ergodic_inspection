@@ -13,6 +13,7 @@ from ergodic_inspection.srv import PlanRegion, PlanRegionResponse
 import numpy as np 
 import rospkg
 import yaml 
+np.set_printoptions(precision=2)
 
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")
