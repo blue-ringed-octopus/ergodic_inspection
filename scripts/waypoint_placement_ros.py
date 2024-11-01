@@ -239,7 +239,7 @@ def talker(waypoint):
         #To not have to deal with threading, Im gonna publish just a couple times in the begging, and then continue with telling the robot to go to the points
     # count = 0
     pub.publish(array)
-    print("sending rviz arrow")
+    # print("sending rviz arrow")
     # while count<10:
     #     rate.sleep()	
     #     print("sending rviz arrow")
@@ -319,7 +319,7 @@ if __name__ == "__main__":
     for region, candidate in candidates.items():
         candidates[region] = candidate.tolist()
         
-    with open('anomaly_candidates.yaml', 'w') as file:
+    with open(save_dir+'anomaly_candidates.yaml', 'w') as file:
         yaml.safe_dump(candidates, file)    
         
     print("inspection done")
