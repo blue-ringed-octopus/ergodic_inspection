@@ -72,7 +72,7 @@ class Anomaly_Detector_Wrapper:
         return GetCandidatesResponse(msgs)  
         
     def detect(self, node, features):
-        if node.id not in self.detected_node:
+        if node.id not in self.detected_node and node.pruned:
             print("detecting node: ", node.id)
 
             pose_msg = Pose()
@@ -209,13 +209,10 @@ if __name__ == "__main__":
     try:
         while not rospy.is_shutdown():
             graph_slam_wrapper.update() 
-         
             features = graph_slam_wrapper.graph_slam.factor_graph.feature_nodes
             if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)> 1: 
-                for node in list(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.values())[:-1]:  
+                for node in graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.values():  
                    detector_wrapper.detect(node, features)
-                   
-                   # del graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes[node.id]
             if len(detector_wrapper.candidates)> 0:
                 marker = get_candidate_marker(detector_wrapper.candidates)
                 candidate_pub.publish(marker)
