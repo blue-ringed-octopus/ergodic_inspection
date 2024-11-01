@@ -168,8 +168,6 @@ def msg_2_pc(msg):
     rgb[:,1]=pc['g'].reshape(-1)
     rgb[:,2]=pc['b'].reshape(-1)
 
-    # p = {"points": points, "colors": np.asarray(rgb/255), "h": h}
-    # print(h)
     p=o3d.geometry.PointCloud()
     p.points = o3d.utility.Vector3dVector(points)
     p.colors = o3d.utility.Vector3dVector(np.asarray(rgb/255))
@@ -223,9 +221,6 @@ if __name__ == "__main__":
                 candidate_pub.publish(marker)
             rate.sleep()
     except KeyboardInterrupt: 
-        # print("saving key nodes")
-        # with open(save_dir+'key_nodes.pickle', 'wb') as handle:
-        #     pickle.dump(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes, handle)
         print("saving factor-graph")
         with open(save_dir+'graph.pickle', 'wb') as handle:
             pickle.dump(graph_slam_wrapper.graph_slam.factor_graph, handle)
