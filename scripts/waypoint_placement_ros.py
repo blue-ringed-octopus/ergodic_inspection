@@ -15,6 +15,7 @@ import numpy as np
 np.float = np.float64 
 import ros_numpy
 from ergodic_inspection.srv import PointCloudWithEntropy, PlanRegion, GetRegion, PlaceNode, OptimizePoseGraph
+from ergodic_inspection.srv import GetCandidates
 from nav_msgs.srv import GetMap
 import tf 
 
@@ -54,13 +55,15 @@ class Waypoint_Placement_Wrapper:
         rospy.wait_for_service('get_region')
         rospy.wait_for_service('plan_region')
         rospy.wait_for_service('optimize_pose_graph')
-        
+        rospy.wait_for_service('get_anomaly_candidates')
+
         self.get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         self.plan_region = rospy.ServiceProxy('plan_region', PlanRegion)
         self.get_region = rospy.ServiceProxy('get_region', GetRegion)
         self.get_cost_map = rospy.ServiceProxy('static_map', GetMap)
         self.place_node = rospy.ServiceProxy('place_node', PlaceNode)
         self.optimize = rospy.ServiceProxy('optimize_pose_graph', OptimizePoseGraph)
+        self.get_candidates = rospy.ServiceProxy('get_anomaly_candidates', GetCandidates)
 
         costmap_msg = self.get_cost_map()
         costmap = process_costmap_msg(costmap_msg)
@@ -137,7 +140,7 @@ class Waypoint_Placement_Wrapper:
         self.step += 1     
         
     def collect_image(self):
-        pass
+        self.get_candidates()
     
     def update(self):
         if self.step<=40:
