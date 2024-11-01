@@ -40,8 +40,14 @@ class Waypoint_Placement_Wrapper:
         self.edge_waypoints = edge_waypoints
         self.ctrl_params = ctrl_params
         self.est_params = est_params
-        self.horizon = ctrl_params["graph_planner"]["horizon"]
         strategy = ctrl_params["waypoint_placement"]['strategy']
+        if strategy == "ergodic":
+            self.horizon = ctrl_params["graph_planner"]["horizon"]
+        elif strategy == "random":
+            self.horizon = np.inf
+        elif strategy == "greedy":
+            self.horizon = 1
+            
         rospy.init_node('waypoint_planner',anonymous=False)
         rospy.wait_for_service('get_reference_cloud_region')
         rospy.wait_for_service('static_map')
