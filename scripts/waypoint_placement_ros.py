@@ -134,7 +134,7 @@ class Waypoint_Placement_Wrapper:
         pass
     
     def update(self):
-        if self.step<40:
+        if self.step<=40:
             print("inspecting")
             self.inspect()
         else:

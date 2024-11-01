@@ -243,7 +243,7 @@ class Local_Detector:
         self._calculate_self_neighbor()
         
         
-        self.p_anomaly = np.ones(len(self.reference.points))*0.25
+        self.p_anomaly = np.ones(len(self.reference.points))*0.2
         self.thres = thres
         self.n_sample = np.zeros(n)
         self.md_ref = np.zeros((n, 2))
@@ -380,7 +380,7 @@ if __name__ == "__main__":
     #%%
     import colorsys as cs
     import matplotlib.pyplot as plt
-    with open('tests/test_resource/detection11.pickle', 'rb') as f:
+    with open('tests/test_resource/detection36.pickle', 'rb') as f:
         cloud = pickle.load(f)
     p_anomaly =  cloud['p']
     # detector = Anomaly_Detector(cloud["cloud"], cloud["region"], 0.04)
