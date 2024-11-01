@@ -26,7 +26,6 @@ import yaml
 import threading  
 import time
 import matplotlib.pyplot as plt 
-from image_waypoint_generation import Waypoint_Generator
 
 rospack=rospkg.RosPack()
 path = rospack.get_path("ergodic_inspection")

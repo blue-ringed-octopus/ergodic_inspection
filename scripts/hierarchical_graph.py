@@ -109,8 +109,6 @@ class Hierarchical_Graph:
             return self.levels[level].edges
         
     def grid2graph(self, stencil, level):
-       
-            
         parent_level = self.levels[level-1]
         parent_ids = parent_level.id_map
         parent_nodes = parent_level.nodes
