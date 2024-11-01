@@ -316,8 +316,8 @@ if __name__ == "__main__":
         wrapper.update()
     candidates = wrapper.candidates.copy()
     
-    for region, candidates in candidates.items():
-        candidates[region] = candidates.tolist()
+    for region, candidate in candidates.items():
+        candidates[region] = candidate.tolist()
         
     with open('anomaly_candidates.yaml', 'w') as file:
         yaml.safe_dump(candidates, file)    
