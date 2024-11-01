@@ -146,6 +146,7 @@ class Waypoint_Placement_Wrapper:
         
         
     def update(self):
+        print("step: ", self.step)
         if self.step<=self.inspection_steps:
             print("inspecting")
             self.inspect()
@@ -163,7 +164,7 @@ def decode_candidates(msg):
             points = points.reshape((n,3))
             candidates[id_] = points
         else:
-            candidates[id_] = []
+            candidates[id_] = np.array([])
     return candidates     
 
     
