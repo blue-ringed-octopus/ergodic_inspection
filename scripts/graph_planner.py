@@ -121,7 +121,7 @@ class Graph_Planner:
             
         elif self.strategy == "greedy":
             P =  self.adjacency.copy()
-            for i in self.num_regions:
+            for i in range(self.num_regions):
                 P[:, i] = P[:, i] * weight 
                 P[:, i]= P[:, i]==np.max(P[:, i])
         self.P= P
