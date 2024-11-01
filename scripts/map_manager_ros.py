@@ -111,9 +111,11 @@ class Server:
         
     def set_entropy(self, req):
         print("receiving anomaly belief")
-        p = np.array(req.p.data)
         idx = np.array(req.indices)
-        self.map_manager.set_entropy(p, idx)
+        if len(idx)>0:
+            p = np.array(req.p.data)
+            self.map_manager.set_entropy(p, idx)
+            
         self.dat["p"]=(map_manager.p.copy())
         with open(save_dir+'detection'+str(self.step)+'.pickle', 'wb') as handle:
             pickle.dump(self.dat, handle)

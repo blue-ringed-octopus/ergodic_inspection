@@ -89,6 +89,9 @@ class Anomaly_Detector_Wrapper:
                 # try:
                 self.set_h(idx.astype(np.uint64), msg)
             else:
+                msg = Float32MultiArray()
+                msg.data = []
+                self.set_h([], msg)
                 print("no valid points")
                 
             with open(self.save_dir+"key_node_"+str(len(self.detected_node))+'.pickle', 'wb') as handle:

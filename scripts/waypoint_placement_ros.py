@@ -41,6 +41,7 @@ class Waypoint_Placement_Wrapper:
         self.edge_waypoints = edge_waypoints
         self.ctrl_params = ctrl_params
         self.est_params = est_params
+        self.inspection_steps = 10
         strategy = ctrl_params["waypoint_placement"]['strategy']
         if strategy == "ergodic":
             self.horizon = ctrl_params["graph_planner"]["horizon"]
@@ -48,7 +49,7 @@ class Waypoint_Placement_Wrapper:
             self.horizon = np.inf
         elif strategy == "greedy":
             self.horizon = 1
-            
+        
         rospy.init_node('waypoint_planner',anonymous=False)
         rospy.wait_for_service('get_reference_cloud_region')
         rospy.wait_for_service('static_map')
@@ -140,17 +141,32 @@ class Waypoint_Placement_Wrapper:
         self.step += 1     
         
     def collect_image(self):
-        self.get_candidates()
-    
+        msg = self.get_candidates()
+        self.candidates = decode_candidates(msg)
+        
+        
     def update(self):
-        if self.step<=40:
+        if self.step<=self.inspection_steps:
             print("inspecting")
             self.inspect()
         else:
             print("collecting images")  
             self.collect_image()
             self.running = False
-            
+def decode_candidates(msg):
+    candidates = {}
+    for region in msg.region_candidates:
+        id_ = region.region_id
+        n = region.num_candidates
+        if n>0:
+            points = np.array(region.points.data)
+            points = points.reshape((n,3))
+            candidates[id_] = points
+        else:
+            candidates[id_] = []
+    return candidates     
+
+    
 def decode_msg(msg):
     pc=ros_numpy.numpify(msg)
     x=pc['x'].reshape(-1)
@@ -274,7 +290,8 @@ def plot_waypoint(wrapper):
                
 if __name__ == "__main__":
     is_sim = rospy.get_param("isSim")
-    
+    save_dir= rospy.get_param("save_dir")
+
     if is_sim:
         param_path = path + "/param/sim/"
         resource_path =  path + "/resources/sim/"
@@ -296,5 +313,12 @@ if __name__ == "__main__":
     waypoint_thread.start()
     while not rospy.is_shutdown() and wrapper.running:
         wrapper.update()
+    candidates = wrapper.candidates.copy()
+    
+    for region, candidates in candidates.items():
+        candidates[region] = candidates.tolist()
+        
+    with open('anomaly_candidates.yaml', 'w') as file:
+        yaml.safe_dump(candidates, file)    
         
     print("inspection done")
