@@ -335,7 +335,7 @@ class Local_Detector:
         # T = np.eye(4)        
         p = p.crop(self.bounding_box)
         # p, cov = self.random_down_sample(p, cov)
-        smoothing = 0.001
+        smoothing = 0.0001
         points = np.array(p.points)
         print("num points: ", len(points))
         if len(points) == 0:
