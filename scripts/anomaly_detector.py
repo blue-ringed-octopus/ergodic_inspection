@@ -128,7 +128,7 @@ def get_global_cov_SE3(points, T_global, point_cov, T_cov):
 
 def random_down_sample(point_cloud, covs):       
     n = len(point_cloud.points)
-    n_ds = 5000
+    n_ds = 10000
     if n<n_ds:
         return point_cloud, covs
     
