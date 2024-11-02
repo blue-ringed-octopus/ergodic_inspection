@@ -139,9 +139,11 @@ def random_down_sample(point_cloud, covs):
     return point_cloud, covs
  
 class Anomaly_Detector:
-    def __init__(self, reference_cloud, region_idx, thres = 1):
+    def __init__(self, reference_cloud, region_idx, thres, smoothing_factor, neighbor_count):
         self.reference = reference_cloud
         self.anomaly_thres = thres
+        self.smoothing_factor = smoothing_factor
+        self.neighbor_count = neighbor_count
         self.region_idx = region_idx
         self.partition(self.region_idx)
         # box = reference_cloud.get_axis_aligned_bounding_box()
@@ -230,7 +232,7 @@ class Anomaly_Detector:
         return candidates
     
 class Local_Detector:
-    def __init__(self, pc, thres=1):
+    def __init__(self, pc, thres, smoothing_factor, neighbor_count):
         self.bounding_box = pc.get_axis_aligned_bounding_box()
         self.get_ref_pc(pc)
         n = len(self.ref_points)
@@ -239,10 +241,10 @@ class Local_Detector:
         # crop_pc = self.reference.crop(self.bounding_box)
 
         # _, self.crop_index = self.ref_tree.query(np.asarray(crop_pc.points),1)
-        self.neighbor_count = 20
+        self.neighbor_count = neighbor_count
 
         self._calculate_self_neighbor()
-        
+        self.smoothing_factor = smoothing_factor
         
         self.p_anomaly = np.ones(len(self.reference.points))*0.2
         self.thres = thres
@@ -334,9 +336,9 @@ class Local_Detector:
     def detect(self, p, cov):           
         # T = np.eye(4)        
         p = p.crop(self.bounding_box)
-        # p, cov = self.random_down_sample(p, cov)
-        smoothing = 0.0001
+        smoothing = self.smoothing_factor
         points = np.array(p.points)
+        
         print("num points: ", len(points))
         if len(points) == 0:
             return []

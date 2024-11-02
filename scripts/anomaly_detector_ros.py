@@ -37,6 +37,8 @@ class Anomaly_Detector_Wrapper:
         rospy.Service('get_anomaly_candidates', GetCandidates, self.get_candidates)
 
         anomaly_thres = params["Anomaly_Detector"]["anoamly_threshold"]
+        smoothing_factor = params["Anomaly_Detector"]["smoothing_factor"]
+        neighbor_count = params["Anomaly_Detector"]["neighbor_count"]
 
         rospy.wait_for_service('get_reference_cloud_region')
         rospy.wait_for_service('set_entropy')
@@ -55,7 +57,10 @@ class Anomaly_Detector_Wrapper:
         # bound = [box.max_bound[0],box.max_bound[1], 0.5 ]
         # box.max_bound = bound
 
-        self.detector = Anomaly_Detector(reference_cloud, region_idx, thres = anomaly_thres)
+        self.detector = Anomaly_Detector(reference_cloud, region_idx,
+                                         thres = anomaly_thres, 
+                                         smoothing_factor = smoothing_factor, 
+                                         neighbor_count = neighbor_count)
         
     def get_candidates(self, req):
         candidates = self.detector.cluster_anomalies()
