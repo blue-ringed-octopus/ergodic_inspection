@@ -158,8 +158,8 @@ if __name__ == '__main__':
         rgb = [colorsys.hsv_to_rgb(0, 0, v[i]) for i in range(len(entropy))]
         cloud.colors = o3d.utility.Vector3dVector(np.asarray(rgb))
         
-        planner = Waypoint_Planner("ergodic", manager.costmap,T_camera, K, (w,h))    
-        waypoint = planner.get_optimal_waypoint(1000, cloud, entropy)
+        planner = Waypoint_Planner("greedy", manager.costmap,T_camera, K, (w,h))    
+        waypoint = planner.get_optimal_waypoint(1000, cloud, entropy,2)
         idx = planner.camera_projection(waypoint, cloud)
         colors = np.asarray(cloud.colors)
         colors[idx] = [255,0,0]

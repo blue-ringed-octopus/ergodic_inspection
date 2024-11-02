@@ -42,6 +42,8 @@ class Waypoint_Placement_Wrapper:
         self.ctrl_params = ctrl_params
         self.est_params = est_params
         self.inspection_steps = 40
+        self.waypoints_per_region = 2
+        
         strategy = ctrl_params["waypoint_placement"]['strategy']
         if strategy == "ergodic":
             self.horizon = ctrl_params["graph_planner"]["horizon"]
@@ -122,8 +124,12 @@ class Waypoint_Placement_Wrapper:
             
         msg = self.get_reference(self.next_region)
         h, region_cloud = decode_msg(msg.ref)
-        waypoint = self.planner.get_optimal_waypoint(1000, region_cloud, h)
-        self.navigate_intermediate_waypoint(pose, waypoint)
+        waypoints = []
+        for _ in range(self.waypoints_per_region):
+            waypoint = self.planner.get_optimal_waypoint(1000, region_cloud, h, self.waypoints_per_region)
+            waypoints.append(waypoint)
+            
+        self.navigate_intermediate_waypoint(pose, waypoints[0])
         
         if self.next_region in self.edge_waypoints[region].keys():
             edge_waypoint = self.edge_waypoints[region][self.next_region]
@@ -132,9 +138,9 @@ class Waypoint_Placement_Wrapper:
                              edge_waypoint["z"],
                              edge_waypoint["w"],]
             simple_move(edge_waypoint)
-            
-        self.waypoint = waypoint
-        navigate2point(waypoint)
+        for waypoint in waypoints:   
+            self.waypoint = waypoint
+            navigate2point(waypoint)
     # except Exception as e: 
     #     print(e)
         self.place_node()
@@ -154,6 +160,7 @@ class Waypoint_Placement_Wrapper:
             print("collecting images")  
             self.collect_image()
             self.running = False
+            
 def decode_candidates(msg):
     candidates = {}
     for region in msg.region_candidates:
