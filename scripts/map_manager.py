@@ -24,9 +24,9 @@ class Map_Manager:
         self.costmap = costmap
         self.build_region_graph()
         self.build_reference_pointcloud()
-        self.p = np.zeros(self.num_points)
+        self.p = np.ones(self.num_points)*0.25
         self.h = np.zeros(self.num_points)
-        self.set_entropy(np.ones(self.num_points)*0.2,np.array(range(self.num_points)))
+        self.set_entropy(self.p,np.array(range(self.num_points)))
         
     def build_reference_pointcloud(self):
         mesh = o3d.io.read_triangle_mesh(self.path + "Ballast.STL")
