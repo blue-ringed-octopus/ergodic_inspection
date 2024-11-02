@@ -194,8 +194,8 @@ class Anomaly_Detector:
         p, cov = random_down_sample(p, node.local_map["cov"])
 
         p = p.transform(M)
-        p, T = self.ICP(p)
-        # T= np.eye(4)
+        # p, T = self.ICP(p)
+        T= np.eye(4)
         
         return p, T@M, cov
     

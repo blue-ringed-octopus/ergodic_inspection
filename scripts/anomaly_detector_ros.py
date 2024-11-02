@@ -213,7 +213,7 @@ if __name__ == "__main__":
         while not rospy.is_shutdown():
             graph_slam_wrapper.update() 
             features = graph_slam_wrapper.graph_slam.factor_graph.feature_nodes
-            if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)> 1: 
+            if len(graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes)> 0: 
                 for node in graph_slam_wrapper.graph_slam.factor_graph.key_pose_nodes.values():  
                    detector_wrapper.detect(node, features)
             if len(detector_wrapper.candidates)> 0:
