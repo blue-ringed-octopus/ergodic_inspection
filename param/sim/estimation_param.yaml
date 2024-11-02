@@ -32,6 +32,6 @@ Graph_SLAM:
   step_size: 0.5
 
 Anomaly_Detector:
-  neightbor_count: 20
+  neighbor_count: 20
   anoamly_threshold: 0.05
-  smoothing_factor: 0.01
+  smoothing_factor: 0.0001
