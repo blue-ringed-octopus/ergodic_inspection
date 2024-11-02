@@ -24,7 +24,7 @@ class Map_Manager:
         self.costmap = costmap
         self.build_region_graph()
         self.build_reference_pointcloud()
-        self.p = np.ones(self.num_points)*0.25
+        self.p = np.ones(self.num_points)*0.20
         self.h = np.zeros(self.num_points)
         self.set_entropy(self.p,np.array(range(self.num_points)))
         

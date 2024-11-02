@@ -77,7 +77,7 @@ class Anomaly_Detector_Wrapper:
         return GetCandidatesResponse(msgs)  
         
     def detect(self, node, features):
-        if node.id not in self.detected_node and node.pruned:
+        if (node.id not in self.detected_node) and (node.pruned):
             print("detecting node: ", node.id)
 
             pose_msg = Pose()

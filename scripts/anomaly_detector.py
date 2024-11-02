@@ -246,7 +246,7 @@ class Local_Detector:
         self._calculate_self_neighbor()
         self.smoothing_factor = smoothing_factor
         
-        self.p_anomaly = np.ones(len(self.reference.points))*0.25
+        self.p_anomaly = np.ones(len(self.reference.points))*0.20
         self.thres = thres
         self.n_sample = np.zeros(n)
         self.md_ref = np.zeros((n, 2))

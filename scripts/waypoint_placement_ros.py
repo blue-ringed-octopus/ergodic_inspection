@@ -41,7 +41,7 @@ class Waypoint_Placement_Wrapper:
         self.edge_waypoints = edge_waypoints
         self.ctrl_params = ctrl_params
         self.est_params = est_params
-        self.inspection_steps = 40
+        self.inspection_steps = 35
         self.waypoints_per_region = 2
         
         strategy = ctrl_params["waypoint_placement"]['strategy']

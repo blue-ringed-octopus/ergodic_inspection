@@ -34,7 +34,7 @@ num_pix = len(idx[0])
 scale = 20
 
 for trial in range(num_trial):
-    num_fod = np.random.randint(3,len(fod_candidates)+1)
+    num_fod = np.random.randint(4,len(fod_candidates)+1)
     fods = np.random.choice(fod_candidates, num_fod, False)
     fod_map = occupancy_map.copy()
     fod_map = cv2.cvtColor(fod_map, cv2.COLOR_GRAY2BGR)
