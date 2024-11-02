@@ -126,7 +126,7 @@ class Waypoint_Placement_Wrapper:
         h, region_cloud = decode_msg(msg.ref)
         waypoints = []
         for _ in range(self.waypoints_per_region):
-            waypoint = self.planner.get_optimal_waypoint(1000, region_cloud)
+            waypoint = self.planner.get_optimal_waypoint(1000, region_cloud, h)
             waypoints.append(waypoint)
             
         self.navigate_intermediate_waypoint(pose, waypoints[0])
