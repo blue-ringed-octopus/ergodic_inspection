@@ -155,7 +155,7 @@ class Anomaly_Detector:
         for id_, idx in region_idx.items():
             idx = np.array(idx)
             region_cloud = self.reference.select_by_index(idx)
-            detectors[id_] = Local_Detector(region_cloud, self.anomaly_thres)
+            detectors[id_] = Local_Detector(region_cloud, self.anomaly_thres, self.smoothing_factor, self.neighbor_count)
             
         self.detectors = detectors    
         
