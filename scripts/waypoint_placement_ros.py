@@ -138,12 +138,14 @@ class Waypoint_Placement_Wrapper:
                              edge_waypoint["z"],
                              edge_waypoint["w"],]
             simple_move(edge_waypoint)
+            
         for waypoint in waypoints:   
             self.waypoint = waypoint
             navigate2point(waypoint)
+            self.place_node()
+
     # except Exception as e: 
     #     print(e)
-        self.place_node()
         self.step += 1     
         
     def collect_image(self):
