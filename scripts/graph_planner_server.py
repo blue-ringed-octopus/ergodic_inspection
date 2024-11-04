@@ -40,7 +40,6 @@ class Graph_Planner_Server:
             msg = self.get_graph(1)
             _, _, _, w = self.parse_graph_msg(msg)
             P = self.planner.set_weights(w)
-            print("w: ", w)
             print("P: ", P)
             next_region, _ = self.planner.get_next_region(region)
         else:
