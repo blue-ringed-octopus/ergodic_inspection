@@ -259,7 +259,7 @@ class Local_Detector:
         self.num_points = len(self.ref_points)
         
     def cluster_anomalies(self):
-         minsize = 0
+         minsize = 1
          points = np.array(self.reference.points)
          points = points[self.p_anomaly>=0.5]
          if len(points)<=minsize:

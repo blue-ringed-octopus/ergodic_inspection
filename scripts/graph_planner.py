@@ -31,7 +31,10 @@ class Graph_Planner:
         
 
     def discounted_ergodic_markov_chain(self, weight):
+        
         w=weight/sum(weight)
+        w = w + 0.01
+        w = w/sum(w)
         
         n = self.num_regions
         edges = self.edges
