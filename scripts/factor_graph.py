@@ -34,7 +34,10 @@ class Node:
         node_dic["local_map"] = deepcopy(self.local_map)
         node_dic["type"] = deepcopy(self.type)
         return node_dic
-        
+    
+    def load_dic(self):
+        pass
+    
 class Factor:
     def __init__(self, id_, parent_id, children_ids, feature_ids, z, sigma, idx_map ):
         self.prior = parent_id == None
