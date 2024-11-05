@@ -153,7 +153,10 @@ class EKF:
         self.sigma=np.zeros((6,6))            
         self.features={}
         self.landmarks=landmarks
-        self.cloud = {"pc": {"points": [], "colors":[] }, "cov": [], "depth": [], "rgb": [], "features": {} ,"cam_param": self.K.copy(), "cam_transform": self.T_c_to_r.copy()}
+        self.cloud = {"pc": {"points": [], "colors":[] }, 
+                      "cov": [], "depth": [], "rgb": [], "features": {} ,
+                      "cam_param": self.K.copy(), "cam_transform": self.T_c_to_r.copy(),
+                      "Q_img": self.Q_img}
         
         if not pc_info == None:
             self._process_pointcloud(pc_info)
