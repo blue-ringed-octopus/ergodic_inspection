@@ -100,7 +100,7 @@ class Anomaly_Detector_Wrapper:
                 print("no valid points")
                 
             with open(self.save_dir+"key_node_"+str(len(self.detected_node))+'.pickle', 'wb') as handle:
-                cloud = node.local_map.pop('pc')
+                cloud = node.local_map['pc']
                 p = o3d.geometry.PointCloud()
                 p.points = o3d.utility.Vector3dVector(cloud["points"])
                 p.colors = o3d.utility.Vector3dVector(cloud["colors"])
