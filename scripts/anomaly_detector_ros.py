@@ -105,7 +105,7 @@ class Anomaly_Detector_Wrapper:
                 p.points = o3d.utility.Vector3dVector(cloud["points"])
                 p.colors = o3d.utility.Vector3dVector(cloud["colors"])
                 o3d.io.write_point_cloud(self.save_dir+"depth_cloud_"+str(len(self.detected_node))+".ply",p)
-                node_dic = node.to_dic()
+                node_dic = node.to_dict()
                 pickle.dump(node_dic, handle)
             self.detected_node.append(node.id)
             node.local_map = {}
