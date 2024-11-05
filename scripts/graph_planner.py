@@ -126,6 +126,7 @@ class Graph_Planner:
             P=P/sum(P, 0)
             
         elif self.strategy == "greedy":
+            print(weight/np.sum(weight))
             P =  self.adjacency.copy()
             for i in range(self.num_regions):
                 P[:, i] = P[:, i] * weight 
