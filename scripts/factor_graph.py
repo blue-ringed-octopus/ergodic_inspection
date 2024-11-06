@@ -27,11 +27,12 @@ class Node:
         node_dic={}
         local_map = deepcopy(self.local_map)
         local_map.pop('pc')
+        local_map.pop('cov')
         node_dic["M"] = deepcopy(self.M)
         node_dic["factor"] = deepcopy(self.factor)
         node_dic["id"] = deepcopy( self.id)
         node_dic["key"] = deepcopy(self.key)
-        node_dic["local_map"] = deepcopy(self.local_map)
+        node_dic["local_map"] = deepcopy(local_map)
         node_dic["type"] = deepcopy(self.type)
         return node_dic
     
