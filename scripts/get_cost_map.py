@@ -15,7 +15,7 @@ from copy import deepcopy
 from numba import cuda
 import pickle
 
-sim = False
+sim = True
 if sim:
     mesh_path = "../resources/sim/Ballast.STL"
     output_path = '../resources/sim/costmap.pickle'
@@ -31,12 +31,12 @@ if sim:
     cost_scaling_factor = 2* resolution
 else:
     robot_radius=0.25/2/resolution
-    inflation_radius= 0.25/resolution
+    inflation_radius= 0.3/resolution
     cost_scaling_factor = 1.5* resolution
-#%% Import FOD clouds
+#%% 
 mesh = o3d.io.read_triangle_mesh(mesh_path)
 # frame = o3d.geometry.TriangleMesh.create_coordinate_frame(1)
-# o3d.visualization.draw_geometries([frame, mesh])
+# o3d.visualization.draw_geometries([mesh])
 box = mesh.get_axis_aligned_bounding_box()
 min_bound = np.array([box.min_bound[0],box.min_bound[1], 0.05 ])
 max_bound = np.array([box.max_bound[0],box.max_bound[1], 0.2 ])
@@ -47,7 +47,7 @@ box.max_bound = max_bound
 pc = mesh.sample_points_uniformly(
     number_of_points=1000000)
 pc=pc.crop(box)
-
+o3d.visualization.draw_geometries([pc])
 pt = np.asarray(pc.points)
 pt[:,2]=0
 pc.points=o3d.utility.Vector3dVector(pt)
@@ -126,7 +126,7 @@ plt.imshow(cost.T, origin="lower")
 plt.title("cost")
 
 waypotint_cost =  cost.copy()*100/255
-waypotint_cost [waypotint_cost < 20] =0 
+# waypotint_cost [waypotint_cost < 20] =0 
 plt.figure()
 plt.imshow(waypotint_cost.T, origin="lower")
 plt.title("waypotint_cost")

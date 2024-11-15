@@ -15,6 +15,7 @@ import numpy as np
 np.float = np.float64 
 import ros_numpy
 from ergodic_inspection.srv import PointCloudWithEntropy, PlanRegion, GetRegion, PlaceNode, OptimizePoseGraph
+from ergodic_inspection.srv import GetCandidates
 from nav_msgs.srv import GetMap
 import tf 
 
@@ -36,24 +37,36 @@ path = rospack.get_path("ergodic_inspection")
        
 class Waypoint_Placement_Wrapper:
     def __init__(self, ctrl_params, est_params, edge_waypoints=None):
+        self.running = True
         self.edge_waypoints = edge_waypoints
         self.ctrl_params = ctrl_params
         self.est_params = est_params
-        self.horizon = ctrl_params["graph_planner"]["horizon"]
+        self.inspection_steps = 35
+        self.waypoints_per_region = 2
+        
         strategy = ctrl_params["waypoint_placement"]['strategy']
+        if strategy == "ergodic":
+            self.horizon = ctrl_params["graph_planner"]["horizon"]
+        elif strategy == "random":
+            self.horizon = np.inf
+        elif strategy == "greedy":
+            self.horizon = 1
+        
         rospy.init_node('waypoint_planner',anonymous=False)
         rospy.wait_for_service('get_reference_cloud_region')
         rospy.wait_for_service('static_map')
         rospy.wait_for_service('get_region')
         rospy.wait_for_service('plan_region')
         rospy.wait_for_service('optimize_pose_graph')
-        
+        rospy.wait_for_service('get_anomaly_candidates')
+
         self.get_reference = rospy.ServiceProxy('get_reference_cloud_region', PointCloudWithEntropy)
         self.plan_region = rospy.ServiceProxy('plan_region', PlanRegion)
         self.get_region = rospy.ServiceProxy('get_region', GetRegion)
         self.get_cost_map = rospy.ServiceProxy('static_map', GetMap)
         self.place_node = rospy.ServiceProxy('place_node', PlaceNode)
         self.optimize = rospy.ServiceProxy('optimize_pose_graph', OptimizePoseGraph)
+        self.get_candidates = rospy.ServiceProxy('get_anomaly_candidates', GetCandidates)
 
         costmap_msg = self.get_cost_map()
         costmap = process_costmap_msg(costmap_msg)
@@ -95,41 +108,74 @@ class Waypoint_Placement_Wrapper:
             intermediate_waypoint = p1.copy()
             intermediate_waypoint += [0.01*np.cos(p2[2]), 0.01*np.sin(p2[2]), alpha]
             navigate2point(intermediate_waypoint)
+      
+    def inspect(self):
+        pose, region = self.get_current_region()
+        # rospy.wait_for_service('plan_region')
+        if self.step==0:
+            self.plan_region(region, True)
+            self.next_region = region
+        elif self.step%self.horizon:
+            self.next_region = self.plan_region(region, False).next_region
+        else:
+            self.next_region = self.plan_region(region, True).next_region
             
-    def update(self):
-        # try:
-            pose, region = self.get_current_region()
-            # rospy.wait_for_service('plan_region')
-            if self.step==0:
-                self.plan_region(region, True)
-                self.next_region = region
-            elif self.step%self.horizon:
-                self.next_region = self.plan_region(region, False).next_region
-            else:
-                self.next_region = self.plan_region(region, True).next_region
-                
+        
             
-                
-            msg = self.get_reference(self.next_region)
-            h, region_cloud = decode_msg(msg.ref)
+        msg = self.get_reference(self.next_region)
+        h, region_cloud = decode_msg(msg.ref)
+        waypoints = []
+        for _ in range(self.waypoints_per_region):
             waypoint = self.planner.get_optimal_waypoint(1000, region_cloud, h)
-            self.navigate_intermediate_waypoint(pose, waypoint)
+            waypoints.append(waypoint)
             
-            if self.next_region in self.edge_waypoints[region].keys():
-                edge_waypoint = self.edge_waypoints[region][self.next_region]
-                edge_waypoint = [edge_waypoint["x"], 
-                                 edge_waypoint["y"], 
-                                 edge_waypoint["z"],
-                                 edge_waypoint["w"],]
-                simple_move(edge_waypoint)
-                
+        self.navigate_intermediate_waypoint(pose, waypoints[0])
+        
+        if self.next_region in self.edge_waypoints[region].keys():
+            edge_waypoint = self.edge_waypoints[region][self.next_region]
+            edge_waypoint = [edge_waypoint["x"], 
+                             edge_waypoint["y"], 
+                             edge_waypoint["z"],
+                             edge_waypoint["w"],]
+            simple_move(edge_waypoint)
+            
+        for waypoint in waypoints:   
             self.waypoint = waypoint
             navigate2point(waypoint)
-        # except Exception as e: 
-        #     print(e)
             self.place_node()
-            self.step += 1
-        # self.optimize()
+
+    # except Exception as e: 
+    #     print(e)
+        self.step += 1     
+        
+    def collect_image(self):
+        msg = self.get_candidates()
+        self.candidates = decode_candidates(msg)
+        
+        
+    def update(self):
+        print("step: ", self.step)
+        if self.step<=self.inspection_steps:
+            print("inspecting")
+            self.inspect()
+        else:
+            print("collecting images")  
+            self.collect_image()
+            self.running = False
+            
+def decode_candidates(msg):
+    candidates = {}
+    for region in msg.region_candidates:
+        id_ = region.region_id
+        n = region.num_candidates
+        if n>0:
+            points = np.array(region.points.data)
+            points = points.reshape((n,3))
+            candidates[id_] = points
+        else:
+            candidates[id_] = np.array([])
+    return candidates     
+
     
 def decode_msg(msg):
     pc=ros_numpy.numpify(msg)
@@ -202,7 +248,7 @@ def talker(waypoint):
         #To not have to deal with threading, Im gonna publish just a couple times in the begging, and then continue with telling the robot to go to the points
     # count = 0
     pub.publish(array)
-    print("sending rviz arrow")
+    # print("sending rviz arrow")
     # while count<10:
     #     rate.sleep()	
     #     print("sending rviz arrow")
@@ -254,7 +300,8 @@ def plot_waypoint(wrapper):
                
 if __name__ == "__main__":
     is_sim = rospy.get_param("isSim")
-    
+    save_dir= rospy.get_param("save_dir")
+
     if is_sim:
         param_path = path + "/param/sim/"
         resource_path =  path + "/resources/sim/"
@@ -274,7 +321,14 @@ if __name__ == "__main__":
     waypoint_thread = threading.Thread(target = plot_waypoint,daemon=True, args = (wrapper,))
     wrapper.update()
     waypoint_thread.start()
-    while not rospy.is_shutdown() and wrapper.step<=50:
+    while not rospy.is_shutdown() and wrapper.running:
         wrapper.update()
+    candidates = wrapper.candidates.copy()
+    
+    for region, candidate in candidates.items():
+        candidates[region] = candidate.tolist()
+        
+    with open(save_dir+'anomaly_candidates.yaml', 'w') as file:
+        yaml.safe_dump(candidates, file)    
         
     print("inspection done")

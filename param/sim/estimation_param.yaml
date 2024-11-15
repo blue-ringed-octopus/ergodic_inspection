@@ -7,6 +7,7 @@ EKF:
   depth_pointcloud_topic: "/depth_registered/points"
   rgb_detected: "/camera/color/image_detected"
   odom_topic: "/odom" 
+  odom_frame: "odom"
   apriltag_marker_topic: "/apriltags" 
   tag_size: 0.16
   tag_families: tag36h11
@@ -15,22 +16,22 @@ EKF:
                  [0, 0, 0.0001, 0,0,0],
                  [0, 0, 0,  0.001,0,0],
                  [0, 0, 0, 0,  0.001,0],
-                [0, 0, 0, 0, 0,  0.1]]
+                [0, 0, 0, 0, 0,  0.05]]
   observation_noise: [[0.5,0,0,0,0,0],
                       [0, 0.5,0,0,0,0],
                       [0, 0, 0.5, 0,0,0],
-                      [0, 0, 0,  1.467,0,0],
-                      [0, 0, 0, 0,  1.467,0],
-                      [0, 0, 0, 0, 0,  1.467]]
+                      [0, 0, 0,  1.75,0,0],
+                      [0, 0, 0, 0,  1.75,0],
+                      [0, 0, 0, 0, 0,  1.75]]
 
 Graph_SLAM:
   node_threshold: 1
   forgetting_factor: 1
-  horizon: 10
+  horizon: 5
   max_iteration: 50
   step_size: 0.5
 
 Anomaly_Detector:
-  neightbor_count: 20
-  anoamly_threshold: 0.07
-  smoothing_factor: 0.01
+  neighbor_count: 20
+  anoamly_threshold: 0.05
+  smoothing_factor: 0.0001

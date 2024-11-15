@@ -385,9 +385,6 @@ class Graph_SLAM:
         self.backend_thread.join()
         self.backend_thread = threading.Thread(target = self.optimize,daemon=True, args = ())
         self.backend_thread.start()
-        # with open('graph.pickle', 'wb') as handle:
-        #     pickle.dump(self.factor_graph, handle)
-        # self.optimize()
         return node_id
     
     def update_nodes(self, M, H, idx_map):

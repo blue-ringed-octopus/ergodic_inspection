@@ -23,6 +23,7 @@ from numpy.linalg import  inv
 from  math import sqrt
 from copy import deepcopy
 from scipy.stats import bernoulli 
+from scipy.cluster import hierarchy
 
 np.float = np.float64
 np.set_printoptions(precision=2)
@@ -127,7 +128,7 @@ def get_global_cov_SE3(points, T_global, point_cov, T_cov):
 
 def random_down_sample(point_cloud, covs):       
     n = len(point_cloud.points)
-    n_ds = 5000
+    n_ds = 10000
     if n<n_ds:
         return point_cloud, covs
     
@@ -138,9 +139,11 @@ def random_down_sample(point_cloud, covs):
     return point_cloud, covs
  
 class Anomaly_Detector:
-    def __init__(self, reference_cloud, region_idx, thres = 1):
+    def __init__(self, reference_cloud, region_idx, thres, smoothing_factor, neighbor_count):
         self.reference = reference_cloud
         self.anomaly_thres = thres
+        self.smoothing_factor = smoothing_factor
+        self.neighbor_count = neighbor_count
         self.region_idx = region_idx
         self.partition(self.region_idx)
         # box = reference_cloud.get_axis_aligned_bounding_box()
@@ -152,7 +155,7 @@ class Anomaly_Detector:
         for id_, idx in region_idx.items():
             idx = np.array(idx)
             region_cloud = self.reference.select_by_index(idx)
-            detectors[id_] = Local_Detector(region_cloud, self.anomaly_thres)
+            detectors[id_] = Local_Detector(region_cloud, self.anomaly_thres, self.smoothing_factor, self.neighbor_count)
             
         self.detectors = detectors    
         
@@ -194,6 +197,7 @@ class Anomaly_Detector:
 
         p = p.transform(M)
         p, T = self.ICP(p)
+        # T= np.eye(4)
         
         return p, T@M, cov
     
@@ -219,11 +223,16 @@ class Anomaly_Detector:
             return [], []
         
         return p_anomaly, self.region_idx[region]
-        # with open('ref_cloud_detected.pickle', 'wb') as handle:
-        #     pickle.dump({"ref_pc": self.ref_points, "p_anomaly": self.p_anomaly}, handle)
-            
+
+        
+    def cluster_anomalies(self):
+        candidates = {}
+        for region, detector in self.detectors.items():
+            candidates[region] = detector.cluster_anomalies()
+        return candidates
+    
 class Local_Detector:
-    def __init__(self, pc, thres=1):
+    def __init__(self, pc, thres, smoothing_factor, neighbor_count):
         self.bounding_box = pc.get_axis_aligned_bounding_box()
         self.get_ref_pc(pc)
         n = len(self.ref_points)
@@ -232,26 +241,51 @@ class Local_Detector:
         # crop_pc = self.reference.crop(self.bounding_box)
 
         # _, self.crop_index = self.ref_tree.query(np.asarray(crop_pc.points),1)
-        self.neighbor_count = 20
+        self.neighbor_count = neighbor_count
 
         self._calculate_self_neighbor()
+        self.smoothing_factor = smoothing_factor
         
-        
-        self.p_anomaly = np.ones(len(self.reference.points))*0.25
+        self.p_anomaly = np.ones(len(self.reference.points))*0.20
         self.thres = thres
         self.n_sample = np.zeros(n)
         self.md_ref = np.zeros((n, 2))
         self.chi2 = np.zeros((n, 2))
-
-    def _calculate_self_neighbor(self):
-        _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
-        self.self_neighbor = corr.astype(np.uint32)
-                    
+        
     def get_ref_pc(self, pc):
         self.reference = deepcopy(pc)
         self.ref_normal = np.asarray(pc.normals)
         self.ref_points = np.asarray(pc.points)
         self.num_points = len(self.ref_points)
+        
+    def cluster_anomalies(self):
+         minsize = 1
+         points = np.array(self.reference.points)
+         points = points[self.p_anomaly>=0.5]
+         if len(points)<=minsize:
+             print("no fod")
+             return []
+         else:
+             labels=hierarchy.fclusterdata(points, criterion='distance',t=0.5)-1
+             num_point=np.bincount(labels)
+             clusters=[]
+             for i in range(max(labels)+1):
+                 if num_point[i]>=minsize:
+                     pointlist=[points[j] for j in range(len(points)) if i==labels[j]]
+                     clusters.append(pointlist)
+                     # pc=o3d.geometry.PointCloud()
+                     # pc.points=o3d.utility.Vector3dVector(pointlist)
+                     # clouds.append(pc)
+             centroids=[]
+             for i, cluster in enumerate(clusters):
+                 centroids.append(np.average(cluster,axis=0))
+             return np.asarray(centroids)  
+    
+    def _calculate_self_neighbor(self):
+        _, corr = self.ref_tree.query(self.ref_points, k=self.neighbor_count)
+        self.self_neighbor = corr.astype(np.uint32)
+                    
+
         
     def _paint_pc(self, pc, mds):
         c = np.array([0.5 if mds[i, 0]+mds[i, 1]==0 else mds[i, 0]/(mds[i, 0]+mds[i, 1]  )
@@ -302,9 +336,9 @@ class Local_Detector:
     def detect(self, p, cov):           
         # T = np.eye(4)        
         p = p.crop(self.bounding_box)
-        # p, cov = self.random_down_sample(p, cov)
-        smoothing = 0.001
+        smoothing = self.smoothing_factor
         points = np.array(p.points)
+        
         print("num points: ", len(points))
         if len(points) == 0:
             return []
@@ -330,20 +364,77 @@ class Local_Detector:
 
 if __name__ == "__main__":
     from map_manager import Map_Manager
-   
-    manager = Map_Manager("../resources/sim/")
-    detector = Anomaly_Detector(manager.reference, manager.region_idx, 0.04)
-    with open('tests/graph.pickle', 'rb') as f:
-        graph = pickle.load(f)
-    graph.prior_factor.omega = np.eye(6)   
+    #manager = Map_Manager("../resources/sim/")
+    #detector = Anomaly_Detector(manager.reference, manager.region_idx, 0.04)
+    # with open('tests/graph.pickle', 'rb') as f:
+    #     graph = pickle.load(f)
+    # graph.prior_factor.omega = np.eye(6)   
 
-    for node in graph.pose_nodes.values():
-        if not node.local_map == None:
-    # node = graph.pose_nodes[0]
-            coord= [node.M[0,3], node.M[1,3]]
-            region = manager.coord_to_region(coord, 1)
-            p, idx = detector.detect(node, graph.feature_nodes ,region)
-            manager.set_entropy(p, idx)
+    # for node in graph.pose_nodes.values():
+    #     if not node.local_map == None:
+    # # node = graph.pose_nodes[0]
+    #         coord= [node.M[0,3], node.M[1,3]]
+    #         region = manager.coord_to_region(coord, 1)
+    #         p, idx = detector.detect(node, graph.feature_nodes ,region)
+    #         manager.set_entropy(p, idx)
         
-    cloud = manager.visualize_entropy()
-    o3d.visualization.draw_geometries([cloud])
+    # cloud = manager.visualize_entropy()
+    # o3d.visualization.draw_geometries([cloud])
+    #%%
+    import colorsys as cs
+    import matplotlib.pyplot as plt
+    with open('tests/test_resource/detection36.pickle', 'rb') as f:
+        cloud = pickle.load(f)
+    p_anomaly =  cloud['p']
+    # detector = Anomaly_Detector(cloud["cloud"], cloud["region"], 0.04)
+    points=cloud["cloud"]['points']
+    points = points[p_anomaly>=0.5]
+    if len(points)<=5:
+        print("no fod")
+    
+    minsize = 0
+    labels=hierarchy.fclusterdata(points, criterion='distance',t=0.5)-1
+    num_point=np.bincount(labels)
+    clusters=[]
+    for i in range(max(labels)+1):
+        if num_point[i]>=minsize:
+            pointlist=[points[j] for j in range(len(points)) if i==labels[j]]
+            clusters.append(pointlist)
+            # pc=o3d.geometry.PointCloud()
+            # pc.points=o3d.utility.Vector3dVector(pointlist)
+            # clouds.append(pc)
+    centroids=[]
+    for i, cluster in enumerate(clusters):
+        centroids.append(np.average(cluster,axis=0))
+        
+    pc=o3d.geometry.PointCloud()
+    pc.points=o3d.utility.Vector3dVector(cloud["cloud"]['points'])
+    pc = pc.paint_uniform_color([0,0,0])
+    fods=[]
+    for centroid in centroids:
+        sphere = o3d.geometry.TriangleMesh.create_sphere (radius=0.1, resolution=20)
+        sphere.translate(centroid)
+        fods.append(sphere)
+    o3d.visualization.draw_geometries([pc]+fods)
+   
+    img = [] 
+    with open('tests/test_resource/key_nodes.pickle', 'rb') as f:
+        key_nodes = pickle.load(f)
+    for _, node in key_nodes.items():
+        K = node.local_map["cam_param"]
+        T_camera = node.local_map["cam_transform"]
+        M = node.M@T_camera
+        h,w,_ = node.local_map["rgb"].shape
+        for centroid in centroids:
+            p = (inv(M)@np.concatenate((centroid,[1])))[0:3]
+            pixel = (K@p.T).T
+            pixel_x = pixel[0]/pixel[2]
+            pixel_y = pixel[1]/pixel[2]
+            if ((p[2]<2) & (p[2]>0.05) & 
+                            (pixel_x>=0) & (pixel_x<w) &
+                            (pixel_y>=0) & (pixel_y<h)) :
+                img.append(node.local_map["rgb"])
+                
+    for im in img:
+        plt.figure()
+        plt.imshow(im)

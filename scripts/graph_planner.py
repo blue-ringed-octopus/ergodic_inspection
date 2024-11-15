@@ -7,6 +7,7 @@ Created on Mon May  6 14:52:53 2024
 import numpy as np
 import cvxpy as cp
 import cv2
+np.set_printoptions(precision=2)
 
 
 def outer(a, b):
@@ -30,8 +31,14 @@ class Graph_Planner:
         
 
     def discounted_ergodic_markov_chain(self, weight):
-        w=weight/sum(weight)
         
+        w=weight/sum(weight)
+        print("w1: ", w)
+
+        w = w + 0.001
+        w = w/sum(w)
+        print("w2: ", w)
+
         n = self.num_regions
         edges = self.edges
         P= cp.Variable((n,n))
@@ -119,12 +126,14 @@ class Graph_Planner:
             P=P/sum(P, 0)
             
         elif self.strategy == "greedy":
+            print(weight/np.sum(weight))
             P =  self.adjacency.copy()
-            for i in self.num_regions:
+            for i in range(self.num_regions):
                 P[:, i] = P[:, i] * weight 
                 P[:, i]= P[:, i]==np.max(P[:, i])
         self.P= P
-        
+        return P.copy()
+    
     def get_next_region(self, current_region):
         # if self.strategy == "ergodic":
         #     P = self.discounted_ergodic_markov_chain(weight)

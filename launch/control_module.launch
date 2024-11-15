@@ -1,9 +1,7 @@
 <launch>
    <param name="test" type="double" value="2.0" />
 
-   <include file="$(find ergodic_inspection)/launch/move_base.launch" />
-
-   <node pkg="ergodic_inspection" name="graph_planner_server" type="graph_planner_server.py" output="screen">
+  <node pkg="ergodic_inspection" name="graph_planner_server" type="graph_planner_server.py" output="screen">
    </node> 
 
    <node pkg="ergodic_inspection" name="waypoint_placement_ros" type="waypoint_placement_ros.py" output="screen">

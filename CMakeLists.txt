@@ -58,6 +58,7 @@ add_message_files(
   Node.msg
   RegionBounds.msg
   RegionPointIndex.msg
+  CandidatePoints.msg
  )
 
 # Generate services in the 'srv' folder
@@ -72,6 +73,7 @@ add_message_files(
     OptimizePoseGraph.srv
     GetRegionBounds.srv
     GetRegionPointIndex.srv
+    GetCandidates.srv
  )
 
 ## Generate actions in the 'action' folder

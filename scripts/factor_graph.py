@@ -19,10 +19,26 @@ class Node:
         self.pruned = False 
         self.factor = {}
         self.in_progress = True
-       
+        
     def copy(self):
         return deepcopy(self)
-     
+    
+    def to_dict(self):
+        node_dic={}
+        local_map = deepcopy(self.local_map)
+        local_map.pop('pc')
+        local_map.pop('cov')
+        node_dic["M"] = deepcopy(self.M)
+        node_dic["factor"] = deepcopy(self.factor)
+        node_dic["id"] = deepcopy( self.id)
+        node_dic["key"] = deepcopy(self.key)
+        node_dic["local_map"] = deepcopy(local_map)
+        node_dic["type"] = deepcopy(self.type)
+        return node_dic
+    
+    def load_dic(self):
+        pass
+    
 class Factor:
     def __init__(self, id_, parent_id, children_ids, feature_ids, z, sigma, idx_map ):
         self.prior = parent_id == None
@@ -111,6 +127,7 @@ class Factor_Graph:
 
     def prune(self, node_id):
         node = self.pose_nodes[node_id]
+        node.pruned = True
         for factor in list(node.factor.values()):
             self.remove_factor(factor)
             

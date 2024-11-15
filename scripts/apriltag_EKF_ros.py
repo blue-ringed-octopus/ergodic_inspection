@@ -146,9 +146,10 @@ class EKF_Wrapper:
             Rv[3,3] =  data.twist.twist.angular.x**2 
             Rv[4,4] =  data.twist.twist.angular.y**2
             Rv[5,5] =  data.twist.twist.angular.z**2
-            with self.lock:
-                self.ekf.motion_update(odom.copy(), Rv)
-                
+            if not np.isnan(odom).any():
+                with self.lock:
+                    self.ekf.motion_update(odom.copy(), Rv)
+                    
             self.tf_listener.waitForTransform(self.params["EKF"]["odom_frame"],self.params["EKF"]["robot_frame"],rospy.Time(), rospy.Duration(4.0))
             (trans, rot) = self.tf_listener.lookupTransform(self.params["EKF"]["odom_frame"],self.params["EKF"]["robot_frame"], rospy.Time(0))
             odom = self.tf_listener.fromTranslationRotation(trans, rot)
