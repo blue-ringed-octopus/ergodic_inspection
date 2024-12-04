@@ -146,7 +146,7 @@ class EKF_Wrapper:
             Rv[3,3] =  data.twist.twist.angular.x**2 
             Rv[4,4] =  data.twist.twist.angular.y**2
             Rv[5,5] =  data.twist.twist.angular.z**2
-            if not np.isnan(odom).any():
+            if not (np.isnan(odom).any() or np.isnan(Rv).any()):
                 with self.lock:
                     self.ekf.motion_update(odom.copy(), Rv)
                     

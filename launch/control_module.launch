@@ -1,5 +1,6 @@
 <launch>
-   <param name="test" type="double" value="2.0" />
+   <arg name="steps" default="35" />
+   <param name="steps" type="bool" value="$(arg steps)" />
 
   <node pkg="ergodic_inspection" name="graph_planner_server" type="graph_planner_server.py" output="screen">
    </node> 

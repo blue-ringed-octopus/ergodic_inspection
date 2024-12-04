@@ -41,7 +41,7 @@ class Waypoint_Placement_Wrapper:
         self.edge_waypoints = edge_waypoints
         self.ctrl_params = ctrl_params
         self.est_params = est_params
-        self.inspection_steps = 15
+        self.inspection_steps = crtl_params["waypoint_placement"]['max_step']
         self.waypoints_per_region = 2
         
         strategy = ctrl_params["waypoint_placement"]['strategy']
@@ -300,7 +300,8 @@ def plot_waypoint(wrapper):
                
 if __name__ == "__main__":
     is_sim = rospy.get_param("isSim")
-    save_dir= rospy.get_param("save_dir")
+    save_dir = rospy.get_param("save_dir")
+    max_step = rospy.get_param("inspection_steps")
 
     if is_sim:
         param_path = path + "/param/sim/"
@@ -317,6 +318,8 @@ if __name__ == "__main__":
     with open(resource_path+'edge_waypoints.yaml', 'r') as file:
         edge_waypoints = yaml.safe_load(file)  
         
+    crtl_params["waypoint_placement"]['max_step'] = max_step
+    
     wrapper = Waypoint_Placement_Wrapper(crtl_params, est_params, edge_waypoints)
     waypoint_thread = threading.Thread(target = plot_waypoint,daemon=True, args = (wrapper,))
     wrapper.update()
